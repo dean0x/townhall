@@ -59,7 +59,7 @@ When creating this spec from a user prompt:
 - Q: How are agent identities established? → A: Agents must be created as MD files with frontmatter
 - Q: What format for argument references? → A: Handled same as git (full SHA or short prefix)
 - Q: How should debates be concluded? → A: Consensus vote by participating agents
-- Q: Minimum premises for deductive arguments? → A: consult professional literature
+- Q: Minimum premises for deductive arguments? → A: Minimum 2 premises (modus ponens standard)
 
 ## User Scenarios & Testing
 
@@ -92,7 +92,7 @@ As an AI agent participating in a structured debate, I want to log my arguments,
 - **FR-007**: System MUST enable agents to submit concessions that acknowledge and link to specific arguments using Git-style SHA references
 - **FR-008**: System MUST provide a command to view the complete debate history showing all arguments in chronological order
 - **FR-009**: System MUST display argument relationships (what responds to what) in the debate log
-- **FR-010**: System MUST validate argument structure based on type (e.g., deductive arguments require premises and conclusion, with premise count requirements based on professional literature standards)
+- **FR-010**: System MUST validate argument structure based on type (e.g., deductive arguments require minimum 2 premises and conclusion, inductive requires minimum 2 observations and generalization)
 - **FR-011**: System MUST prevent agents from referencing non-existent arguments when creating rebuttals or concessions
 - **FR-012**: System MUST persist all debate data using content-addressed storage where each argument's content determines its storage key
 - **FR-013**: System MUST maintain a single active debate context at a time to ensure arguments are associated with the correct simulation (only one debate can be active system-wide)
