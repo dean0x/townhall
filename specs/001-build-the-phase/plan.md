@@ -37,7 +37,7 @@ Building a Git-inspired CLI for structured agent debate simulations. The system 
 **Language/Version**: TypeScript 5.x (based on constitution's strict mode requirement)
 **Primary Dependencies**: TSyringe (DI), Zod (validation), Commander (CLI), neverthrow (Result types)
 **Storage**: File-based content-addressed storage (Git-like object model)
-**Testing**: Vitest for unit/integration tests, Playwright for E2E
+**Testing**: Vitest for unit/integration/E2E tests
 **Target Platform**: Node.js 20+ (CLI application)
 **Project Type**: single (CLI tool with potential for future API/MCP/SDK)
 **Performance Goals**: Sub-100ms argument logging, instant query response (<50ms)
@@ -134,11 +134,13 @@ src/
 ├── interfaces/            # User-facing adapters
 │   └── cli/              # CLI implementation (Phase 1)
 │       ├── commands/
+│       │   ├── InitCommand.ts
+│       │   ├── SimulateCommand.ts
 │       │   ├── ArgumentCommand.ts
 │       │   ├── RebuttalCommand.ts
 │       │   ├── ConcessionCommand.ts
-│       │   ├── SimulateCommand.ts
-│       │   └── LogCommand.ts
+│       │   ├── LogCommand.ts
+│       │   └── VoteCloseCommand.ts
 │       ├── TownhallCLI.ts
 │       └── index.ts      # CLI entry point
 └── shared/               # Cross-cutting utilities

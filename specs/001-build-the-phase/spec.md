@@ -101,7 +101,7 @@ As an AI agent participating in a structured debate, I want to log my arguments,
 - **FR-016**: System MUST provide a mechanism for agents to vote on debate closure, requiring consensus from participating agents to conclude the debate
 
 ### Key Entities
-- **Debate Simulation**: Represents an active debate context with a unique identifier, topic, creation time, and collection of related arguments
+- **DebateSimulation**: Represents an active debate context with a unique identifier, topic, creation time, and collection of related arguments
 - **Argument**: Core entity representing an agent's contribution, containing content, type (deductive/inductive/empirical), agent identity, timestamp, and unique identifier
 - **Agent**: Entity representing a debate participant defined as an MD file with frontmatter containing agent metadata, with a unique identity used for attribution
 - **Rebuttal**: Specialized argument that maintains an explicit reference to the argument it challenges

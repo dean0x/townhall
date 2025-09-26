@@ -169,7 +169,7 @@ Following Hexagonal Architecture:
 - [ ] T084 [P] Add JSDoc comments to all public APIs
 - [ ] T085 [P] Create CLI help documentation in docs/cli-usage.md
 - [ ] T086 [P] Write API documentation in docs/api.md
-- [ ] T087 Performance optimization for sub-100ms operations
+- [ ] T087 Profile with Node.js perf tools and optimize hot paths to ensure <100ms argument logging and <50ms query response
 - [ ] T088 Add structured logging throughout application
 - [ ] T089 Create comprehensive README.md with quickstart
 - [ ] T090 Run full test suite and verify 100% pass rate
