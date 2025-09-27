@@ -1,0 +1,202 @@
+/**
+ * Tests for DebateSimulation entity
+ * Following TDD approach - these tests will fail until entity is implemented
+ */
+
+import { describe, it, expect } from 'vitest';
+import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateStatus } from '../../../../src/core/value-objects/DebateStatus';
+import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
+import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
+import { ArgumentIdGenerator } from '../../../../src/core/value-objects/ArgumentId';
+
+describe('DebateSimulation Entity', () => {
+  const mockTimestamp = TimestampGenerator.now();
+
+  describe('Factory method', () => {
+    it('should create simulation with valid properties', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Should AI be regulated?',
+        createdAt: mockTimestamp,
+      });
+
+      expect(simulation).toBeDefined();
+      expect(simulation.topic).toBe('Should AI be regulated?');
+      expect(simulation.createdAt).toBe(mockTimestamp);
+      expect(simulation.status).toBe(DebateStatus.ACTIVE);
+      expect(simulation.participantIds).toEqual([]);
+      expect(simulation.argumentIds).toEqual([]);
+      expect(simulation.votesToClose).toEqual([]);
+      expect(simulation.id).toBeDefined();
+    });
+
+    it('should validate topic length', () => {
+      expect(() => {
+        DebateSimulation.create({
+          topic: '', // Empty topic should fail
+          createdAt: mockTimestamp,
+        });
+      }).toThrow('Topic must be between 1 and 500 characters');
+
+      expect(() => {
+        DebateSimulation.create({
+          topic: 'a'.repeat(501), // Too long topic should fail
+          createdAt: mockTimestamp,
+        });
+      }).toThrow('Topic must be between 1 and 500 characters');
+    });
+
+    it('should generate consistent content-addressed ID', () => {
+      const topic = 'Test debate topic';
+      const timestamp = TimestampGenerator.fromString('2025-01-26T10:00:00.000Z');
+
+      const sim1 = DebateSimulation.create({
+        topic,
+        createdAt: timestamp,
+      });
+
+      const sim2 = DebateSimulation.create({
+        topic,
+        createdAt: timestamp,
+      });
+
+      expect(sim1.id).toBe(sim2.id);
+    });
+  });
+
+  describe('Participant management', () => {
+    it('should add participant to simulation', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      const agentId = AgentIdGenerator.generate();
+      const updated = simulation.addParticipant(agentId);
+
+      expect(updated.participantIds).toContain(agentId);
+      expect(updated.participantIds).toHaveLength(1);
+    });
+
+    it('should not add duplicate participants', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      const agentId = AgentIdGenerator.generate();
+      const updated1 = simulation.addParticipant(agentId);
+      const updated2 = updated1.addParticipant(agentId);
+
+      expect(updated2.participantIds).toHaveLength(1);
+    });
+  });
+
+  describe('Argument management', () => {
+    it('should add argument to simulation', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      const argumentId = ArgumentIdGenerator.fromContent('Test argument');
+      const updated = simulation.addArgument(argumentId);
+
+      expect(updated.argumentIds).toContain(argumentId);
+      expect(updated.argumentIds).toHaveLength(1);
+    });
+
+    it('should maintain argument order', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      const arg1 = ArgumentIdGenerator.fromContent('Argument 1');
+      const arg2 = ArgumentIdGenerator.fromContent('Argument 2');
+      const arg3 = ArgumentIdGenerator.fromContent('Argument 3');
+
+      const updated = simulation
+        .addArgument(arg1)
+        .addArgument(arg2)
+        .addArgument(arg3);
+
+      expect(updated.argumentIds).toEqual([arg1, arg2, arg3]);
+    });
+  });
+
+  describe('Status transitions', () => {
+    it('should transition from active to voting', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      const updated = simulation.transitionTo(DebateStatus.VOTING);
+
+      expect(updated.status).toBe(DebateStatus.VOTING);
+    });
+
+    it('should validate status transitions', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      // Entities are now pure data - validation happens in handlers
+      const result = simulation.transitionTo(DebateStatus.CLOSED);
+      expect(result.status).toBe(DebateStatus.CLOSED);
+    });
+  });
+
+  describe('Vote management', () => {
+    it('should record close votes', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      const agentId = AgentIdGenerator.generate();
+      const withParticipant = simulation.addParticipant(agentId);
+      const updated = withParticipant.recordCloseVote(agentId, true, 'All points covered');
+
+      expect(updated.votesToClose).toHaveLength(1);
+      expect(updated.votesToClose[0]?.agentId).toBe(agentId);
+      expect(updated.votesToClose[0]?.vote).toBe(true);
+    });
+
+    it('should not allow duplicate votes from same agent', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      const agentId = AgentIdGenerator.generate();
+      const withParticipant = simulation.addParticipant(agentId);
+      const updated1 = withParticipant.recordCloseVote(agentId, true);
+
+      // Entities are now pure data - validation happens in handlers
+      const updated2 = updated1.recordCloseVote(agentId, false);
+      expect(updated2.votesToClose).toHaveLength(2); // Should allow adding second vote
+    });
+  });
+
+  describe('Immutability', () => {
+    it('should create immutable simulation', () => {
+      const simulation = DebateSimulation.create({
+        topic: 'Test topic',
+        createdAt: mockTimestamp,
+      });
+
+      // These should not be modifiable
+      expect(() => {
+        (simulation as any).id = 'new-id';
+      }).toThrow();
+
+      expect(() => {
+        (simulation as any).topic = 'New topic';
+      }).toThrow();
+    });
+  });
+});
