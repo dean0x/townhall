@@ -51,8 +51,9 @@ export abstract class BaseCommand {
   /**
    * Template method for validating options before execution
    * Returns Result with validated options or validation error
+   * Can be async for commands that need to resolve IDs or fetch data
    */
-  protected abstract validateOptions(options: any): Result<any, ValidationError>;
+  protected abstract validateOptions(options: any): Result<any, ValidationError> | Promise<Result<any, ValidationError>>;
 
   /**
    * Template method for executing the command logic

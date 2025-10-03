@@ -9,6 +9,7 @@ import { BaseCommand, CommandContext } from '../base/BaseCommand';
 import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
+import { IArgumentRepository } from '../../../core/repositories/IArgumentRepository';
 import { SubmitRebuttalCommand } from '../../../application/commands/SubmitRebuttalCommand';
 import { RebuttalType } from '../../../core/entities/Rebuttal';
 import { ArgumentContent, ArgumentType } from '../../../core/entities/Argument';
@@ -42,6 +43,7 @@ interface ValidatedRebuttalOptions {
 export class RebuttalCommand extends BaseCommand {
   constructor(
     private readonly commandBus: ICommandBus,
+    private readonly argumentRepository: IArgumentRepository,
     context: CommandContext
   ) {
     super('rebuttal', 'Submit a rebuttal to an existing argument', context);
@@ -63,7 +65,7 @@ export class RebuttalCommand extends BaseCommand {
       .option('--confidence <number>', 'Confidence level (0-100)', '75');
   }
 
-  protected validateOptions(options: RebuttalOptions): Result<ValidatedRebuttalOptions, ValidationError> {
+  protected async validateOptions(options: RebuttalOptions): Promise<Result<ValidatedRebuttalOptions, ValidationError>> {
     // Validate rebuttal type
     const rebuttalTypeResult = this.validateRebuttalType(options.type);
     if (rebuttalTypeResult.isErr()) {
@@ -82,8 +84,8 @@ export class RebuttalCommand extends BaseCommand {
       return err(agentIdResult.error);
     }
 
-    // Validate target argument ID
-    const targetIdResult = this.validateTargetId(options.target);
+    // Validate target argument ID (async - may need to expand short hash)
+    const targetIdResult = await this.validateTargetId(options.target);
     if (targetIdResult.isErr()) {
       return err(targetIdResult.error);
     }
@@ -188,14 +190,17 @@ export class RebuttalCommand extends BaseCommand {
     }
   }
 
-  private validateTargetId(targetId: string): Result<ArgumentId, ValidationError> {
+  private async validateTargetId(targetId: string): Promise<Result<ArgumentId, ValidationError>> {
     try {
-      // Try as full hash first
+      // Try as full UUID/hash first
       return ok(ArgumentIdGenerator.fromString(targetId));
     } catch {
-      // TODO: Implement short hash resolution
-      // For now, treat as string and let backend handle it
-      return ok(targetId as ArgumentId);
+      // Try short hash resolution via repository
+      const expandResult = await this.argumentRepository.expandShortHash(targetId);
+      if (expandResult.isErr()) {
+        return err(new ValidationError(`Invalid argument ID: ${targetId}. Must be a valid UUID or unambiguous short hash.`));
+      }
+      return ok(expandResult.value);
     }
   }
 

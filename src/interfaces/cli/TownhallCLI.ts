@@ -11,6 +11,7 @@ import { DomainError, InternalError } from '../../shared/errors';
 import { ICommandBus } from '../../application/handlers/CommandBus';
 import { IQueryBus } from '../../application/handlers/QueryBus';
 import { ILogger } from '../../application/ports/ILogger';
+import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { ObjectStorage } from '../../infrastructure/storage/ObjectStorage';
 import { TOKENS } from '../../shared/container';
 import { CommandContext } from './base/BaseCommand';
@@ -33,7 +34,8 @@ export class TownhallCLI {
     @inject(TOKENS.CommandBus) private readonly commandBus: ICommandBus,
     @inject(TOKENS.QueryBus) private readonly queryBus: IQueryBus,
     @inject(TOKENS.Logger) private readonly logger: ILogger,
-    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage
+    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage,
+    @inject(TOKENS.ArgumentRepository) private readonly argumentRepository: IArgumentRepository
   ) {
     this.program = new Command();
     this.context = {
@@ -98,8 +100,8 @@ export class TownhallCLI {
     const simulateCommand = new SimulateCommand(this.commandBus, this.context);
     const argumentCommand = new ArgumentCommand(this.commandBus, this.context);
     const logCommand = new LogCommand(this.queryBus, this.context);
-    const rebuttalCommand = new RebuttalCommand(this.commandBus, this.context);
-    const concedeCommand = new ConcedeCommand(this.commandBus, this.context);
+    const rebuttalCommand = new RebuttalCommand(this.commandBus, this.argumentRepository, this.context);
+    const concedeCommand = new ConcedeCommand(this.commandBus, this.argumentRepository, this.context);
     const voteCommand = new VoteCommand(this.commandBus, this.context);
 
     // Add commands to program
