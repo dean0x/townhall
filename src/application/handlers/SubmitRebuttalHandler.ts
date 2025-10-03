@@ -12,17 +12,19 @@ import { SubmitRebuttalCommand } from '../commands/SubmitRebuttalCommand';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
-import { IArgumentValidator } from '../../core/services/ArgumentValidator';
-import { IRelationshipBuilder } from '../../core/services/RelationshipBuilder';
+import { ArgumentValidator } from '../../core/services/ArgumentValidator';
+import { RelationshipBuilder } from '../../core/services/RelationshipBuilder';
 import { Rebuttal } from '../../core/entities/Rebuttal';
 import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { TOKENS } from '../../shared/container';
 
 export interface SubmitRebuttalResult {
-  readonly rebuttalId: ArgumentId;
+  readonly argumentId: string;
+  readonly shortHash: string;
   readonly targetId: ArgumentId;
   readonly rebuttalType: string;
-  readonly createdAt: string;
+  readonly timestamp: string;
 }
 
 @injectable()
@@ -31,8 +33,8 @@ export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalComm
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
     @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.ArgumentValidator) private readonly validator: IArgumentValidator,
-    @inject(TOKENS.RelationshipBuilder) private readonly relationshipBuilder: IRelationshipBuilder
+    @inject(TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
+    @inject(TOKENS.RelationshipBuilder) private readonly relationshipBuilder: RelationshipBuilder
   ) {}
 
   public async handle(command: SubmitRebuttalCommand): Promise<Result<SubmitRebuttalResult, Error>> {
@@ -58,25 +60,46 @@ export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalComm
       return err(new NotFoundError('Agent', command.agentId));
     }
 
+    // Get sequence number for rebuttal (rebuttals are arguments too)
+    const sequenceNumber = simulation.getArgumentCount() + 1;
+
     // Create rebuttal
     const rebuttal = Rebuttal.create({
       agentId: command.agentId,
+      type: command.type,
+      content: command.content,
       simulationId: simulation.id,
+      timestamp: TimestampGenerator.now(),
       targetArgumentId: command.targetArgumentId,
       rebuttalType: command.rebuttalType,
-      content: command.content,
+      sequenceNumber,
     });
 
-    // Validate rebuttal structure
-    const validationResult = this.validator.validate(rebuttal);
+    // Validate rebuttal argument structure based on its type
+    let validationResult: Result<void, ValidationError>;
+
+    switch (command.type) {
+      case 'deductive':
+        validationResult = this.validator.validateDeductive(command.content.structure as any);
+        break;
+      case 'inductive':
+        validationResult = this.validator.validateInductive(command.content.structure as any);
+        break;
+      case 'empirical':
+        validationResult = this.validator.validateEmpirical(command.content.structure as any);
+        break;
+      default:
+        return err(new ValidationError(`Invalid argument type: ${command.type}`));
+    }
+
     if (validationResult.isErr()) {
-      return validationResult;
+      return err(validationResult.error);
     }
 
     // Build relationships
-    const relationshipResult = await this.relationshipBuilder.buildForRebuttal(rebuttal, targetArgument);
+    const relationshipResult = this.relationshipBuilder.createRebuttalRelationship(rebuttal, targetArgument);
     if (relationshipResult.isErr()) {
-      return relationshipResult;
+      return err(relationshipResult.error);
     }
 
     // Save rebuttal
@@ -93,10 +116,11 @@ export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalComm
     }
 
     return ok({
-      rebuttalId: rebuttal.id,
+      argumentId: rebuttal.id,
+      shortHash: rebuttal.metadata.shortHash,
       targetId: command.targetArgumentId,
       rebuttalType: command.rebuttalType,
-      createdAt: rebuttal.createdAt,
+      timestamp: rebuttal.timestamp,
     });
   }
 }

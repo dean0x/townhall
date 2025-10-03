@@ -66,7 +66,7 @@ export class Argument {
     public readonly simulationId: SimulationId,
     public readonly metadata: ArgumentMetadata
   ) {
-    Object.freeze(this);
+    // Note: Object.freeze(this) moved to static create methods for inheritance support
   }
 
   public static create(params: CreateArgumentParams): Argument {
@@ -90,7 +90,7 @@ export class Argument {
       sequenceNumber: params.sequenceNumber ?? 0,
     };
 
-    return new Argument(
+    const argument = new Argument(
       id,
       params.agentId,
       params.type,
@@ -99,6 +99,9 @@ export class Argument {
       params.simulationId,
       metadata
     );
+
+    Object.freeze(argument);
+    return argument;
   }
 
   private static validateStructure(type: ArgumentType, structure: ArgumentStructure): void {

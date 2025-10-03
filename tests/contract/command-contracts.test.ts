@@ -33,6 +33,17 @@ describe('Command/Query Handler Contracts', () => {
     queryBus = container.resolve(TOKENS.QueryBus);
   });
 
+  afterEach(async () => {
+    // Clean up after each test to ensure isolation
+    try {
+      const fs = await import('fs/promises');
+      await fs.rm('.townhall', { recursive: true, force: true });
+    } catch {
+      // Ignore errors if directory doesn't exist
+    }
+  });
+
+
   describe('InitializeDebateCommand', () => {
     it('should return debate details on success', async () => {
       const command: InitializeDebateCommand = {
@@ -57,10 +68,13 @@ describe('Command/Query Handler Contracts', () => {
 
     it('should prevent multiple active debates', async () => {
       // Start first debate
-      await commandBus.execute(
+      const firstResult = await commandBus.execute(
         { topic: 'First debate' },
         'InitializeDebateCommand'
       );
+
+      // Ensure first debate was created successfully
+      expect(firstResult.isOk()).toBe(true);
 
       // Try to start second debate
       const result = await commandBus.execute(
@@ -76,7 +90,37 @@ describe('Command/Query Handler Contracts', () => {
   });
 
   describe('CreateArgumentCommand', () => {
+    beforeEach(async () => {
+      // Ensure agent file exists for this test suite
+      const fs = await import('fs/promises');
+      const path = await import('path');
+
+      // Ensure .townhall/agents directory exists
+      await fs.mkdir('.townhall/agents', { recursive: true });
+
+      // Create a test agent file
+      const agentId = 'f05482e4-324d-4b50-8be3-a49f870cd968';
+      const agentContent = `---
+id: ${agentId}
+name: Test Agent
+type: llm
+capabilities: [debate, reasoning, analysis]
+---
+
+# Test Agent
+
+A test agent for contract testing.`;
+
+      await fs.writeFile(
+        path.join('.townhall', 'agents', `${agentId}.md`),
+        agentContent,
+        'utf8'
+      );
+    });
+
     it('should return argument details on success', async () => {
+      const agentId = 'f05482e4-324d-4b50-8be3-a49f870cd968';
+
       // Initialize debate first
       await commandBus.execute(
         { topic: 'Test debate' },
@@ -84,7 +128,7 @@ describe('Command/Query Handler Contracts', () => {
       );
 
       const command: CreateArgumentCommand = {
-        agentId: 'f05482e4-324d-4b50-8be3-a49f870cd968',
+        agentId,
         type: 'deductive',
         content: {
           text: 'Test argument',
@@ -96,6 +140,11 @@ describe('Command/Query Handler Contracts', () => {
       };
 
       const result = await commandBus.execute(command, 'CreateArgumentCommand');
+
+      // Debug output to see the actual error
+      if (result.isErr()) {
+        console.error('CreateArgumentCommand failed:', result.error);
+      }
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {

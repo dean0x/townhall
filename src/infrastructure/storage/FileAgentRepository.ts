@@ -44,19 +44,7 @@ export class FileAgentRepository implements IAgentRepository {
     // Check cache again after refresh
     const agent = this.agentCache.get(id);
     if (!agent) {
-      // For MVP, create a default agent when not found
-      const defaultAgent = Agent.create({
-        id,
-        name: 'Default Agent',
-        type: 'llm',
-        capabilities: ['debate', 'analysis'],
-        description: 'Default agent when no MD file exists',
-        filePath: join(this.agentsDir, `${id}.md`),
-      });
-
-      // Cache the default agent
-      this.agentCache.set(id, defaultAgent);
-      return ok(defaultAgent);
+      return err(new NotFoundError('Agent', id));
     }
 
     return ok(agent);

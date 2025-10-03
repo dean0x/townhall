@@ -4,9 +4,11 @@
  * Rationale: Maintains argument-to-argument relationships for debate structure
  */
 
-import { Argument, CreateArgumentParams, ArgumentType, ArgumentContent } from './Argument';
+import { Argument, CreateArgumentParams, ArgumentType, ArgumentContent, ArgumentMetadata } from './Argument';
 import { ArgumentId, ArgumentIdGenerator } from '../value-objects/ArgumentId';
-import { TimestampGenerator } from '../value-objects/Timestamp';
+import { AgentId } from '../value-objects/AgentId';
+import { SimulationId } from '../value-objects/SimulationId';
+import { Timestamp, TimestampGenerator } from '../value-objects/Timestamp';
 
 export type RebuttalType = 'logical' | 'empirical' | 'methodological';
 
@@ -23,19 +25,18 @@ export class Rebuttal extends Argument {
 
   private constructor(
     id: ArgumentId,
-    agentId: string,
+    agentId: AgentId,
     type: ArgumentType,
     content: ArgumentContent,
-    timestamp: string,
-    simulationId: string,
-    metadata: any,
+    timestamp: Timestamp,
+    simulationId: SimulationId,
+    metadata: ArgumentMetadata,
     targetArgumentId: ArgumentId,
     rebuttalType: RebuttalType
   ) {
     super(id, agentId, type, content, timestamp, simulationId, metadata);
     this.targetArgumentId = targetArgumentId;
     this.rebuttalType = rebuttalType;
-    Object.freeze(this);
   }
 
   public static create(params: CreateRebuttalParams): Rebuttal {
@@ -61,7 +62,7 @@ export class Rebuttal extends Argument {
       sequenceNumber: params.sequenceNumber ?? 0,
     };
 
-    return new Rebuttal(
+    const rebuttal = new Rebuttal(
       id,
       params.agentId,
       params.type,
@@ -72,6 +73,9 @@ export class Rebuttal extends Argument {
       params.targetArgumentId,
       params.rebuttalType
     );
+
+    Object.freeze(rebuttal);
+    return rebuttal;
   }
 
   public isRebuttalTo(argumentId: ArgumentId): boolean {

@@ -18,6 +18,7 @@ import { TOKENS } from '../../shared/container';
 export interface InitializeDebateResult {
   readonly simulationId: SimulationId;
   readonly topic: string;
+  readonly status: string;
   readonly createdAt: string;
 }
 
@@ -66,6 +67,7 @@ export class InitializeDebateHandler implements ICommandHandler<InitializeDebate
     return ok({
       simulationId: simulation.id,
       topic: simulation.topic,
+      status: simulation.status,
       createdAt: simulation.createdAt,
     });
   }

@@ -14,6 +14,7 @@ import { ISimulationRepository } from '../../core/repositories/ISimulationReposi
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { Concession } from '../../core/entities/Concession';
 import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { TOKENS } from '../../shared/container';
 
 export interface SubmitConcessionResult {
@@ -52,13 +53,30 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
       return err(new NotFoundError('Agent', command.agentId));
     }
 
+    // Get sequence number for concession (concessions are arguments too)
+    const sequenceNumber = simulation.getArgumentCount() + 1;
+
     // Create concession
     const concession = Concession.create({
       agentId: command.agentId,
+      type: 'deductive', // Default type for concessions
+      content: {
+        text: command.explanation || `Concession (${command.concessionType})`,
+        structure: {
+          premises: [
+            'I acknowledge the validity of the target argument',
+            'The evidence presented is compelling'
+          ],
+          conclusion: `Therefore, I ${command.concessionType}ly concede to this argument`,
+        },
+      },
       simulationId: simulation.id,
+      timestamp: TimestampGenerator.now(),
       targetArgumentId: command.targetArgumentId,
-      reason: command.reason,
-      acknowledgement: command.acknowledgement,
+      concessionType: command.concessionType,
+      explanation: command.explanation,
+      conditions: command.conditions,
+      sequenceNumber,
     });
 
     // Save concession
@@ -67,9 +85,9 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
       return saveResult;
     }
 
-    // Add to simulation
-    simulation.addArgument(concession.id);
-    const updateResult = await this.simulationRepo.save(simulation);
+    // Add to simulation (pass true to indicate this is a concession)
+    const updatedSimulation = simulation.addArgument(concession.id, true);
+    const updateResult = await this.simulationRepo.save(updatedSimulation);
     if (updateResult.isErr()) {
       return updateResult;
     }
@@ -77,8 +95,8 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
     return ok({
       concessionId: concession.id,
       targetId: command.targetArgumentId,
-      reason: command.reason,
-      createdAt: concession.createdAt,
+      reason: command.concessionType,
+      createdAt: concession.timestamp,
     });
   }
 }

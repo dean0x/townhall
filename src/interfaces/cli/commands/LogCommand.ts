@@ -1,83 +1,140 @@
 /**
- * ARCHITECTURE: Interface layer - Log command
- * Pattern: Query adapter with display formatting
- * Rationale: Separates query logic from presentation logic
+ * ARCHITECTURE: Interface layer - Log command (refactored)
+ * Pattern: Query adapter with Result-based error handling
+ * Rationale: Separates query logic from presentation with proper error propagation
  */
 
 import { Command, Option } from 'commander';
+import { BaseCommand, CommandContext } from '../base/BaseCommand';
+import { Result, ok, err } from '../../../shared/result';
+import { DomainError, ValidationError } from '../../../shared/errors';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { GetDebateHistoryQuery } from '../../../application/queries/GetDebateHistoryQuery';
 import { ArgumentType } from '../../../core/value-objects/ArgumentType';
-import { AgentIdGenerator } from '../../../core/value-objects/AgentId';
-import { ILogger } from '../../../application/ports/ILogger';
+import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
 
 interface LogOptions {
   graph?: boolean;
   agent?: string;
   type?: ArgumentType;
-  limit?: number;
+  limit?: string;
   json?: boolean;
 }
 
-export class LogCommand {
+interface ValidatedLogOptions {
+  agentFilter?: AgentId;
+  typeFilter?: ArgumentType;
+  limit?: number;
+  includeRelationships: boolean;
+  jsonOutput: boolean;
+}
+
+export class LogCommand extends BaseCommand {
   constructor(
     private readonly queryBus: IQueryBus,
-    private readonly logger: ILogger
-  ) {}
+    context: CommandContext
+  ) {
+    super('log', 'View debate history with various formatting options', context);
+  }
 
-  public build(): Command {
-    return new Command('log')
-      .description('View debate history with various formatting options')
+  protected setupOptions(command: Command): void {
+    command
       .option('--graph', 'Show argument relationships as tree')
       .option('--agent <uuid>', 'Filter by specific agent')
       .addOption(new Option('--type <type>', 'Filter by argument type').choices(['deductive', 'inductive', 'empirical']))
-      .option('--limit <number>', 'Limit number of entries', parseInt)
-      .option('--json', 'Output as JSON')
-      .action(async (options: LogOptions) => {
-        await this.execute(options);
-      });
+      .option('--limit <number>', 'Limit number of entries')
+      .option('--json', 'Output as JSON');
   }
 
-  private async execute(options: LogOptions): Promise<void> {
-    this.logger.info('Retrieving debate history', { options });
+  protected validateOptions(options: LogOptions): Result<ValidatedLogOptions, ValidationError> {
+    // Validate agent ID if provided
+    let agentFilter: AgentId | undefined;
+    if (options.agent) {
+      const agentIdResult = this.validateAgentId(options.agent);
+      if (agentIdResult.isErr()) {
+        return err(agentIdResult.error);
+      }
+      agentFilter = agentIdResult.value;
+    }
 
+    // Validate limit if provided
+    let limit: number | undefined;
+    if (options.limit) {
+      const limitResult = this.validateLimit(options.limit);
+      if (limitResult.isErr()) {
+        return err(limitResult.error);
+      }
+      limit = limitResult.value;
+    }
+
+    return ok({
+      agentFilter,
+      typeFilter: options.type,
+      limit,
+      includeRelationships: options.graph || false,
+      jsonOutput: options.json || false,
+    });
+  }
+
+  protected async execute(validatedOptions: ValidatedLogOptions): Promise<Result<void, DomainError>> {
+    this.context.logger.info('Retrieving debate history', {
+      options: validatedOptions,
+    });
+
+    // Build query
+    const query: GetDebateHistoryQuery = {
+      agentFilter: validatedOptions.agentFilter,
+      typeFilter: validatedOptions.typeFilter,
+      limit: validatedOptions.limit,
+      includeRelationships: validatedOptions.includeRelationships,
+    };
+
+    const result = await this.queryBus.execute(query, 'GetDebateHistoryQuery');
+
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    const history = result.value;
+
+    // Display results
+    if (validatedOptions.jsonOutput) {
+      console.log(JSON.stringify(history, null, 2));
+    } else {
+      this.displayHistory(history, validatedOptions);
+    }
+
+    this.context.logger.info('Debate history displayed', {
+      argumentCount: history.argumentCount,
+      participantCount: history.participantCount,
+    });
+
+    return ok(undefined);
+  }
+
+  private validateAgentId(agentId: string): Result<AgentId, ValidationError> {
     try {
-      // Build query
-      const query: GetDebateHistoryQuery = {
-        agentFilter: options.agent ? AgentIdGenerator.fromString(options.agent) : undefined,
-        typeFilter: options.type,
-        limit: options.limit,
-        includeRelationships: options.graph || false,
-      };
-
-      const result = await this.queryBus.execute(query, 'GetDebateHistoryQuery');
-
-      if (result.isErr()) {
-        console.error('❌ Failed to retrieve debate history:', result.error.message);
-        process.exit(1);
-      }
-
-      const history = result.value;
-
-      if (options.json) {
-        console.log(JSON.stringify(history, null, 2));
-        return;
-      }
-
-      this.displayHistory(history, options);
-
-      this.logger.info('Debate history displayed', {
-        argumentCount: history.argumentCount,
-        participantCount: history.participantCount,
-      });
-
+      return ok(AgentIdGenerator.fromString(agentId));
     } catch (error) {
-      console.error('❌ Invalid input:', error instanceof Error ? error.message : 'Unknown error');
-      process.exit(1);
+      return err(new ValidationError(
+        `Invalid agent ID format: ${agentId}`,
+        'agent'
+      ));
     }
   }
 
-  private displayHistory(history: any, options: LogOptions): void {
+  private validateLimit(limitStr: string): Result<number, ValidationError> {
+    const limit = parseInt(limitStr, 10);
+    if (isNaN(limit) || limit < 1 || limit > 1000) {
+      return err(new ValidationError(
+        'Limit must be a number between 1 and 1000',
+        'limit'
+      ));
+    }
+    return ok(limit);
+  }
+
+  private displayHistory(history: any, options: ValidatedLogOptions): void {
     console.log(`Debate: ${history.topic} [${history.status}]`);
     console.log(`Participants: ${history.participantCount} | Arguments: ${history.argumentCount}`);
     console.log('');
@@ -88,7 +145,7 @@ export class LogCommand {
       return;
     }
 
-    if (options.graph && history.relationships) {
+    if (options.includeRelationships && history.relationships) {
       this.displayGraphView(history);
     } else {
       this.displayListView(history);

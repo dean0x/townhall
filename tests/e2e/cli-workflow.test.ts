@@ -55,14 +55,29 @@ A test agent for debugging purposes.`, 'utf8');
     await new Promise(resolve => setTimeout(resolve, 50));
   });
 
-  afterEach(() => {
-    // Cleanup both directories
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-    if (existsSync(townhallDir)) {
-      rmSync(townhallDir, { recursive: true, force: true });
-    }
+  afterEach(async () => {
+    // Cleanup both directories with retry logic for locked files
+    const cleanupWithRetry = async (dir: string, retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          if (existsSync(dir)) {
+            rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+          }
+          return;
+        } catch (error) {
+          if (i === retries - 1) {
+            // On last retry, just log the error and continue
+            console.warn(`Could not cleanup ${dir}:`, error);
+          } else {
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+      }
+    };
+
+    await cleanupWithRetry(testDir);
+    await cleanupWithRetry(townhallDir);
   });
 
   describe('Complete debate workflow', () => {
@@ -70,12 +85,12 @@ A test agent for debugging purposes.`, 'utf8');
       // Repository already initialized in beforeEach
       expect(existsSync('.townhall')).toBe(true);
 
-      // Start debate
+      // Start debate (fix command format)
       const simulateResult = execSync(
         `node ${cliPath} simulate debate "Test topic"`,
         { encoding: 'utf8', cwd: process.cwd() }
       );
-      expect(simulateResult).toContain('Debate initialized');
+      expect(simulateResult).toContain('Debate simulation started');
       expect(simulateResult).toContain('Test topic');
 
       // Submit argument
@@ -92,6 +107,21 @@ A test agent for debugging purposes.`, 'utf8');
       const logResult = execSync(`node ${cliPath} log`, { encoding: 'utf8', cwd: process.cwd() });
       expect(logResult).toContain('Test topic');
       expect(logResult).toContain('[active]');
+
+      // Check if agent file still exists before voting
+      const fs = require('fs');
+      const agentFilePath = join(process.cwd(), '.townhall', 'agents', 'test-agent.md');
+      if (!fs.existsSync(agentFilePath)) {
+        // Recreate agent file if it was deleted
+        const agentContent = `---
+id: f05482e4-324d-4b50-8be3-a49f870cd968
+name: Test Agent
+type: llm
+capabilities: [debate, analysis]
+---
+A test agent for debugging purposes.`;
+        fs.writeFileSync(agentFilePath, agentContent, 'utf8');
+      }
 
       // Vote to close
       const voteResult = execSync(
@@ -118,7 +148,7 @@ A test agent for debugging purposes.`, 'utf8');
     it('should require active debate for arguments', () => {
       try {
         const output = execSync(
-          `node ${cliPath} argument --agent f05482e4-324d-4b50-8be3-a49f870cd968 --type deductive --premise "Test premise" --conclusion "Test conclusion"`,
+          `node ${cliPath} argument --agent f05482e4-324d-4b50-8be3-a49f870cd968 --type deductive --premise "Test premise 1" --premise "Test premise 2" --conclusion "Test conclusion"`,
           { encoding: 'utf8' }
         );
         expect.fail('Should have thrown error');

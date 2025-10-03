@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsup src/interfaces/cli/index.ts --dts --format cjs --target node20 --out-dir dist",
     "dev": "tsx src/interfaces/cli/index.ts",
-    "test": "vitest",
+    "test": "vitest --no-file-parallelism",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src/ --ext .ts",
     "lint:fix": "eslint src/ --ext .ts --fix",

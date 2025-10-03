@@ -67,9 +67,16 @@ export class DebateSimulation {
     );
   }
 
-  public addArgument(argumentId: ArgumentId): DebateSimulation {
-    if (this.status !== DebateStatus.ACTIVE) {
+  public addArgument(argumentId: ArgumentId, isConcession: boolean = false): DebateSimulation {
+    // ARCHITECTURE: Concessions are special case - allowed during voting phase
+    // Rationale: Agents should be able to concede even when debate is in voting phase
+    if (!isConcession && this.status !== DebateStatus.ACTIVE) {
       throw new Error('Cannot add arguments to inactive debate');
+    }
+
+    // Allow concessions during both ACTIVE and VOTING phases
+    if (isConcession && this.status !== DebateStatus.ACTIVE && this.status !== DebateStatus.VOTING) {
+      throw new Error('Cannot add concessions to closed debate');
     }
 
     return new DebateSimulation(

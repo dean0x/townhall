@@ -1,38 +1,63 @@
 /**
- * ARCHITECTURE: Interface layer - Init command
- * Pattern: Command adapter that delegates to infrastructure
- * Rationale: Simple initialization doesn't need full CQRS
+ * ARCHITECTURE: Interface layer - Init command (refactored)
+ * Pattern: Command adapter with Result-based error handling
+ * Rationale: Simple initialization with proper error propagation
  */
 
 import { Command } from 'commander';
+import { BaseCommand, CommandContext } from '../base/BaseCommand';
+import { Result, ok } from '../../../shared/result';
+import { DomainError, ValidationError } from '../../../shared/errors';
 import { ObjectStorage } from '../../../infrastructure/storage/ObjectStorage';
-import { ILogger } from '../../../application/ports/ILogger';
 
-export class InitCommand {
+interface InitOptions {
+  force?: boolean;
+}
+
+interface ValidatedInitOptions {
+  force: boolean;
+}
+
+export class InitCommand extends BaseCommand {
   constructor(
     private readonly storage: ObjectStorage,
-    private readonly logger: ILogger
-  ) {}
-
-  public build(): Command {
-    return new Command('init')
-      .description('Initialize a new Townhall repository')
-      .action(async () => {
-        await this.execute();
-      });
+    context: CommandContext
+  ) {
+    super('init', 'Initialize a new Townhall repository', context);
   }
 
-  private async execute(): Promise<void> {
-    this.logger.info('Initializing Townhall repository');
+  protected setupOptions(command: Command): void {
+    command
+      .option('--force', 'Force initialization even if repository exists');
+  }
+
+  protected validateOptions(options: InitOptions): Result<ValidatedInitOptions, ValidationError> {
+    return ok({
+      force: options.force || false,
+    });
+  }
+
+  protected async execute(validatedOptions: ValidatedInitOptions): Promise<Result<void, DomainError>> {
+    this.context.logger.info('Initializing Townhall repository', {
+      force: validatedOptions.force,
+    });
 
     const result = await this.storage.initialize();
 
     if (result.isErr()) {
-      console.error('❌ Failed to initialize repository:', result.error.message);
-      process.exit(1);
+      return result;
     }
 
-    console.log('✓ Initialized Townhall repository in .townhall/');
+    this.displayRepositoryStructure();
+
+    this.context.logger.info('Repository initialized successfully');
+
+    return ok(undefined);
+  }
+
+  private displayRepositoryStructure(): void {
+    this.displaySuccess('Initialized Townhall repository in .townhall/');
+
     console.log('');
     console.log('Repository structure:');
     console.log('  .townhall/');
@@ -44,7 +69,5 @@ export class InitCommand {
     console.log('Next steps:');
     console.log('  1. Create agent files in .townhall/agents/');
     console.log('  2. Start a debate with: townhall simulate debate "<topic>"');
-
-    this.logger.info('Repository initialized successfully');
   }
 }
