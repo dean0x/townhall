@@ -6,7 +6,7 @@
 
 import { injectable, inject } from 'tsyringe';
 import { promises as fs } from 'fs';
-import { join, basename } from 'path';
+import { join, basename, resolve, relative } from 'path';
 import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, StorageError, ValidationError } from '../../shared/errors';
 import { IAgentRepository, AgentMetadata } from '../../core/repositories/IAgentRepository';
@@ -23,16 +23,43 @@ export class FileAgentRepository implements IAgentRepository {
   private readonly parser: AgentFileParser;
   private readonly logger: ILogger;
   private agentCache: Map<string, Agent>;
+  private fileTimestamps: Map<string, number>; // Track mtime for cache invalidation
 
   constructor(
     @inject(TOKENS.Logger) logger: ILogger,
     basePath: string = '.townhall'
   ) {
-    this.basePath = basePath;
-    this.agentsDir = join(basePath, 'agents');
+    this.basePath = resolve(basePath);
+    this.agentsDir = join(this.basePath, 'agents');
     this.parser = new AgentFileParser();
     this.logger = logger.child({ component: 'FileAgentRepository' });
     this.agentCache = new Map();
+    this.fileTimestamps = new Map();
+  }
+
+  /**
+   * SECURITY: Validates that a file path is within the agents directory
+   * Uses path.relative() to prevent case-insensitive filesystem bypasses
+   */
+  private validateAgentPath(filePath: string): Result<void, StorageError> {
+    const resolvedPath = resolve(filePath);
+    const resolvedAgentsDir = resolve(this.agentsDir);
+
+    // Use relative() to get the path from agents dir to target
+    // If the target is outside agents dir, relative() will return a path starting with '..'
+    const relativePath = relative(resolvedAgentsDir, resolvedPath);
+
+    // Check if the relative path escapes the agents directory
+    // Note: Check for '../' or '..\' to ensure it's a path component, not just a filename starting with dots
+    if (relativePath.startsWith('../') || relativePath.startsWith('..\\') || relativePath === '..' ||
+        resolve(resolvedAgentsDir, relativePath) !== resolvedPath) {
+      return err(new StorageError(
+        'Path traversal detected: attempted access outside agents directory',
+        'security'
+      ));
+    }
+
+    return ok(undefined);
   }
 
   public async findById(id: AgentId): Promise<Result<Agent, NotFoundError>> {
@@ -65,6 +92,13 @@ export class FileAgentRepository implements IAgentRepository {
   }
 
   public async loadFromFile(filePath: string): Promise<Result<Agent, ValidationError | StorageError>> {
+    // SECURITY: Validate path is within agents directory
+    const pathValidation = this.validateAgentPath(filePath);
+    if (pathValidation.isErr()) {
+      this.logger.error('Path validation failed for loadFromFile', pathValidation.error, { filePath });
+      return err(pathValidation.error);
+    }
+
     this.logger.debug('Loading agent from file', { filePath });
 
     const parseResult = await this.parser.parseFile(filePath);
@@ -74,7 +108,14 @@ export class FileAgentRepository implements IAgentRepository {
     }
 
     const agentData = parseResult.value;
-    const agent = this.parser.createAgent(agentData, filePath);
+    const agentResult = this.parser.createAgent(agentData, filePath);
+
+    if (agentResult.isErr()) {
+      this.logger.error('Failed to create agent from data', agentResult.error, { filePath });
+      return err(agentResult.error);
+    }
+
+    const agent = agentResult.value;
 
     // Cache the agent
     this.agentCache.set(agent.id, agent);
@@ -84,7 +125,17 @@ export class FileAgentRepository implements IAgentRepository {
   }
 
   public async saveToFile(agent: Agent): Promise<Result<void, StorageError>> {
-    const filePath = agent.filePath || join(this.agentsDir, `${agent.id}.md`);
+    // SECURITY: Always construct path safely, ignore agent.filePath
+    const safeFileName = `${agent.id}.md`.replace(/[^a-zA-Z0-9-_.]/g, '');
+    const filePath = join(this.agentsDir, safeFileName);
+
+    // SECURITY: Validate path is within agents directory
+    const pathValidation = this.validateAgentPath(filePath);
+    if (pathValidation.isErr()) {
+      this.logger.error('Path validation failed', pathValidation.error, { agentId: agent.id, filePath });
+      return err(pathValidation.error);
+    }
+
     this.logger.debug('Saving agent to file', { agentId: agent.id, name: agent.name, filePath });
 
     // Create YAML frontmatter
@@ -103,10 +154,10 @@ export class FileAgentRepository implements IAgentRepository {
 
     try {
       // Ensure directory exists
-      await fs.mkdir(this.agentsDir, { recursive: true });
+      await fs.mkdir(this.agentsDir, { recursive: true, mode: 0o700 });
 
-      // Write file
-      await fs.writeFile(filePath, content, 'utf8');
+      // Write file with restrictive permissions
+      await fs.writeFile(filePath, content, { encoding: 'utf8', mode: 0o600 });
 
       // Update cache
       this.agentCache.set(agent.id, agent);
@@ -167,6 +218,10 @@ export class FileAgentRepository implements IAgentRepository {
     return ok(undefined);
   }
 
+  /**
+   * Refreshes the agent cache from filesystem
+   * PERFORMANCE: Uses mtime-based cache invalidation to avoid re-parsing unchanged files
+   */
   public async refresh(): Promise<Result<void, StorageError>> {
     this.logger.debug('Refreshing agent cache from filesystem', { agentsDir: this.agentsDir });
 
@@ -179,30 +234,69 @@ export class FileAgentRepository implements IAgentRepository {
       const mdFiles = files.filter(file => file.endsWith('.md'));
       this.logger.debug('Found agent files', { count: mdFiles.length, files: mdFiles });
 
-      // Clear cache
-      this.agentCache.clear();
+      // Track which files still exist
+      const currentFiles = new Set<string>();
 
-      // Load each agent file
+      // Load each agent file (only if modified)
       let successCount = 0;
       let failCount = 0;
+      let skippedCount = 0;
       for (const file of mdFiles) {
         const filePath = join(this.agentsDir, file);
+        currentFiles.add(filePath);
+
+        // Check file modification time
+        const stats = await fs.stat(filePath);
+        const currentMtime = stats.mtimeMs;
+        const cachedMtime = this.fileTimestamps.get(filePath);
+
+        // Skip if file hasn't been modified since last load
+        if (cachedMtime !== undefined && cachedMtime === currentMtime) {
+          this.logger.debug('Skipping unchanged file', { file, mtime: currentMtime });
+          skippedCount++;
+          continue;
+        }
+
+        // File is new or modified - load it
         const loadResult = await this.loadFromFile(filePath);
-        // Skip files that fail to parse
         if (loadResult.isOk()) {
           const agent = loadResult.value;
           this.agentCache.set(agent.id, agent);
+          this.fileTimestamps.set(filePath, currentMtime);
           successCount++;
+          this.logger.debug('Loaded agent file', {
+            file,
+            agentId: agent.id,
+            mtime: currentMtime,
+            wasModified: cachedMtime !== currentMtime
+          });
         } else {
           failCount++;
           this.logger.warn('Skipping invalid agent file', { file, error: loadResult.error.message });
         }
       }
 
+      // Remove deleted files from cache and timestamps
+      const deletedFiles: string[] = [];
+      for (const [filePath, agent] of Array.from(this.agentCache.entries()).map(([id, agent]) => {
+        const fp = join(this.agentsDir, `${basename(agent.filePath)}`);
+        return [fp, agent] as [string, Agent];
+      })) {
+        if (!currentFiles.has(filePath)) {
+          const agentId = agent.id;
+          this.agentCache.delete(agentId);
+          this.fileTimestamps.delete(filePath);
+          deletedFiles.push(filePath);
+          this.logger.debug('Removed deleted agent from cache', { filePath, agentId });
+        }
+      }
+
       this.logger.info('Agent cache refreshed', {
         totalFiles: mdFiles.length,
         loaded: successCount,
+        skipped: skippedCount,
         failed: failCount,
+        deleted: deletedFiles.length,
         cachedCount: this.agentCache.size
       });
 

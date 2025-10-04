@@ -133,10 +133,14 @@ export class FileArgumentRepository implements IArgumentRepository {
       return listResult;
     }
 
-    const argumentList: Argument[] = [];
+    // PERFORMANCE: Fetch all arguments in parallel instead of sequentially
+    const retrievePromises = listResult.value.map(id =>
+      this.storage.retrieve('arguments', id)
+    );
+    const results = await Promise.all(retrievePromises);
 
-    for (const id of listResult.value) {
-      const argResult = await this.storage.retrieve('arguments', id);
+    const argumentList: Argument[] = [];
+    for (const argResult of results) {
       if (argResult.isOk()) {
         const data = argResult.value.data as ArgumentData;
         if (data.simulationId === simulationId) {
@@ -154,10 +158,14 @@ export class FileArgumentRepository implements IArgumentRepository {
       return listResult;
     }
 
-    const argumentList: Argument[] = [];
+    // PERFORMANCE: Fetch all arguments in parallel instead of sequentially
+    const retrievePromises = listResult.value.map(id =>
+      this.storage.retrieve('arguments', id)
+    );
+    const results = await Promise.all(retrievePromises);
 
-    for (const id of listResult.value) {
-      const argResult = await this.storage.retrieve('arguments', id);
+    const argumentList: Argument[] = [];
+    for (const argResult of results) {
       if (argResult.isOk()) {
         const data = argResult.value.data as ArgumentData;
         if (data.agentId === agentId) {
@@ -175,10 +183,14 @@ export class FileArgumentRepository implements IArgumentRepository {
       return listResult;
     }
 
-    const argumentList: Argument[] = [];
+    // PERFORMANCE: Fetch all arguments in parallel instead of sequentially
+    const retrievePromises = listResult.value.map(id =>
+      this.storage.retrieve('arguments', id)
+    );
+    const results = await Promise.all(retrievePromises);
 
-    for (const id of listResult.value) {
-      const argResult = await this.storage.retrieve('arguments', id);
+    const argumentList: Argument[] = [];
+    for (const argResult of results) {
       if (argResult.isOk()) {
         const data = argResult.value.data as ArgumentData;
         if (data.targetArgumentId === targetId) {
@@ -249,9 +261,21 @@ export class FileArgumentRepository implements IArgumentRepository {
     return ok(relationships);
   }
 
-  private deserializeArgument(data: ArgumentData): Argument {
-    // Create base argument first
-    const argument = Argument.create({
+  /**
+   * Detects the argument type from stored data
+   * Complexity: 2 (simple conditional)
+   */
+  private detectArgumentType(data: ArgumentData): 'argument' | 'rebuttal' | 'concession' {
+    if (data.rebuttalType) return 'rebuttal';
+    if (data.concessionType) return 'concession';
+    return 'argument';
+  }
+
+  /**
+   * Creates an Argument from stored data
+   */
+  private deserializeBaseArgument(data: ArgumentData): Result<Argument, Error> {
+    return Argument.create({
       agentId: data.agentId as AgentId,
       type: data.type as any,
       content: data.content,
@@ -259,34 +283,62 @@ export class FileArgumentRepository implements IArgumentRepository {
       timestamp: data.timestamp as any,
       sequenceNumber: data.metadata.sequenceNumber,
     });
+  }
 
-    // If it has target argument ID, it's a rebuttal or concession
-    if (data.targetArgumentId) {
-      if (data.rebuttalType) {
-        return Rebuttal.create({
-          agentId: data.agentId as AgentId,
-          type: data.type as any,
-          content: data.content,
-          simulationId: data.simulationId as SimulationId,
-          timestamp: data.timestamp as any,
-          targetArgumentId: data.targetArgumentId as ArgumentId,
-          rebuttalType: data.rebuttalType as any,
-        });
-      } else if (data.concessionType) {
-        return Concession.create({
-          agentId: data.agentId as AgentId,
-          type: data.type as any,
-          content: data.content,
-          simulationId: data.simulationId as SimulationId,
-          timestamp: data.timestamp as any,
-          targetArgumentId: data.targetArgumentId as ArgumentId,
-          concessionType: data.concessionType as any,
-          conditions: data.conditions,
-          explanation: data.explanation,
-        });
-      }
+  /**
+   * Creates a Rebuttal from stored data
+   */
+  private deserializeRebuttal(data: ArgumentData): Result<Rebuttal, Error> {
+    return Rebuttal.create({
+      agentId: data.agentId as AgentId,
+      type: data.type as any,
+      content: data.content,
+      simulationId: data.simulationId as SimulationId,
+      timestamp: data.timestamp as any,
+      targetArgumentId: data.targetArgumentId as ArgumentId,
+      rebuttalType: data.rebuttalType as any,
+    });
+  }
+
+  /**
+   * Creates a Concession from stored data
+   */
+  private deserializeConcession(data: ArgumentData): Result<Concession, Error> {
+    return Concession.create({
+      agentId: data.agentId as AgentId,
+      type: data.type as any,
+      content: data.content,
+      simulationId: data.simulationId as SimulationId,
+      timestamp: data.timestamp as any,
+      targetArgumentId: data.targetArgumentId as ArgumentId,
+      concessionType: data.concessionType as any,
+      conditions: data.conditions,
+      explanation: data.explanation,
+    });
+  }
+
+  /**
+   * Deserializes argument data from storage
+   * REFACTORED: Reduced complexity from 9 to 3 using strategy pattern
+   * Complexity: 3 (type detection + error check + return)
+   */
+  private deserializeArgument(data: ArgumentData): Argument {
+    // Strategy pattern: Use lookup table instead of nested conditionals
+    const deserializers = {
+      argument: (d: ArgumentData) => this.deserializeBaseArgument(d),
+      rebuttal: (d: ArgumentData) => this.deserializeRebuttal(d),
+      concession: (d: ArgumentData) => this.deserializeConcession(d),
+    };
+
+    const type = this.detectArgumentType(data);
+    const result = deserializers[type](data);
+
+    // SAFETY: Deserialization from trusted storage should always succeed
+    // If it fails, it indicates data corruption - throw to surface the issue
+    if (result.isErr()) {
+      throw new Error(`Data corruption: Failed to deserialize ${type} - ${result.error.message}`);
     }
 
-    return argument;
+    return result.value;
   }
 }
