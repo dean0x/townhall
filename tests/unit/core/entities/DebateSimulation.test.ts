@@ -10,16 +10,17 @@ import { SimulationIdGenerator } from '../../../../src/core/value-objects/Simula
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { ArgumentIdGenerator } from '../../../../src/core/value-objects/ArgumentId';
+import { expectOk, expectErr } from '../../../helpers/result-assertions';
 
 describe('DebateSimulation Entity', () => {
   const mockTimestamp = TimestampGenerator.now();
 
   describe('Factory method', () => {
     it('should create simulation with valid properties', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Should AI be regulated?',
         createdAt: mockTimestamp,
-      });
+      }));
 
       expect(simulation).toBeDefined();
       expect(simulation.topic).toBe('Should AI be regulated?');
@@ -32,45 +33,45 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should validate topic length', () => {
-      expect(() => {
-        DebateSimulation.create({
-          topic: '', // Empty topic should fail
-          createdAt: mockTimestamp,
-        });
-      }).toThrow('Topic must be between 1 and 500 characters');
+      const error1 = expectErr(DebateSimulation.create({
+        topic: '', // Empty topic should fail
+        createdAt: mockTimestamp,
+      }));
 
-      expect(() => {
-        DebateSimulation.create({
-          topic: 'a'.repeat(501), // Too long topic should fail
-          createdAt: mockTimestamp,
-        });
-      }).toThrow('Topic must be between 1 and 500 characters');
+      expect(error1.message).toBe('Topic must be between 1 and 500 characters');
+
+      const error2 = expectErr(DebateSimulation.create({
+        topic: 'a'.repeat(501), // Too long topic should fail
+        createdAt: mockTimestamp,
+      }));
+
+      expect(error2.message).toBe('Topic must be between 1 and 500 characters');
     });
 
     it('should generate consistent content-addressed ID', () => {
       const topic = 'Test debate topic';
       const timestamp = TimestampGenerator.fromString('2025-01-26T10:00:00.000Z');
 
-      const sim1 = DebateSimulation.create({
+      const simulation1 = expectOk(DebateSimulation.create({
         topic,
         createdAt: timestamp,
-      });
+      }));
 
-      const sim2 = DebateSimulation.create({
+      const simulation2 = expectOk(DebateSimulation.create({
         topic,
         createdAt: timestamp,
-      });
+      }));
 
-      expect(sim1.id).toBe(sim2.id);
+      expect(simulation1.id).toBe(simulation2.id);
     });
   });
 
   describe('Participant management', () => {
     it('should add participant to simulation', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       const agentId = AgentIdGenerator.generate();
       const updated = simulation.addParticipant(agentId);
@@ -80,10 +81,10 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should not add duplicate participants', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       const agentId = AgentIdGenerator.generate();
       const updated1 = simulation.addParticipant(agentId);
@@ -95,10 +96,10 @@ describe('DebateSimulation Entity', () => {
 
   describe('Argument management', () => {
     it('should add argument to simulation', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       const argumentId = ArgumentIdGenerator.fromContent('Test argument');
       const updated = simulation.addArgument(argumentId);
@@ -108,10 +109,10 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should maintain argument order', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       const arg1 = ArgumentIdGenerator.fromContent('Argument 1');
       const arg2 = ArgumentIdGenerator.fromContent('Argument 2');
@@ -128,10 +129,10 @@ describe('DebateSimulation Entity', () => {
 
   describe('Status transitions', () => {
     it('should transition from active to voting', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       const updated = simulation.transitionTo(DebateStatus.VOTING);
 
@@ -139,23 +140,23 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should validate status transitions', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       // Entities are now pure data - validation happens in handlers
-      const result = simulation.transitionTo(DebateStatus.CLOSED);
-      expect(result.status).toBe(DebateStatus.CLOSED);
+      const updated = simulation.transitionTo(DebateStatus.CLOSED);
+      expect(updated.status).toBe(DebateStatus.CLOSED);
     });
   });
 
   describe('Vote management', () => {
     it('should record close votes', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       const agentId = AgentIdGenerator.generate();
       const withParticipant = simulation.addParticipant(agentId);
@@ -167,10 +168,10 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should not allow duplicate votes from same agent', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       const agentId = AgentIdGenerator.generate();
       const withParticipant = simulation.addParticipant(agentId);
@@ -184,10 +185,10 @@ describe('DebateSimulation Entity', () => {
 
   describe('Immutability', () => {
     it('should create immutable simulation', () => {
-      const simulation = DebateSimulation.create({
+      const simulation = expectOk(DebateSimulation.create({
         topic: 'Test topic',
         createdAt: mockTimestamp,
-      });
+      }));
 
       // These should not be modifiable
       expect(() => {

@@ -10,6 +10,7 @@ import { ArgumentIdGenerator } from '../../../../src/core/value-objects/Argument
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { expectOk, expectErr } from '../../../helpers/result-assertions';
 
 describe('Argument Entity', () => {
   const mockAgentId = AgentIdGenerator.generate();
@@ -26,13 +27,13 @@ describe('Argument Entity', () => {
         },
       };
 
-      const argument = Argument.create({
+      const argument = expectOk(Argument.create({
         agentId: mockAgentId,
         type: ArgumentType.DEDUCTIVE,
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      });
+      }));
 
       expect(argument).toBeDefined();
       expect(argument.agentId).toBe(mockAgentId);
@@ -53,13 +54,13 @@ describe('Argument Entity', () => {
         },
       };
 
-      const argument = Argument.create({
+      const argument = expectOk(Argument.create({
         agentId: mockAgentId,
         type: ArgumentType.INDUCTIVE,
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      });
+      }));
 
       expect(argument).toBeDefined();
       expect(argument.type).toBe(ArgumentType.INDUCTIVE);
@@ -83,13 +84,13 @@ describe('Argument Entity', () => {
         },
       };
 
-      const argument = Argument.create({
+      const argument = expectOk(Argument.create({
         agentId: mockAgentId,
         type: ArgumentType.EMPIRICAL,
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      });
+      }));
 
       expect(argument).toBeDefined();
       expect(argument.type).toBe(ArgumentType.EMPIRICAL);
@@ -97,7 +98,7 @@ describe('Argument Entity', () => {
       expect(argument.content.structure).toHaveProperty('claim');
     });
 
-    it('should throw error for invalid deductive structure', () => {
+    it('should return error for invalid deductive structure', () => {
       const content = {
         text: 'Invalid deductive argument',
         structure: {
@@ -106,15 +107,15 @@ describe('Argument Entity', () => {
         },
       };
 
-      expect(() => {
-        Argument.create({
-          agentId: mockAgentId,
-          type: ArgumentType.DEDUCTIVE,
-          content,
-          simulationId: mockSimulationId,
-          timestamp: mockTimestamp,
-        });
-      }).toThrow('Deductive arguments require at least 2 premises');
+      const error = expectErr(Argument.create({
+        agentId: mockAgentId,
+        type: ArgumentType.DEDUCTIVE,
+        content,
+        simulationId: mockSimulationId,
+        timestamp: mockTimestamp,
+      }));
+
+      expect(error.message).toBe('Deductive arguments require at least 2 premises');
     });
 
     it('should generate consistent content-addressed ID', () => {
@@ -126,23 +127,23 @@ describe('Argument Entity', () => {
         },
       };
 
-      const arg1 = Argument.create({
+      const argument1 = expectOk(Argument.create({
         agentId: mockAgentId,
         type: ArgumentType.DEDUCTIVE,
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      });
+      }));
 
-      const arg2 = Argument.create({
+      const argument2 = expectOk(Argument.create({
         agentId: mockAgentId,
         type: ArgumentType.DEDUCTIVE,
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      });
+      }));
 
-      expect(arg1.id).toBe(arg2.id);
+      expect(argument1.id).toBe(argument2.id);
     });
   });
 
@@ -156,13 +157,13 @@ describe('Argument Entity', () => {
         },
       };
 
-      const argument = Argument.create({
+      const argument = expectOk(Argument.create({
         agentId: mockAgentId,
         type: ArgumentType.DEDUCTIVE,
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      });
+      }));
 
       // These should not be modifiable
       expect(() => {
@@ -185,13 +186,13 @@ describe('Argument Entity', () => {
         },
       };
 
-      const argument = Argument.create({
+      const argument = expectOk(Argument.create({
         agentId: mockAgentId,
         type: ArgumentType.DEDUCTIVE,
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      });
+      }));
 
       expect(argument.metadata).toBeDefined();
       expect(argument.metadata.hash).toBe(argument.id);
