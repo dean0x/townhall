@@ -4,6 +4,8 @@
  * Rationale: Tracks when agents accept or partially accept other arguments
  */
 
+import { Result, ok, err } from '../../shared/result';
+import { ValidationError } from '../../shared/errors';
 import { Argument, CreateArgumentParams } from './Argument';
 import { ArgumentId } from '../value-objects/ArgumentId';
 
@@ -38,20 +40,36 @@ export class Concession extends Argument {
     Object.freeze(this);
   }
 
-  public static create(params: CreateConcessionParams): Concession {
-    this.validateConcessionType(params.concessionType);
-    this.validateConditionalRequirements(params.concessionType, params.conditions);
-    this.validateTargetArgument(params.targetArgumentId);
+  public static create(params: CreateConcessionParams): Result<Concession, ValidationError> {
+    const concessionTypeValidation = this.validateConcessionType(params.concessionType);
+    if (concessionTypeValidation.isErr()) {
+      return err(concessionTypeValidation.error);
+    }
 
-    const argument = Argument.create(params);
+    const conditionalValidation = this.validateConditionalRequirements(params.concessionType, params.conditions);
+    if (conditionalValidation.isErr()) {
+      return err(conditionalValidation.error);
+    }
 
-    return new Concession(
-      argument,
+    const targetArgumentValidation = this.validateTargetArgument(params.targetArgumentId);
+    if (targetArgumentValidation.isErr()) {
+      return err(targetArgumentValidation.error);
+    }
+
+    const argumentResult = Argument.create(params);
+    if (argumentResult.isErr()) {
+      return err(argumentResult.error);
+    }
+
+    const concession = new Concession(
+      argumentResult.value,
       params.targetArgumentId,
       params.concessionType,
       params.conditions,
       params.explanation
     );
+
+    return ok(concession);
   }
 
   public isConcessionTo(argumentId: ArgumentId): boolean {
@@ -70,26 +88,29 @@ export class Concession extends Argument {
     return this.concessionType === 'full';
   }
 
-  private static validateConcessionType(type: ConcessionType): void {
+  private static validateConcessionType(type: ConcessionType): Result<void, ValidationError> {
     if (!VALID_CONCESSION_TYPES.includes(type)) {
-      throw new Error(`Invalid concession type: ${type}. Must be one of: ${VALID_CONCESSION_TYPES.join(', ')}`);
+      return err(new ValidationError(`Invalid concession type: ${type}. Must be one of: ${VALID_CONCESSION_TYPES.join(', ')}`));
     }
+    return ok(undefined);
   }
 
-  private static validateConditionalRequirements(type: ConcessionType, conditions?: string): void {
+  private static validateConditionalRequirements(type: ConcessionType, conditions?: string): Result<void, ValidationError> {
     if (type === 'conditional' && (!conditions || conditions.trim().length === 0)) {
-      throw new Error('Conditional concessions must specify conditions');
+      return err(new ValidationError('Conditional concessions must specify conditions'));
     }
+    return ok(undefined);
   }
 
-  private static validateTargetArgument(targetArgumentId: ArgumentId): void {
+  private static validateTargetArgument(targetArgumentId: ArgumentId): Result<void, ValidationError> {
     // Note: In a real implementation, we would check if the target argument exists
     // and belongs to the same simulation. This would require repository access,
     // which violates the "zero dependencies" rule for core entities.
     // This validation will be moved to the application layer.
 
     if (!targetArgumentId || targetArgumentId.length === 0) {
-      throw new Error('Target argument ID is required for concessions');
+      return err(new ValidationError('Target argument ID is required for concessions'));
     }
+    return ok(undefined);
   }
 }

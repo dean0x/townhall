@@ -4,6 +4,8 @@
  * Rationale: Maintains argument-to-argument relationships for debate structure
  */
 
+import { Result, ok, err } from '../../shared/result';
+import { ValidationError } from '../../shared/errors';
 import { Argument, CreateArgumentParams, ArgumentType, ArgumentContent, ArgumentMetadata } from './Argument';
 import { ArgumentId, ArgumentIdGenerator } from '../value-objects/ArgumentId';
 import { AgentId } from '../value-objects/AgentId';
@@ -39,9 +41,16 @@ export class Rebuttal extends Argument {
     this.rebuttalType = rebuttalType;
   }
 
-  public static create(params: CreateRebuttalParams): Rebuttal {
-    this.validateRebuttalType(params.rebuttalType);
-    this.validateTargetArgument(params.targetArgumentId, params.agentId);
+  public static create(params: CreateRebuttalParams): Result<Rebuttal, ValidationError> {
+    const rebuttalTypeValidation = this.validateRebuttalType(params.rebuttalType);
+    if (rebuttalTypeValidation.isErr()) {
+      return err(rebuttalTypeValidation.error);
+    }
+
+    const targetArgumentValidation = this.validateTargetArgument(params.targetArgumentId, params.agentId);
+    if (targetArgumentValidation.isErr()) {
+      return err(targetArgumentValidation.error);
+    }
 
     // Generate content-addressed ID including rebuttal data
     const contentString = JSON.stringify({
@@ -75,27 +84,29 @@ export class Rebuttal extends Argument {
     );
 
     Object.freeze(rebuttal);
-    return rebuttal;
+    return ok(rebuttal);
   }
 
   public isRebuttalTo(argumentId: ArgumentId): boolean {
     return this.targetArgumentId === argumentId;
   }
 
-  private static validateRebuttalType(type: RebuttalType): void {
+  private static validateRebuttalType(type: RebuttalType): Result<void, ValidationError> {
     if (!VALID_REBUTTAL_TYPES.includes(type)) {
-      throw new Error(`Invalid rebuttal type: ${type}. Must be one of: ${VALID_REBUTTAL_TYPES.join(', ')}`);
+      return err(new ValidationError(`Invalid rebuttal type: ${type}. Must be one of: ${VALID_REBUTTAL_TYPES.join(', ')}`));
     }
+    return ok(undefined);
   }
 
-  private static validateTargetArgument(targetArgumentId: ArgumentId, agentId: string): void {
+  private static validateTargetArgument(targetArgumentId: ArgumentId, agentId: string): Result<void, ValidationError> {
     // Note: In a real implementation, we would check if the target argument exists
     // and belongs to the same simulation. This would require repository access,
     // which violates the "zero dependencies" rule for core entities.
     // This validation will be moved to the application layer.
 
     if (!targetArgumentId || targetArgumentId.length === 0) {
-      throw new Error('Target argument ID is required for rebuttals');
+      return err(new ValidationError('Target argument ID is required for rebuttals'));
     }
+    return ok(undefined);
   }
 }

@@ -21,6 +21,7 @@ export class Vote {
     this.agentId = agentId;
     this.timestamp = timestamp;
     this.reason = reason;
+    Object.freeze(this);
   }
 
   public static create(params: VoteCreateParams): Vote {

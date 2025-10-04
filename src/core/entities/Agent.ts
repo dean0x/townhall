@@ -4,6 +4,8 @@
  * Rationale: Agents are defined via MD files but cached as domain entities
  */
 
+import { Result, ok, err } from '../../shared/result';
+import { ValidationError } from '../../shared/errors';
 import { AgentId } from '../value-objects/AgentId';
 
 export type AgentType = 'human' | 'llm' | 'hybrid';
@@ -42,13 +44,28 @@ export class Agent {
     Object.freeze(this);
   }
 
-  public static create(params: CreateAgentParams): Agent {
-    this.validateName(params.name);
-    this.validateType(params.type);
-    this.validateCapabilities(params.capabilities);
-    this.validateFilePath(params.filePath);
+  public static create(params: CreateAgentParams): Result<Agent, ValidationError> {
+    const nameValidation = this.validateName(params.name);
+    if (nameValidation.isErr()) {
+      return err(nameValidation.error);
+    }
 
-    return new Agent(
+    const typeValidation = this.validateType(params.type);
+    if (typeValidation.isErr()) {
+      return err(typeValidation.error);
+    }
+
+    const capabilitiesValidation = this.validateCapabilities(params.capabilities);
+    if (capabilitiesValidation.isErr()) {
+      return err(capabilitiesValidation.error);
+    }
+
+    const filePathValidation = this.validateFilePath(params.filePath);
+    if (filePathValidation.isErr()) {
+      return err(filePathValidation.error);
+    }
+
+    const agent = new Agent(
       params.id,
       params.name,
       params.type,
@@ -56,6 +73,8 @@ export class Agent {
       params.description,
       params.filePath
     );
+
+    return ok(agent);
   }
 
   public hasCapability(capability: string): boolean {
@@ -73,21 +92,23 @@ export class Agent {
     );
   }
 
-  private static validateName(name: string): void {
+  private static validateName(name: string): Result<void, ValidationError> {
     if (name.length === 0 || name.length > 100) {
-      throw new Error('Agent name must be between 1 and 100 characters');
+      return err(new ValidationError('Agent name must be between 1 and 100 characters'));
     }
+    return ok(undefined);
   }
 
-  private static validateType(type: AgentType): void {
+  private static validateType(type: AgentType): Result<void, ValidationError> {
     if (!VALID_AGENT_TYPES.includes(type)) {
-      throw new Error(`Invalid agent type: ${type}. Must be one of: ${VALID_AGENT_TYPES.join(', ')}`);
+      return err(new ValidationError(`Invalid agent type: ${type}. Must be one of: ${VALID_AGENT_TYPES.join(', ')}`));
     }
+    return ok(undefined);
   }
 
-  private static validateCapabilities(capabilities: readonly string[]): void {
+  private static validateCapabilities(capabilities: readonly string[]): Result<void, ValidationError> {
     if (capabilities.length === 0) {
-      throw new Error('Agent must have at least one capability');
+      return err(new ValidationError('Agent must have at least one capability'));
     }
 
     const invalidCapabilities = capabilities.filter(
@@ -95,18 +116,20 @@ export class Agent {
     );
 
     if (invalidCapabilities.length > 0) {
-      throw new Error(
+      return err(new ValidationError(
         `Invalid capabilities: ${invalidCapabilities.join(', ')}. Valid capabilities: ${VALID_CAPABILITIES.join(', ')}`
-      );
+      ));
     }
+    return ok(undefined);
   }
 
-  private static validateFilePath(filePath: string): void {
+  private static validateFilePath(filePath: string): Result<void, ValidationError> {
     if (!filePath.endsWith('.md')) {
-      throw new Error('Agent file path must end with .md');
+      return err(new ValidationError('Agent file path must end with .md'));
     }
     if (!filePath.includes('agents/')) {
-      throw new Error('Agent file path must be within agents/ directory');
+      return err(new ValidationError('Agent file path must be within agents/ directory'));
     }
+    return ok(undefined);
   }
 }

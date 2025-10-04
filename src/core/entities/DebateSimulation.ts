@@ -4,6 +4,8 @@
  * Rationale: Single active debate constraint enforced at application layer
  */
 
+import { Result, ok, err } from '../../shared/result';
+import { ValidationError } from '../../shared/errors';
 import { SimulationId, SimulationIdGenerator } from '../value-objects/SimulationId';
 import { Timestamp } from '../value-objects/Timestamp';
 import { DebateStatus, canTransitionTo } from '../value-objects/DebateStatus';
@@ -35,12 +37,15 @@ export class DebateSimulation {
     Object.freeze(this);
   }
 
-  public static create(params: CreateSimulationParams): DebateSimulation {
-    this.validateTopic(params.topic);
+  public static create(params: CreateSimulationParams): Result<DebateSimulation, ValidationError> {
+    const topicValidation = this.validateTopic(params.topic);
+    if (topicValidation.isErr()) {
+      return err(topicValidation.error);
+    }
 
     const id = SimulationIdGenerator.fromTopicAndTimestamp(params.topic, params.createdAt);
 
-    return new DebateSimulation(
+    const simulation = new DebateSimulation(
       id,
       params.topic,
       params.createdAt,
@@ -49,6 +54,8 @@ export class DebateSimulation {
       [],
       []
     );
+
+    return ok(simulation);
   }
 
   public addParticipant(agentId: AgentId): DebateSimulation {
@@ -68,16 +75,11 @@ export class DebateSimulation {
   }
 
   public addArgument(argumentId: ArgumentId, isConcession: boolean = false): DebateSimulation {
-    // ARCHITECTURE: Concessions are special case - allowed during voting phase
-    // Rationale: Agents should be able to concede even when debate is in voting phase
-    if (!isConcession && this.status !== DebateStatus.ACTIVE) {
-      throw new Error('Cannot add arguments to inactive debate');
-    }
-
-    // Allow concessions during both ACTIVE and VOTING phases
-    if (isConcession && this.status !== DebateStatus.ACTIVE && this.status !== DebateStatus.VOTING) {
-      throw new Error('Cannot add concessions to closed debate');
-    }
+    // ARCHITECTURE: Validation moved to application layer (handlers)
+    // Rationale: Domain entities should be pure data transformations without business logic validation
+    // The handlers will ensure:
+    // - Regular arguments only during ACTIVE status
+    // - Concessions allowed during ACTIVE and VOTING status
 
     return new DebateSimulation(
       this.id,
@@ -149,9 +151,10 @@ export class DebateSimulation {
     return this.participantIds.length;
   }
 
-  private static validateTopic(topic: string): void {
+  private static validateTopic(topic: string): Result<void, ValidationError> {
     if (topic.length === 0 || topic.length > 500) {
-      throw new Error('Topic must be between 1 and 500 characters');
+      return err(new ValidationError('Topic must be between 1 and 500 characters'));
     }
+    return ok(undefined);
   }
 }

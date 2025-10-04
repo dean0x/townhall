@@ -4,6 +4,8 @@
  * Rationale: Content-addressed arguments ensure data integrity
  */
 
+import { Result, ok, err } from '../../shared/result';
+import { ValidationError } from '../../shared/errors';
 import { ArgumentId, ArgumentIdGenerator } from '../value-objects/ArgumentId';
 import { AgentId } from '../value-objects/AgentId';
 import { SimulationId } from '../value-objects/SimulationId';
@@ -69,9 +71,12 @@ export class Argument {
     // Note: Object.freeze(this) moved to static create methods for inheritance support
   }
 
-  public static create(params: CreateArgumentParams): Argument {
+  public static create(params: CreateArgumentParams): Result<Argument, ValidationError> {
     // Validate argument structure based on type
-    this.validateStructure(params.type, params.content.structure);
+    const validationResult = this.validateStructure(params.type, params.content.structure);
+    if (validationResult.isErr()) {
+      return err(validationResult.error);
+    }
 
     // Generate content-addressed ID
     const contentString = JSON.stringify({
@@ -101,59 +106,63 @@ export class Argument {
     );
 
     Object.freeze(argument);
-    return argument;
+    return ok(argument);
   }
 
-  private static validateStructure(type: ArgumentType, structure: ArgumentStructure): void {
+  private static validateStructure(type: ArgumentType, structure: ArgumentStructure): Result<void, ValidationError> {
     switch (type) {
       case ArgumentType.DEDUCTIVE:
-        this.validateDeductiveStructure(structure as DeductiveStructure);
-        break;
+        return this.validateDeductiveStructure(structure as DeductiveStructure);
       case ArgumentType.INDUCTIVE:
-        this.validateInductiveStructure(structure as InductiveStructure);
-        break;
+        return this.validateInductiveStructure(structure as InductiveStructure);
       case ArgumentType.EMPIRICAL:
-        this.validateEmpiricalStructure(structure as EmpiricalStructure);
-        break;
+        return this.validateEmpiricalStructure(structure as EmpiricalStructure);
+      default:
+        return err(new ValidationError(`Unknown argument type: ${type}`));
     }
   }
 
-  private static validateDeductiveStructure(structure: DeductiveStructure): void {
+  private static validateDeductiveStructure(structure: DeductiveStructure): Result<void, ValidationError> {
     if (!structure.premises || structure.premises.length < 2) {
-      throw new Error('Deductive arguments require at least 2 premises');
+      return err(new ValidationError('Deductive arguments require at least 2 premises'));
     }
     if (!structure.conclusion || structure.conclusion.trim().length === 0) {
-      throw new Error('Deductive arguments require a conclusion');
+      return err(new ValidationError('Deductive arguments require a conclusion'));
     }
+    return ok(undefined);
   }
 
-  private static validateInductiveStructure(structure: InductiveStructure): void {
+  private static validateInductiveStructure(structure: InductiveStructure): Result<void, ValidationError> {
     if (!structure.observations || structure.observations.length < 2) {
-      throw new Error('Inductive arguments require at least 2 observations');
+      return err(new ValidationError('Inductive arguments require at least 2 observations'));
     }
     if (!structure.generalization || structure.generalization.trim().length === 0) {
-      throw new Error('Inductive arguments require a generalization');
+      return err(new ValidationError('Inductive arguments require a generalization'));
     }
     if (structure.confidence !== undefined && (structure.confidence < 0 || structure.confidence > 1)) {
-      throw new Error('Confidence must be between 0 and 1');
+      return err(new ValidationError('Confidence must be between 0 and 1'));
     }
+    return ok(undefined);
   }
 
-  private static validateEmpiricalStructure(structure: EmpiricalStructure): void {
+  private static validateEmpiricalStructure(structure: EmpiricalStructure): Result<void, ValidationError> {
     if (!structure.evidence || structure.evidence.length === 0) {
-      throw new Error('Empirical arguments require at least one piece of evidence');
+      return err(new ValidationError('Empirical arguments require at least one piece of evidence'));
     }
     if (!structure.claim || structure.claim.trim().length === 0) {
-      throw new Error('Empirical arguments require a claim');
+      return err(new ValidationError('Empirical arguments require a claim'));
     }
 
-    structure.evidence.forEach((evidence, index) => {
+    for (let index = 0; index < structure.evidence.length; index++) {
+      const evidence = structure.evidence[index]!;
       if (!evidence.source || evidence.source.trim().length === 0) {
-        throw new Error(`Evidence item ${index + 1} must have a source`);
+        return err(new ValidationError(`Evidence item ${index + 1} must have a source`));
       }
       if (!evidence.relevance || evidence.relevance.trim().length === 0) {
-        throw new Error(`Evidence item ${index + 1} must specify relevance`);
+        return err(new ValidationError(`Evidence item ${index + 1} must specify relevance`));
       }
-    });
+    }
+
+    return ok(undefined);
   }
 }

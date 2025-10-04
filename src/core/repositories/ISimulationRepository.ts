@@ -28,7 +28,7 @@ export interface ISimulationRepository {
   /**
    * Set a simulation as the active one
    */
-  setActive(id: SimulationId): Promise<Result<void, StorageError | ConflictError>>;
+  setActive(id: SimulationId): Promise<Result<void, NotFoundError | StorageError | ConflictError>>;
 
   /**
    * Check if there is an active simulation
