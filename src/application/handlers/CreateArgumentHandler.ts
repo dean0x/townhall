@@ -49,6 +49,15 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
       return err(new NotFoundError('Agent', command.agentId));
     }
 
+    // SECURITY: Authorization check - verify agent can participate
+    // Note: First-time participants are automatically added, so this check
+    // only verifies the agent exists and the debate is active
+    if (simulation.status !== 'active') {
+      return err(new ValidationError(
+        `Cannot add arguments to ${simulation.status} debate. Debate must be active.`
+      ));
+    }
+
     // Validate argument structure
     const structureValidationResult = this.validateArgumentStructure(command);
     if (structureValidationResult.isErr()) {
@@ -59,7 +68,7 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
     const timestamp = TimestampGenerator.now();
     const sequenceNumber = simulation.getArgumentCount() + 1;
 
-    const argument = Argument.create({
+    const argumentResult = Argument.create({
       agentId: command.agentId,
       type: command.type,
       content: command.content,
@@ -67,6 +76,12 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
       timestamp,
       sequenceNumber,
     });
+
+    if (argumentResult.isErr()) {
+      return err(argumentResult.error);
+    }
+
+    const argument = argumentResult.value;
 
     // Save argument
     const saveResult = await this.argumentRepo.save(argument);

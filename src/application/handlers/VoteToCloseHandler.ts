@@ -46,7 +46,14 @@ export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, V
       return err(new NotFoundError('Agent', command.agentId));
     }
 
-    // Validate vote using vote calculator
+    // SECURITY: Authorization check - only active or voting debates can accept votes
+    if (simulation.status !== 'active' && simulation.status !== 'voting') {
+      return err(new ConflictError(
+        `Cannot vote on ${simulation.status} debate. Debate must be active or in voting phase.`
+      ));
+    }
+
+    // SECURITY: Validate vote using vote calculator (checks if agent is participant)
     const voteValidation = this.voteCalculator.validateVote(command.agentId, simulation);
     if (voteValidation.isErr()) {
       return err(new ConflictError(voteValidation.error.message));

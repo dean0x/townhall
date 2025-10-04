@@ -6,7 +6,7 @@
 
 import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
-import { NotFoundError, ConflictError } from '../../shared/errors';
+import { NotFoundError, ConflictError, ValidationError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { SubmitConcessionCommand } from '../commands/SubmitConcessionCommand';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
@@ -47,17 +47,33 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
       return err(new NotFoundError('Target argument', command.targetArgumentId));
     }
 
+    const targetArgument = targetResult.value;
+
     // Verify agent exists
     const agentResult = await this.agentRepo.findById(command.agentId);
     if (agentResult.isErr()) {
       return err(new NotFoundError('Agent', command.agentId));
     }
 
+    // SECURITY: Authorization check - verify agent can participate
+    if (simulation.status !== 'active') {
+      return err(new ValidationError(
+        `Cannot submit concession to ${simulation.status} debate. Debate must be active.`
+      ));
+    }
+
+    // SECURITY: Business rule - cannot concede to your own argument
+    if (targetArgument.agentId === command.agentId) {
+      return err(new ValidationError(
+        'Cannot concede to your own argument. Concessions must target arguments from other agents.'
+      ));
+    }
+
     // Get sequence number for concession (concessions are arguments too)
     const sequenceNumber = simulation.getArgumentCount() + 1;
 
     // Create concession
-    const concession = Concession.create({
+    const concessionResult = Concession.create({
       agentId: command.agentId,
       type: 'deductive', // Default type for concessions
       content: {
@@ -78,6 +94,12 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
       conditions: command.conditions,
       sequenceNumber,
     });
+
+    if (concessionResult.isErr()) {
+      return err(concessionResult.error);
+    }
+
+    const concession = concessionResult.value;
 
     // Save concession
     const saveResult = await this.argumentRepo.save(concession);

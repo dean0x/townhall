@@ -159,7 +159,7 @@ export class AgentFileParser {
   /**
    * Creates an Agent entity from parsed file data
    */
-  public createAgent(data: AgentFileData, filePath: string): Agent {
+  public createAgent(data: AgentFileData, filePath: string): Result<Agent, ValidationError> {
     return Agent.create({
       id: AgentIdGenerator.fromString(data.id),
       name: data.name,

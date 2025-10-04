@@ -47,10 +47,16 @@ export class InitializeDebateHandler implements ICommandHandler<InitializeDebate
 
     // Create new simulation
     const timestamp = TimestampGenerator.now();
-    const simulation = DebateSimulation.create({
+    const simulationResult = DebateSimulation.create({
       topic: command.topic,
       createdAt: timestamp,
     });
+
+    if (simulationResult.isErr()) {
+      return err(simulationResult.error);
+    }
+
+    const simulation = simulationResult.value;
 
     // Save simulation
     const saveResult = await this.simulationRepo.save(simulation);

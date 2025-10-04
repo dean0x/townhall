@@ -77,7 +77,7 @@ export class FileSimulationRepository implements ISimulationRepository {
     }
   }
 
-  public async setActive(id: SimulationId): Promise<Result<void, StorageError | ConflictError>> {
+  public async setActive(id: SimulationId): Promise<Result<void, NotFoundError | StorageError | ConflictError>> {
     // Verify simulation exists
     const existsResult = await this.storage.exists('simulations', id);
     if (existsResult.isErr()) {
@@ -85,7 +85,7 @@ export class FileSimulationRepository implements ISimulationRepository {
     }
 
     if (!existsResult.value) {
-      return err(new StorageError(`Simulation ${id} does not exist`, 'read'));
+      return err(new NotFoundError('Simulation', id));
     }
 
     // Check if another simulation is already active
@@ -160,10 +160,14 @@ export class FileSimulationRepository implements ISimulationRepository {
       return listResult;
     }
 
-    const simulations: DebateSimulation[] = [];
+    // PERFORMANCE: Fetch all simulations in parallel instead of sequentially
+    const retrievePromises = listResult.value.map(id =>
+      this.storage.retrieve('simulations', id)
+    );
+    const results = await Promise.all(retrievePromises);
 
-    for (const id of listResult.value) {
-      const simResult = await this.storage.retrieve('simulations', id);
+    const simulations: DebateSimulation[] = [];
+    for (const simResult of results) {
       if (simResult.isOk()) {
         simulations.push(this.deserializeSimulation(simResult.value.data as SimulationData));
       }
@@ -191,13 +195,19 @@ export class FileSimulationRepository implements ISimulationRepository {
 
   private deserializeSimulation(data: SimulationData): DebateSimulation {
     // Recreate the simulation using the factory method
-    const baseSimulation = DebateSimulation.create({
+    const baseSimulationResult = DebateSimulation.create({
       topic: data.topic,
       createdAt: data.createdAt as any,
     });
 
+    // SAFETY: Deserialization from trusted storage should always succeed
+    // If it fails, it indicates data corruption - throw to surface the issue
+    if (baseSimulationResult.isErr()) {
+      throw new Error(`Data corruption: Failed to deserialize simulation - ${baseSimulationResult.error.message}`);
+    }
+
     // Build up the simulation state
-    let simulation = baseSimulation;
+    let simulation = baseSimulationResult.value;
 
     // Add participants
     for (const participantId of data.participantIds) {

@@ -60,11 +60,25 @@ export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalComm
       return err(new NotFoundError('Agent', command.agentId));
     }
 
+    // SECURITY: Authorization check - verify agent can participate
+    if (simulation.status !== 'active') {
+      return err(new ValidationError(
+        `Cannot submit rebuttal to ${simulation.status} debate. Debate must be active.`
+      ));
+    }
+
+    // SECURITY: Business rule - cannot rebut your own argument
+    if (targetArgument.agentId === command.agentId) {
+      return err(new ValidationError(
+        'Cannot rebut your own argument. Rebuttals must target arguments from other agents.'
+      ));
+    }
+
     // Get sequence number for rebuttal (rebuttals are arguments too)
     const sequenceNumber = simulation.getArgumentCount() + 1;
 
     // Create rebuttal
-    const rebuttal = Rebuttal.create({
+    const rebuttalResult = Rebuttal.create({
       agentId: command.agentId,
       type: command.type,
       content: command.content,
@@ -74,6 +88,12 @@ export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalComm
       rebuttalType: command.rebuttalType,
       sequenceNumber,
     });
+
+    if (rebuttalResult.isErr()) {
+      return err(rebuttalResult.error);
+    }
+
+    const rebuttal = rebuttalResult.value;
 
     // Validate rebuttal argument structure based on its type
     let validationResult: Result<void, ValidationError>;
