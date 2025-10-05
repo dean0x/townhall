@@ -43,7 +43,7 @@ export class GetArgumentChainHandler implements IQueryHandler<GetArgumentChainQu
     }
 
     const root = rootResult.value;
-    const maxDepth = query.maxDepth || 10;
+    const maxDepth = Math.min(query.maxDepth || 10, 100);
 
     // Build argument chain recursively
     const chainResult = await this.buildChain(root, 0, maxDepth, query.includeMetadata || false);
@@ -72,16 +72,14 @@ export class GetArgumentChainHandler implements IQueryHandler<GetArgumentChainQu
     const node: ArgumentNode = {
       argument,
       children: [],
+      ...(includeMetadata ? {
+        metadata: {
+          depth: currentDepth,
+          type: argument.type,
+          agentId: argument.agentId,
+        }
+      } : {})
     };
-
-    // Add metadata if requested
-    if (includeMetadata) {
-      (node as any).metadata = {
-        depth: currentDepth,
-        type: argument.type,
-        agentId: argument.agentId,
-      };
-    }
 
     // Stop if max depth reached
     if (currentDepth >= maxDepth) {
@@ -100,21 +98,23 @@ export class GetArgumentChainHandler implements IQueryHandler<GetArgumentChainQu
       ...(relationships.supports || []),
     ];
 
-    // Build child nodes
-    for (const childId of childIds) {
-      const childResult = await this.argumentRepo.findById(childId);
-      if (childResult.isOk()) {
-        const childNodeResult = await this.buildChain(
-          childResult.value,
+    // Build child nodes in parallel
+    const childResults = await Promise.all(
+      childIds.map(childId => this.argumentRepo.findById(childId))
+    );
+
+    const childNodes = await Promise.all(
+      childResults
+        .filter(result => result.isOk())
+        .map(result => this.buildChain(
+          result.value,
           currentDepth + 1,
           maxDepth,
           includeMetadata
-        );
-        if (childNodeResult.isOk()) {
-          node.children.push(childNodeResult.value);
-        }
-      }
-    }
+        ))
+    );
+
+    node.children.push(...childNodes.filter(r => r.isOk()).map(r => r.value));
 
     return ok(node);
   }

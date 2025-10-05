@@ -13,6 +13,8 @@ import { IArgumentRepository } from '../../core/repositories/IArgumentRepository
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { RelationshipBuilder, ArgumentRelationship } from '../../core/services/RelationshipBuilder';
 import { Argument } from '../../core/entities/Argument';
+import { Rebuttal } from '../../core/entities/Rebuttal';
+import { Concession } from '../../core/entities/Concession';
 import { TOKENS } from '../../shared/container';
 
 export interface ArgumentSummary {
@@ -116,19 +118,23 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
   }
 
   private async buildArgumentSummaries(argumentList: Argument[]): Promise<ArgumentSummary[]> {
-    const summaries: ArgumentSummary[] = [];
+    const agentIds = [...new Set(argumentList.map(arg => arg.agentId))];
+    const agentResults = await Promise.all(
+      agentIds.map(id => this.agentRepo.findById(id))
+    );
 
-    for (const argument of argumentList) {
-      // Get agent name
-      const agentResult = await this.agentRepo.findById(argument.agentId);
-      const agentName = agentResult.isOk() ? agentResult.value.name : 'Unknown Agent';
+    const agentMap = new Map<string, string>();
+    agentResults.forEach((result, index) => {
+      agentMap.set(agentIds[index], result.isOk() ? result.value.name : 'Unknown Agent');
+    });
 
-      // Create preview (first 100 characters)
+    return argumentList.map(argument => {
+      const agentName = agentMap.get(argument.agentId) || 'Unknown Agent';
       const preview = argument.content.text.length > 100 ?
         argument.content.text.substring(0, 100) + '...' :
         argument.content.text;
 
-      summaries.push({
+      return {
         id: argument.id,
         shortHash: argument.metadata.shortHash,
         agentName,
@@ -136,24 +142,26 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
         preview,
         timestamp: argument.timestamp,
         sequenceNumber: argument.metadata.sequenceNumber,
-      });
-    }
-
-    return summaries;
+      };
+    });
   }
 
   private buildRelationships(argumentList: Argument[]): ArgumentRelationship[] {
     const relationships: ArgumentRelationship[] = [];
 
     for (const argument of argumentList) {
-      // Check if this is a rebuttal or concession
-      if ('targetArgumentId' in argument) {
-        const relationship: ArgumentRelationship = {
+      if (argument instanceof Rebuttal) {
+        relationships.push({
           fromId: argument.id,
-          toId: (argument as any).targetArgumentId,
-          type: 'rebuttalType' in argument ? 'rebuts' : 'concedes_to',
-        };
-        relationships.push(relationship);
+          toId: argument.targetArgumentId,
+          type: 'rebuts',
+        });
+      } else if (argument instanceof Concession) {
+        relationships.push({
+          fromId: argument.id,
+          toId: argument.targetArgumentId,
+          type: 'concedes_to',
+        });
       }
     }
 
