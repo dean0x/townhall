@@ -41,7 +41,7 @@ export class FileAgentRepository implements IAgentRepository {
    * SECURITY: Validates that a file path is within the agents directory
    * Uses path.relative() to prevent case-insensitive filesystem bypasses
    */
-  private validateAgentPath(filePath: string): Result<void, StorageError> {
+  private async validateAgentPath(filePath: string): Promise<Result<void, StorageError>> {
     const resolvedPath = resolve(filePath);
     const resolvedAgentsDir = resolve(this.agentsDir);
 
@@ -57,6 +57,17 @@ export class FileAgentRepository implements IAgentRepository {
         'Path traversal detected: attempted access outside agents directory',
         'security'
       ));
+    }
+
+    try {
+      const stats = await fs.lstat(resolvedPath);
+      if (stats.isSymbolicLink()) {
+        return err(new StorageError('Invalid file type', 'security'));
+      }
+    } catch (error) {
+      if ((error as any).code !== 'ENOENT') {
+        return err(new StorageError('File access error', 'read'));
+      }
     }
 
     return ok(undefined);
@@ -93,7 +104,7 @@ export class FileAgentRepository implements IAgentRepository {
 
   public async loadFromFile(filePath: string): Promise<Result<Agent, ValidationError | StorageError>> {
     // SECURITY: Validate path is within agents directory
-    const pathValidation = this.validateAgentPath(filePath);
+    const pathValidation = await this.validateAgentPath(filePath);
     if (pathValidation.isErr()) {
       this.logger.error('Path validation failed for loadFromFile', pathValidation.error, { filePath });
       return err(pathValidation.error);
@@ -130,7 +141,7 @@ export class FileAgentRepository implements IAgentRepository {
     const filePath = join(this.agentsDir, safeFileName);
 
     // SECURITY: Validate path is within agents directory
-    const pathValidation = this.validateAgentPath(filePath);
+    const pathValidation = await this.validateAgentPath(filePath);
     if (pathValidation.isErr()) {
       this.logger.error('Path validation failed', pathValidation.error, { agentId: agent.id, filePath });
       return err(pathValidation.error);
@@ -194,13 +205,16 @@ export class FileAgentRepository implements IAgentRepository {
     }
 
     const agents = listResult.value;
-    const metadata: AgentMetadata[] = agents.map(agent => ({
-      id: agent.id,
-      name: agent.name,
-      type: agent.type,
-      capabilities: agent.capabilities,
-      filePath: agent.filePath,
-    }));
+    const metadata: AgentMetadata[] = agents.map(agent => {
+      const filePath = join(this.agentsDir, basename(agent.filePath));
+      const mtime = this.fileTimestamps.get(filePath);
+      return {
+        id: agent.id,
+        name: agent.name,
+        filePath: agent.filePath,
+        lastModified: mtime ? new Date(mtime) : new Date(),
+      };
+    });
 
     return ok(metadata);
   }
