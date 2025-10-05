@@ -21,6 +21,9 @@ export interface StorageObject {
 @injectable()
 export class ObjectStorage {
   private readonly basePath: string;
+  private readonly MAX_JSON_DEPTH = 50;
+  private readonly MAX_FILE_SIZE = 10_000_000; // 10MB
+  private readonly FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
   constructor(basePath: string = '.townhall') {
     this.basePath = resolve(basePath);
@@ -34,6 +37,10 @@ export class ObjectStorage {
     // Explicit checks for empty/whitespace strings
     if (!type || type.length === 0 || type.trim().length === 0) {
       return err(new StorageError('Invalid storage type: cannot be empty', 'validation'));
+    }
+
+    if (type.length > 256) {
+      return err(new StorageError('Invalid storage type: exceeds maximum length', 'validation'));
     }
 
     // Pattern validation (lowercase alphanumeric with hyphens)
@@ -52,6 +59,10 @@ export class ObjectStorage {
     // Explicit checks for empty/whitespace strings
     if (!id || id.length === 0 || id.trim().length === 0) {
       return err(new StorageError('Invalid ID format: cannot be empty', 'validation'));
+    }
+
+    if (id.length > 256) {
+      return err(new StorageError('Invalid ID format: exceeds maximum length', 'validation'));
     }
 
     // Pattern validation (lowercase hexadecimal with hyphens)
@@ -84,12 +95,61 @@ export class ObjectStorage {
     return ok(undefined);
   }
 
+  private validateObjectDepth(obj: unknown, depth: number = 0): Result<void, StorageError> {
+    if (depth > this.MAX_JSON_DEPTH) {
+      return err(new StorageError('Data structure exceeds complexity limit', 'validation'));
+    }
+
+    if (typeof obj !== 'object' || obj === null) {
+      return ok(undefined);
+    }
+
+    for (const value of Object.values(obj)) {
+      const result = this.validateObjectDepth(value, depth + 1);
+      if (result.isErr()) {
+        return result;
+      }
+    }
+
+    return ok(undefined);
+  }
+
+  private checkPrototypePollution(obj: unknown): Result<void, StorageError> {
+    if (typeof obj !== 'object' || obj === null) {
+      return ok(undefined);
+    }
+
+    for (const key of Object.keys(obj)) {
+      if (this.FORBIDDEN_KEYS.has(key)) {
+        return err(new StorageError('Invalid data structure', 'validation'));
+      }
+
+      const result = this.checkPrototypePollution((obj as Record<string, unknown>)[key]);
+      if (result.isErr()) {
+        return result;
+      }
+    }
+
+    return ok(undefined);
+  }
+
   public async store(type: string, data: Record<string, unknown>): Promise<Result<string, StorageError>> {
     try {
       // SECURITY: Validate type parameter to prevent path traversal
       const typeValidation = this.validateType(type);
       if (typeValidation.isErr()) {
         return err(typeValidation.error);
+      }
+
+      // SECURITY: Validate data structure before processing
+      const depthCheck = this.validateObjectDepth(data);
+      if (depthCheck.isErr()) {
+        return err(depthCheck.error);
+      }
+
+      const pollutionCheck = this.checkPrototypePollution(data);
+      if (pollutionCheck.isErr()) {
+        return err(pollutionCheck.error);
       }
 
       // SECURITY: If data.id is provided (even if empty), validate it first
@@ -103,8 +163,12 @@ export class ObjectStorage {
           return err(idValidation.error);
         }
       } else {
-        // No ID provided - generate hash
-        id = createHash('sha256').update(JSON.stringify(data), 'utf8').digest('hex');
+        // No ID provided - generate hash (validate size before stringify)
+        const serialized = JSON.stringify(data);
+        if (serialized.length > this.MAX_FILE_SIZE) {
+          return err(new StorageError('Data exceeds size limit', 'validation'));
+        }
+        id = createHash('sha256').update(serialized, 'utf8').digest('hex');
       }
 
       const timestamp = new Date().toISOString();
@@ -114,6 +178,12 @@ export class ObjectStorage {
         data,
         timestamp,
       };
+
+      // SECURITY: Validate final object size before writing
+      const finalContent = JSON.stringify(obj, null, 2);
+      if (finalContent.length > this.MAX_FILE_SIZE) {
+        return err(new StorageError('Object exceeds size limit', 'validation'));
+      }
 
       // Ensure directory exists
       const objectDir = join(this.basePath, 'objects', type);
@@ -127,8 +197,6 @@ export class ObjectStorage {
       if (pathValidation.isErr()) {
         return err(pathValidation.error);
       }
-
-      const finalContent = JSON.stringify(obj, null, 2);
       await fs.writeFile(filePath, finalContent, { encoding: 'utf8', mode: 0o600 });
 
       return ok(id);
@@ -162,7 +230,22 @@ export class ObjectStorage {
       }
 
       const content = await fs.readFile(filePath, 'utf8');
+
+      if (content.length > this.MAX_FILE_SIZE) {
+        return err(new StorageError('File size exceeds limit', 'validation'));
+      }
+
       const obj = JSON.parse(content) as StorageObject;
+
+      const depthCheck = this.validateObjectDepth(obj);
+      if (depthCheck.isErr()) {
+        return err(depthCheck.error);
+      }
+
+      const pollutionCheck = this.checkPrototypePollution(obj);
+      if (pollutionCheck.isErr()) {
+        return err(pollutionCheck.error);
+      }
 
       return ok(obj);
     } catch (error) {
