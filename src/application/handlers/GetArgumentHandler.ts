@@ -29,11 +29,12 @@ export class GetArgumentHandler implements IQueryHandler<GetArgumentQuery, GetAr
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository
   ) {}
 
-  public async handle(query: GetArgumentQuery): Promise<Result<GetArgumentResult, Error>> {
-    // Handle short hash resolution
+  public async handle(query: GetArgumentQuery): Promise<Result<GetArgumentResult, NotFoundError>> {
+    // LIMITATION: Currently only supports full hash lookup
+    // TODO(future): Implement short hash resolution via repository.findByShortHash()
+    // For now, treat string input as full hash - short hashes will return NotFoundError
     let argumentId: ArgumentId;
     if (typeof query.argumentId === 'string') {
-      // For MVP, treat string as full hash (short hash resolution to be implemented)
       argumentId = query.argumentId as ArgumentId;
     } else {
       argumentId = query.argumentId;

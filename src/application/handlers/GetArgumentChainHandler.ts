@@ -35,7 +35,7 @@ export class GetArgumentChainHandler implements IQueryHandler<GetArgumentChainQu
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository
   ) {}
 
-  public async handle(query: GetArgumentChainQuery): Promise<Result<GetArgumentChainResult, Error>> {
+  public async handle(query: GetArgumentChainQuery): Promise<Result<GetArgumentChainResult, NotFoundError>> {
     // Retrieve root argument
     const rootResult = await this.argumentRepo.findById(query.rootArgumentId);
     if (rootResult.isErr()) {
@@ -68,7 +68,7 @@ export class GetArgumentChainHandler implements IQueryHandler<GetArgumentChainQu
     currentDepth: number,
     maxDepth: number,
     includeMetadata: boolean
-  ): Promise<Result<ArgumentNode, Error>> {
+  ): Promise<Result<ArgumentNode, NotFoundError>> {
     const node: ArgumentNode = {
       argument,
       children: [],
