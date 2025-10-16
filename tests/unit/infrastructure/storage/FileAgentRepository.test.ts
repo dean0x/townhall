@@ -7,6 +7,7 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { FileAgentRepository } from '../../../../src/infrastructure/storage/FileAgentRepository';
 import { Agent } from '../../../../src/core/entities/Agent';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
@@ -25,6 +26,7 @@ const mockLogger: ILogger = {
 };
 
 describe('FileAgentRepository Security Tests', () => {
+  const cryptoService = new MockCryptoService();
   let repository: FileAgentRepository;
   let testDir: string;
   let agentsDir: string;
@@ -83,7 +85,7 @@ describe('FileAgentRepository Security Tests', () => {
 
     it('should accept valid paths within agents directory', async () => {
       // Create a valid agent file
-      const validAgentId = AgentIdGenerator.generate();
+      const validAgentId = AgentIdGenerator.generate(cryptoService);
       const validPath = join(agentsDir, `${validAgentId}.md`);
       const validAgentContent = `---
 id: ${validAgentId}
@@ -180,7 +182,7 @@ This is a test agent.
     });
 
     it('should always save files within agents directory', async () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const validFilePath = join(agentsDir, `${agentId}.md`);
       const agentResult = Agent.create({
         id: agentId,
@@ -212,7 +214,7 @@ This is a test agent.
     });
 
     it('should construct path from agent ID, not agent.filePath', async () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       // Create agent with a valid but misleading filePath
       const misleadingFilePath = join(agentsDir, 'wrong-name.md');
       const agentResult = Agent.create({
@@ -245,7 +247,7 @@ This is a test agent.
   describe('refresh() security', () => {
     it('should only load files from agents directory', async () => {
       // Create a valid agent in agents directory using saveToFile
-      const validAgentId = AgentIdGenerator.generate();
+      const validAgentId = AgentIdGenerator.generate(cryptoService);
       const validFilePath = join(agentsDir, `${validAgentId}.md`);
       const validAgentResult = Agent.create({
         id: validAgentId,
@@ -327,8 +329,8 @@ Outside
 
     it('should skip files that fail path validation during refresh', async () => {
       // Create valid agent files using saveToFile
-      const validAgentId1 = AgentIdGenerator.generate();
-      const validAgentId2 = AgentIdGenerator.generate();
+      const validAgentId1 = AgentIdGenerator.generate(cryptoService);
+      const validAgentId2 = AgentIdGenerator.generate(cryptoService);
 
       const agent1Result = Agent.create({
         id: validAgentId1,
@@ -369,7 +371,7 @@ Outside
 
   describe('File permission security', () => {
     it('should create agent files with secure permissions (0o600)', async () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const validFilePath = join(agentsDir, `${agentId}.md`);
       const agentResult = Agent.create({
         id: agentId,
@@ -401,7 +403,7 @@ Outside
       await fs.rm(testDir, { recursive: true, force: true });
       repository = new FileAgentRepository(mockLogger, testDir);
 
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const newAgentsDir = join(testDir, 'agents');
       const validFilePath = join(newAgentsDir, `${agentId}.md`);
       const agentResult = Agent.create({
@@ -478,7 +480,7 @@ Test`);
 
     it('should reject case manipulation attacks on case-insensitive filesystems', async () => {
       // On case-insensitive filesystems, different cases might resolve to same file
-      const agentId = AgentIdGenerator.generate().toLowerCase();
+      const agentId = AgentIdGenerator.generate(cryptoService).toLowerCase();
       const validPath = join(agentsDir, `${agentId}.md`);
 
       await fs.writeFile(validPath, `---

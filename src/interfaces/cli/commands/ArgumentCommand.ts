@@ -91,8 +91,13 @@ export class ArgumentCommand extends BaseCommand {
       type: validatedOptions.type,
     });
 
+    const agentIdResult = AgentIdGenerator.fromString(validatedOptions.agentId);
+    if (agentIdResult.isErr()) {
+      return err(agentIdResult.error);
+    }
+
     const command: CreateArgumentCommand = {
-      agentId: AgentIdGenerator.fromString(validatedOptions.agentId),
+      agentId: agentIdResult.value,
       type: validatedOptions.type,
       content: validatedOptions.content,
     };

@@ -11,9 +11,11 @@ import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 import { expectOk, expectErr } from '../../../helpers/result-assertions';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('Argument Entity', () => {
-  const mockAgentId = AgentIdGenerator.generate();
+  const cryptoService = new MockCryptoService();
+  const mockAgentId = AgentIdGenerator.generate(cryptoService);
   const mockSimulationId = SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z');
   const mockTimestamp = TimestampGenerator.now();
 
@@ -33,7 +35,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       expect(argument).toBeDefined();
       expect(argument.agentId).toBe(mockAgentId);
@@ -60,7 +62,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       expect(argument).toBeDefined();
       expect(argument.type).toBe(ArgumentType.INDUCTIVE);
@@ -90,7 +92,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       expect(argument).toBeDefined();
       expect(argument.type).toBe(ArgumentType.EMPIRICAL);
@@ -113,7 +115,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       expect(error.message).toBe('Deductive arguments require at least 2 premises');
     });
@@ -133,7 +135,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       const argument2 = expectOk(Argument.create({
         agentId: mockAgentId,
@@ -141,7 +143,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       expect(argument1.id).toBe(argument2.id);
     });
@@ -163,7 +165,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       // These should not be modifiable
       expect(() => {
@@ -192,7 +194,7 @@ describe('Argument Entity', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       expect(argument.metadata).toBeDefined();
       expect(argument.metadata.hash).toBe(argument.id);

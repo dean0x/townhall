@@ -35,16 +35,6 @@ export class InitializeDebateHandler implements ICommandHandler<InitializeDebate
       return validationResult;
     }
 
-    // Check if there's already an active debate (single active constraint)
-    const hasActiveResult = await this.simulationRepo.hasActive();
-    if (hasActiveResult.isErr()) {
-      return hasActiveResult;
-    }
-
-    if (hasActiveResult.value) {
-      return err(new ConflictError('Cannot start new debate: another debate is already active'));
-    }
-
     // Create new simulation
     const timestamp = TimestampGenerator.now();
     const simulationResult = DebateSimulation.create({
@@ -64,10 +54,10 @@ export class InitializeDebateHandler implements ICommandHandler<InitializeDebate
       return saveResult;
     }
 
-    // Set as active
-    const setActiveResult = await this.simulationRepo.setActive(simulation.id);
-    if (setActiveResult.isErr()) {
-      return setActiveResult;
+    // Auto-checkout the new simulation (overwrites any existing active simulation)
+    const switchActiveResult = await this.simulationRepo.switchActive(simulation.id);
+    if (switchActiveResult.isErr()) {
+      return switchActiveResult;
     }
 
     return ok({

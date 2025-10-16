@@ -119,14 +119,7 @@ export class ConcedeCommand extends BaseCommand {
   }
 
   private validateAgentId(agentId: string): Result<AgentId, ValidationError> {
-    try {
-      return ok(AgentIdGenerator.fromString(agentId));
-    } catch (error) {
-      return err(new ValidationError(
-        `Invalid agent ID format: ${agentId}`,
-        'agent'
-      ));
-    }
+    return AgentIdGenerator.fromString(agentId);
   }
 
   private async validateTargetId(targetId: string): Promise<Result<ArgumentId, ValidationError>> {

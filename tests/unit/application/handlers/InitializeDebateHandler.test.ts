@@ -21,6 +21,7 @@ describe('InitializeDebateHandler', () => {
       findById: vi.fn(),
       getActive: vi.fn(),
       setActive: vi.fn(),
+      switchActive: vi.fn(),
       hasActive: vi.fn(),
       clearActive: vi.fn(),
       listAll: vi.fn(),
@@ -31,34 +32,34 @@ describe('InitializeDebateHandler', () => {
     handler = new InitializeDebateHandler(mockSimulationRepo);
   });
 
-  it('should create new debate when no active debate exists', async () => {
+  it('should create new debate and auto-checkout', async () => {
     const command: InitializeDebateCommand = {
       topic: 'Should AI be regulated?',
     };
 
-    vi.mocked(mockSimulationRepo.hasActive).mockResolvedValue(ok(false));
     vi.mocked(mockSimulationRepo.save).mockResolvedValue(ok('simulation-id' as any));
-    vi.mocked(mockSimulationRepo.setActive).mockResolvedValue(ok(undefined));
+    vi.mocked(mockSimulationRepo.switchActive).mockResolvedValue(ok(undefined));
 
     const result = await handler.handle(command);
 
     expect(result.isOk()).toBe(true);
     expect(mockSimulationRepo.save).toHaveBeenCalled();
-    expect(mockSimulationRepo.setActive).toHaveBeenCalled();
+    expect(mockSimulationRepo.switchActive).toHaveBeenCalled();
   });
 
-  it('should fail when active debate already exists', async () => {
+  it('should allow multiple simulations by auto-checkout', async () => {
     const command: InitializeDebateCommand = {
       topic: 'Another topic',
     };
 
-    vi.mocked(mockSimulationRepo.hasActive).mockResolvedValue(ok(true));
+    vi.mocked(mockSimulationRepo.save).mockResolvedValue(ok('simulation-id-2' as any));
+    vi.mocked(mockSimulationRepo.switchActive).mockResolvedValue(ok(undefined));
 
     const result = await handler.handle(command);
 
-    expect(result.isErr()).toBe(true);
-    expect(result._unsafeUnwrapErr().message).toContain('another debate is already active');
-    expect(mockSimulationRepo.save).not.toHaveBeenCalled();
+    expect(result.isOk()).toBe(true);
+    expect(mockSimulationRepo.save).toHaveBeenCalled();
+    expect(mockSimulationRepo.switchActive).toHaveBeenCalled();
   });
 
   it('should validate topic length', async () => {
@@ -77,7 +78,7 @@ describe('InitializeDebateHandler', () => {
       topic: 'Valid topic',
     };
 
-    vi.mocked(mockSimulationRepo.hasActive).mockResolvedValue(err(new StorageError('Storage failed', 'read')));
+    vi.mocked(mockSimulationRepo.save).mockResolvedValue(err(new StorageError('Storage failed', 'write')));
 
     const result = await handler.handle(command);
 

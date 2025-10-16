@@ -14,6 +14,7 @@ import { Concession } from '../../core/entities/Concession';
 import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
 import { SimulationId } from '../../core/value-objects/SimulationId';
 import { AgentId } from '../../core/value-objects/AgentId';
+import { ICryptoService } from '../../core/services/ICryptoService';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
 
@@ -35,7 +36,8 @@ interface ArgumentData {
 @injectable()
 export class FileArgumentRepository implements IArgumentRepository {
   constructor(
-    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage
+    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage,
+    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}
 
   public async save(argument: Argument): Promise<Result<ArgumentId, StorageError>> {
@@ -282,7 +284,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       simulationId: data.simulationId as SimulationId,
       timestamp: data.timestamp as any,
       sequenceNumber: data.metadata.sequenceNumber,
-    });
+    }, this.cryptoService);
   }
 
   /**
@@ -297,7 +299,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       timestamp: data.timestamp as any,
       targetArgumentId: data.targetArgumentId as ArgumentId,
       rebuttalType: data.rebuttalType as any,
-    });
+    }, this.cryptoService);
   }
 
   /**
@@ -314,7 +316,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       concessionType: data.concessionType as any,
       conditions: data.conditions,
       explanation: data.explanation,
-    });
+    }, this.cryptoService);
   }
 
   /**

@@ -5,6 +5,7 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -29,6 +30,7 @@ const mockLogger: ILogger = {
 };
 
 describe('Concurrent Operations Tests', () => {
+  const cryptoService = new MockCryptoService();
   let testDir: string;
   let storage: ObjectStorage;
   let simulationRepo: FileSimulationRepository;
@@ -93,7 +95,7 @@ describe('Concurrent Operations Tests', () => {
 
     it('should handle concurrent argument saves without corruption', async () => {
       const count = 15;
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const simId = 'test-simulation-id' as SimulationId;
 
       // Create arguments with unique content (for unique IDs)
@@ -114,7 +116,7 @@ describe('Concurrent Operations Tests', () => {
           },
           simulationId: simId,
           timestamp: new Date(Date.now() + i + Math.random() * 1000), // More unique timestamps
-        })
+        }, cryptoService)
       );
 
       // Save all concurrently
@@ -166,7 +168,7 @@ describe('Concurrent Operations Tests', () => {
 
       // Create agent files concurrently
       const fileWrites = Array(count).fill(null).map((_, i) => {
-        const agentId = AgentIdGenerator.generate();
+        const agentId = AgentIdGenerator.generate(cryptoService);
         const content = `---
 id: ${agentId}
 name: Agent ${i}
@@ -255,7 +257,7 @@ description: Test agent ${i}
         await simulationRepo.save(sim);
 
         // Add participants concurrently (simulating race condition)
-        const agents = Array(5).fill(null).map(() => AgentIdGenerator.generate());
+        const agents = Array(5).fill(null).map(() => AgentIdGenerator.generate(cryptoService));
 
         // Each "update" loads, modifies, and saves
         const updates = agents.map(async agentId => {
@@ -487,7 +489,7 @@ description: Test agent ${i}
       // Create some agent files
       const count = 5;
       for (let i = 0; i < count; i++) {
-        const agentId = AgentIdGenerator.generate();
+        const agentId = AgentIdGenerator.generate(cryptoService);
         const content = `---
 id: ${agentId}
 name: Refresh Test ${i}
@@ -526,7 +528,7 @@ description: Test
       const agentsDir = join(testDir, 'agents');
       await fs.mkdir(agentsDir, { recursive: true });
 
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const content = `---
 id: ${agentId}
 name: Refresh Find Race

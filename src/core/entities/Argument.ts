@@ -11,6 +11,7 @@ import { AgentId } from '../value-objects/AgentId';
 import { SimulationId } from '../value-objects/SimulationId';
 import { Timestamp } from '../value-objects/Timestamp';
 import { ArgumentType } from '../value-objects/ArgumentType';
+import { ICryptoService } from '../services/ICryptoService';
 
 export interface DeductiveStructure {
   readonly premises: readonly string[];
@@ -71,14 +72,14 @@ export class Argument {
     // Note: Object.freeze(this) moved to static create methods for inheritance support
   }
 
-  public static create(params: CreateArgumentParams): Result<Argument, ValidationError> {
+  public static create(params: CreateArgumentParams, cryptoService: ICryptoService): Result<Argument, ValidationError> {
     // Validate argument structure based on type
     const validationResult = this.validateStructure(params.type, params.content.structure);
     if (validationResult.isErr()) {
       return err(validationResult.error);
     }
 
-    // Generate content-addressed ID
+    // Generate content-addressed ID using injected crypto service
     const contentString = JSON.stringify({
       type: params.type,
       content: params.content,
@@ -87,7 +88,7 @@ export class Argument {
       timestamp: params.timestamp,
     });
 
-    const id = ArgumentIdGenerator.fromContent(contentString);
+    const id = ArgumentIdGenerator.fromContent(contentString, cryptoService);
 
     const metadata: ArgumentMetadata = {
       hash: id,

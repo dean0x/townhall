@@ -66,11 +66,15 @@ export abstract class BaseCommand {
    */
   private async executeWithErrorHandling(...args: any[]): Promise<Result<void, DomainError>> {
     try {
-      // Extract options (last argument before callback)
-      const options = args[args.length - 2] || args[0];
+      // Extract options/arguments
+      // Commander passes: (arg1, arg2, ..., optionsObj, commandObj)
+      // - For command with positional arg: args[0] = arg value (string), args[1] = options {}, args[2] = Command
+      // - For command with just options: args[0] = options {}, args[1] = Command
+      // So we check if args[0] is a string (positional arg) or an object (options)
+      const options = typeof args[0] === 'string' ? args[0] : (args[args.length - 2] || args[0]);
 
-      // Validate options using Result type
-      const validationResult = this.validateOptions(options);
+      // Validate options using Result type (may be async)
+      const validationResult = await this.validateOptions(options);
       if (validationResult.isErr()) {
         return err(validationResult.error);
       }

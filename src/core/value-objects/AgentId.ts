@@ -1,23 +1,52 @@
 /**
- * AgentId value object (UUID)
- * Unique identifier for debate participants
+ * ARCHITECTURE: Core value object - framework-agnostic identifier
+ * Pattern: Branded type with injected crypto service
+ * Rationale: Pure domain logic without Node.js dependencies
  */
 
-import { randomUUID } from 'crypto';
 import { Brand } from '../../shared/types';
+import { Result, ok, err } from '../../shared/result';
+import { ValidationError } from '../../shared/errors';
+import { ICryptoService } from '../services/ICryptoService';
 
 export type AgentId = Brand<string, 'AgentId'>;
 
 export class AgentIdGenerator {
-  public static generate(): AgentId {
-    return randomUUID() as AgentId;
+  /**
+   * Generate new AgentId using injected crypto service
+   * @param cryptoService Cryptographic service for random UUID generation
+   */
+  public static generate(cryptoService: ICryptoService): AgentId {
+    const bytes = cryptoService.randomBytes(16);
+
+    // Format as UUID v4 (RFC 4122)
+    // Set version (4) and variant bits
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // Version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant 10
+
+    // Format as UUID string
+    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const uuid = [
+      hex.substring(0, 8),
+      hex.substring(8, 12),
+      hex.substring(12, 16),
+      hex.substring(16, 20),
+      hex.substring(20, 32),
+    ].join('-');
+
+    return uuid as AgentId;
   }
 
-  public static fromString(uuid: string): AgentId {
+  /**
+   * Create AgentId from existing UUID string
+   * @param uuid UUID string to validate and convert
+   * @returns Result with AgentId or ValidationError
+   */
+  public static fromString(uuid: string): Result<AgentId, ValidationError> {
     if (!this.isValidUUID(uuid)) {
-      throw new Error('Invalid UUID format');
+      return err(new ValidationError('Invalid UUID format for AgentId'));
     }
-    return uuid as AgentId;
+    return ok(uuid as AgentId);
   }
 
   private static isValidUUID(value: string): boolean {

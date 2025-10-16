@@ -10,7 +10,8 @@ import { Argument, CreateArgumentParams, ArgumentType, ArgumentContent, Argument
 import { ArgumentId, ArgumentIdGenerator } from '../value-objects/ArgumentId';
 import { AgentId } from '../value-objects/AgentId';
 import { SimulationId } from '../value-objects/SimulationId';
-import { Timestamp, TimestampGenerator } from '../value-objects/Timestamp';
+import { Timestamp } from '../value-objects/Timestamp';
+import { ICryptoService } from '../services/ICryptoService';
 
 export type RebuttalType = 'logical' | 'empirical' | 'methodological';
 
@@ -41,7 +42,7 @@ export class Rebuttal extends Argument {
     this.rebuttalType = rebuttalType;
   }
 
-  public static create(params: CreateRebuttalParams): Result<Rebuttal, ValidationError> {
+  public static create(params: CreateRebuttalParams, cryptoService: ICryptoService): Result<Rebuttal, ValidationError> {
     const rebuttalTypeValidation = this.validateRebuttalType(params.rebuttalType);
     if (rebuttalTypeValidation.isErr()) {
       return err(rebuttalTypeValidation.error);
@@ -52,18 +53,18 @@ export class Rebuttal extends Argument {
       return err(targetArgumentValidation.error);
     }
 
-    // Generate content-addressed ID including rebuttal data
+    // Generate content-addressed ID including rebuttal data using injected crypto service
     const contentString = JSON.stringify({
       type: params.type,
       content: params.content,
       agentId: params.agentId,
       simulationId: params.simulationId,
-      timestamp: params.timestamp || TimestampGenerator.now(),
+      timestamp: params.timestamp,
       targetArgumentId: params.targetArgumentId,
       rebuttalType: params.rebuttalType,
     });
 
-    const id = ArgumentIdGenerator.fromContent(contentString);
+    const id = ArgumentIdGenerator.fromContent(contentString, cryptoService);
 
     const metadata = {
       hash: id,
@@ -76,7 +77,7 @@ export class Rebuttal extends Argument {
       params.agentId,
       params.type,
       params.content,
-      params.timestamp || TimestampGenerator.now(),
+      params.timestamp,
       params.simulationId,
       metadata,
       params.targetArgumentId,

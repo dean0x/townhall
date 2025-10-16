@@ -28,6 +28,7 @@ export const TOKENS = {
   // Application ports
   CommandBus: Symbol.for('CommandBus'),
   QueryBus: Symbol.for('QueryBus'),
+  CryptoService: Symbol.for('CryptoService'),
 
   // Command Handlers
   InitializeDebateHandler: Symbol.for('InitializeDebateHandler'),
@@ -35,6 +36,7 @@ export const TOKENS = {
   SubmitRebuttalHandler: Symbol.for('SubmitRebuttalHandler'),
   SubmitConcessionHandler: Symbol.for('SubmitConcessionHandler'),
   VoteToCloseHandler: Symbol.for('VoteToCloseHandler'),
+  CheckoutSimulationHandler: Symbol.for('CheckoutSimulationHandler'),
 
   // Query Handlers
   GetDebateHistoryHandler: Symbol.for('GetDebateHistoryHandler'),

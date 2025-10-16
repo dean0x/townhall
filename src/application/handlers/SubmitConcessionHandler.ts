@@ -15,6 +15,7 @@ import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { Concession } from '../../core/entities/Concession';
 import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
+import { ICryptoService } from '../ports/ICryptoService';
 import { TOKENS } from '../../shared/container';
 
 export interface SubmitConcessionResult {
@@ -29,7 +30,8 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
   constructor(
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
     @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
-    @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository
+    @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
+    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}
 
   public async handle(command: SubmitConcessionCommand): Promise<Result<SubmitConcessionResult, Error>> {
@@ -93,7 +95,7 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
       explanation: command.explanation,
       conditions: command.conditions,
       sequenceNumber,
-    });
+    }, this.cryptoService);
 
     if (concessionResult.isErr()) {
       return err(concessionResult.error);

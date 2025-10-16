@@ -11,8 +11,10 @@ import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { ArgumentIdGenerator } from '../../../../src/core/value-objects/ArgumentId';
 import { expectOk, expectErr } from '../../../helpers/result-assertions';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('DebateSimulation Entity', () => {
+  const cryptoService = new MockCryptoService();
   const mockTimestamp = TimestampGenerator.now();
 
   describe('Factory method', () => {
@@ -73,7 +75,7 @@ describe('DebateSimulation Entity', () => {
         createdAt: mockTimestamp,
       }));
 
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const updated = simulation.addParticipant(agentId);
 
       expect(updated.participantIds).toContain(agentId);
@@ -86,7 +88,7 @@ describe('DebateSimulation Entity', () => {
         createdAt: mockTimestamp,
       }));
 
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const updated1 = simulation.addParticipant(agentId);
       const updated2 = updated1.addParticipant(agentId);
 
@@ -101,7 +103,7 @@ describe('DebateSimulation Entity', () => {
         createdAt: mockTimestamp,
       }));
 
-      const argumentId = ArgumentIdGenerator.fromContent('Test argument');
+      const argumentId = ArgumentIdGenerator.fromContent('Test argument', cryptoService);
       const updated = simulation.addArgument(argumentId);
 
       expect(updated.argumentIds).toContain(argumentId);
@@ -114,9 +116,9 @@ describe('DebateSimulation Entity', () => {
         createdAt: mockTimestamp,
       }));
 
-      const arg1 = ArgumentIdGenerator.fromContent('Argument 1');
-      const arg2 = ArgumentIdGenerator.fromContent('Argument 2');
-      const arg3 = ArgumentIdGenerator.fromContent('Argument 3');
+      const arg1 = ArgumentIdGenerator.fromContent('Argument 1', cryptoService);
+      const arg2 = ArgumentIdGenerator.fromContent('Argument 2', cryptoService);
+      const arg3 = ArgumentIdGenerator.fromContent('Argument 3', cryptoService);
 
       const updated = simulation
         .addArgument(arg1)
@@ -158,7 +160,7 @@ describe('DebateSimulation Entity', () => {
         createdAt: mockTimestamp,
       }));
 
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const withParticipant = simulation.addParticipant(agentId);
       const updated = withParticipant.recordCloseVote(agentId, true, 'All points covered');
 
@@ -173,7 +175,7 @@ describe('DebateSimulation Entity', () => {
         createdAt: mockTimestamp,
       }));
 
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const withParticipant = simulation.addParticipant(agentId);
       const updated1 = withParticipant.recordCloseVote(agentId, true);
 
@@ -198,6 +200,135 @@ describe('DebateSimulation Entity', () => {
       expect(() => {
         (simulation as any).topic = 'New topic';
       }).toThrow();
+    });
+  });
+
+  describe('reconstitute() method', () => {
+    it('should preserve original ID instead of regenerating', () => {
+      const originalId = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const timestamp = TimestampGenerator.now();
+
+      const simulation = expectOk(DebateSimulation.reconstitute(
+        originalId,
+        'Test Topic',
+        timestamp,
+        DebateStatus.ACTIVE,
+        [],
+        [],
+        []
+      ));
+
+      expect(simulation.id).toBe(originalId);
+    });
+
+    it('should reconstitute simulation with all fields', () => {
+      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const timestamp = TimestampGenerator.now();
+      const agent1 = AgentIdGenerator.generate(cryptoService);
+      const agent2 = AgentIdGenerator.generate(cryptoService);
+      const arg1 = ArgumentIdGenerator.fromContent('Arg 1', cryptoService);
+      const arg2 = ArgumentIdGenerator.fromContent('Arg 2', cryptoService);
+      const votes = [
+        { agentId: agent1, vote: true, reason: 'Test', timestamp: mockTimestamp }
+      ];
+
+      const simulation = expectOk(DebateSimulation.reconstitute(
+        id,
+        'Complex Topic',
+        timestamp,
+        DebateStatus.CLOSED,
+        [agent1, agent2],
+        [arg1, arg2],
+        votes
+      ));
+
+      expect(simulation.id).toBe(id);
+      expect(simulation.topic).toBe('Complex Topic');
+      expect(simulation.status).toBe(DebateStatus.CLOSED);
+      expect(simulation.participantIds).toEqual([agent1, agent2]);
+      expect(simulation.argumentIds).toEqual([arg1, arg2]);
+      expect(simulation.votesToClose).toEqual(votes);
+    });
+
+    it('should return error when ID is missing', () => {
+      const error = expectErr(DebateSimulation.reconstitute(
+        '' as any,  // Empty ID
+        'Topic',
+        mockTimestamp,
+        DebateStatus.ACTIVE,
+        [],
+        [],
+        []
+      ));
+
+      expect(error.message).toContain('Data corruption');
+      expect(error.message).toContain('Missing required fields');
+    });
+
+    it('should return error when topic is missing', () => {
+      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+
+      const error = expectErr(DebateSimulation.reconstitute(
+        id,
+        '',  // Empty topic
+        mockTimestamp,
+        DebateStatus.ACTIVE,
+        [],
+        [],
+        []
+      ));
+
+      expect(error.message).toContain('Data corruption');
+    });
+
+    it('should return error when createdAt is null', () => {
+      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+
+      const error = expectErr(DebateSimulation.reconstitute(
+        id,
+        'Topic',
+        null as any,  // Null timestamp
+        DebateStatus.ACTIVE,
+        [],
+        [],
+        []
+      ));
+
+      expect(error.message).toContain('Data corruption');
+    });
+
+    it('should return error when status is missing', () => {
+      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+
+      const error = expectErr(DebateSimulation.reconstitute(
+        id,
+        'Topic',
+        mockTimestamp,
+        '' as any,  // Empty status
+        [],
+        [],
+        []
+      ));
+
+      expect(error.message).toContain('Data corruption');
+    });
+
+    it('should allow empty arrays for optional collections', () => {
+      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+
+      const simulation = expectOk(DebateSimulation.reconstitute(
+        id,
+        'Topic',
+        mockTimestamp,
+        DebateStatus.ACTIVE,
+        [],  // Empty participants
+        [],  // Empty arguments
+        []   // Empty votes
+      ));
+
+      expect(simulation.participantIds).toEqual([]);
+      expect(simulation.argumentIds).toEqual([]);
+      expect(simulation.votesToClose).toEqual([]);
     });
   });
 });

@@ -5,6 +5,7 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -22,6 +23,7 @@ const mockLogger: ILogger = {
 };
 
 describe('FileAgentRepository - Mtime-based Cache Invalidation', () => {
+  const cryptoService = new MockCryptoService();
   let repository: FileAgentRepository;
   let testDir: string;
   let agentsDir: string;
@@ -39,7 +41,7 @@ describe('FileAgentRepository - Mtime-based Cache Invalidation', () => {
 
   describe('Performance: Skip unchanged files', () => {
     it('should load file on first refresh', async () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const agentFile = join(agentsDir, `${agentId}.md`);
 
       // Create agent file with correct YAML format
@@ -70,7 +72,7 @@ This is a test agent.`;
     });
 
     it('should skip unchanged file on second refresh', async () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const agentFile = join(agentsDir, `${agentId}.md`);
 
       const content = `---
@@ -109,7 +111,7 @@ description: A test agent
     });
 
     it('should reload file when modified', async () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
       const agentFile = join(agentsDir, `${agentId}.md`);
 
       // Create initial agent
@@ -124,6 +126,7 @@ description: Original description
 # Original`;
 
       await fs.writeFile(agentFile, content1, 'utf8');
+      const stats1 = await fs.stat(agentFile);
       await repository.refresh();
 
       // Verify original content
@@ -132,8 +135,8 @@ description: Original description
         expect(agents1.value[0]?.name).toBe('Original Name');
       }
 
-      // Wait to ensure mtime will be different
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Wait to ensure mtime will be different (1s to handle filesystem granularity)
+      await new Promise(resolve => setTimeout(resolve, 1100));
 
       // Modify the file
       const content2 = `---

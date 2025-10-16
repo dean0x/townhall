@@ -113,6 +113,33 @@ export class FileSimulationRepository implements ISimulationRepository {
     }
   }
 
+  public async switchActive(id: SimulationId): Promise<Result<void, NotFoundError | StorageError>> {
+    // Verify simulation exists
+    const existsResult = await this.storage.exists('simulations', id);
+    if (existsResult.isErr()) {
+      return existsResult;
+    }
+
+    if (!existsResult.value) {
+      return err(new NotFoundError('Simulation', id));
+    }
+
+    // Overwrite HEAD without checking for conflicts (this is checkout behavior)
+    try {
+      const refsDir = join(this.basePath, 'refs');
+      await fs.mkdir(refsDir, { recursive: true });
+
+      const headPath = join(refsDir, 'HEAD');
+      await fs.writeFile(headPath, id, 'utf8');
+      return ok(undefined);
+    } catch (error) {
+      return err(new StorageError(
+        `Failed to switch active simulation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'write'
+      ));
+    }
+  }
+
   public async hasActive(): Promise<Result<boolean, StorageError>> {
     try {
       const headPath = join(this.basePath, 'refs', 'HEAD');
@@ -194,45 +221,24 @@ export class FileSimulationRepository implements ISimulationRepository {
   }
 
   private deserializeSimulation(data: SimulationData): DebateSimulation {
-    // Recreate the simulation using the factory method
-    const baseSimulationResult = DebateSimulation.create({
-      topic: data.topic,
-      createdAt: data.createdAt as any,
-    });
+    // Reconstitute the simulation with its original ID from storage
+    // This preserves content-addressed IDs instead of regenerating them
+    const result = DebateSimulation.reconstitute(
+      data.id as SimulationId,
+      data.topic,
+      data.createdAt as any,
+      data.status as any,
+      data.participantIds as any[],
+      data.argumentIds as any[],
+      data.votesToClose
+    );
 
     // SAFETY: Deserialization from trusted storage should always succeed
     // If it fails, it indicates data corruption - throw to surface the issue
-    if (baseSimulationResult.isErr()) {
-      throw new Error(`Data corruption: Failed to deserialize simulation - ${baseSimulationResult.error.message}`);
+    if (result.isErr()) {
+      throw new Error(`Data corruption: Failed to deserialize simulation - ${result.error.message}`);
     }
 
-    // Build up the simulation state
-    let simulation = baseSimulationResult.value;
-
-    // Add participants
-    for (const participantId of data.participantIds) {
-      simulation = simulation.addParticipant(participantId as any);
-    }
-
-    // Add arguments
-    for (const argumentId of data.argumentIds) {
-      simulation = simulation.addArgument(argumentId as any);
-    }
-
-    // Add votes
-    for (const vote of data.votesToClose) {
-      simulation = simulation.recordCloseVote(
-        vote.agentId,
-        vote.vote,
-        vote.reason
-      );
-    }
-
-    // Set status if needed
-    if (data.status !== simulation.status) {
-      simulation = simulation.transitionTo(data.status as any);
-    }
-
-    return simulation;
+    return result.value;
   }
 }

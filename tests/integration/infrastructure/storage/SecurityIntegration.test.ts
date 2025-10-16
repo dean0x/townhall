@@ -5,6 +5,7 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -29,6 +30,7 @@ const mockLogger: ILogger = {
 };
 
 describe('Security Integration Tests', () => {
+  const cryptoService = new MockCryptoService();
   let testDir: string;
   let storage: ObjectStorage;
   let simulationRepo: FileSimulationRepository;
@@ -174,7 +176,7 @@ describe('Security Integration Tests', () => {
         await fs.mkdir(join(testDir, 'agents'), { recursive: true });
 
         const content = `---
-id: ${AgentIdGenerator.generate()}
+id: ${AgentIdGenerator.generate(cryptoService)}
 name: Test Agent
 type: llm
 capabilities: [debate]
@@ -306,14 +308,14 @@ description: Test
         let sim = simResult.value;
 
         // Add participants
-        const agent1 = AgentIdGenerator.generate();
-        const agent2 = AgentIdGenerator.generate();
+        const agent1 = AgentIdGenerator.generate(cryptoService);
+        const agent2 = AgentIdGenerator.generate(cryptoService);
         sim = sim.addParticipant(agent1);
         sim = sim.addParticipant(agent2);
 
         // Add arguments (use content-addressed IDs)
-        const arg1 = ArgumentIdGenerator.fromContent('Argument 1 content');
-        const arg2 = ArgumentIdGenerator.fromContent('Argument 2 content');
+        const arg1 = ArgumentIdGenerator.fromContent('Argument 1 content', cryptoService);
+        const arg2 = ArgumentIdGenerator.fromContent('Argument 2 content', cryptoService);
         sim = sim.addArgument(arg1);
         sim = sim.addArgument(arg2);
 
@@ -402,7 +404,7 @@ description: Test
         expect(argResult.error.constructor.name).toBe('NotFoundError');
       }
 
-      const nonExistentAgentId = AgentIdGenerator.generate();
+      const nonExistentAgentId = AgentIdGenerator.generate(cryptoService);
       const agentResult = await agentRepo.findById(nonExistentAgentId);
       expect(agentResult.isErr()).toBe(true);
       if (agentResult.isErr()) {

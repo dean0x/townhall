@@ -385,4 +385,143 @@ describe('FileSimulationRepository Security Tests', () => {
       }).rejects.toThrow();
     });
   });
+
+  describe('switchActive() functionality', () => {
+    it('should successfully switch to existing simulation', async () => {
+      // Create and save a simulation
+      const simulationResult = DebateSimulation.create({
+        topic: 'Test debate',
+        createdAt: new Date().toISOString(),
+      });
+      const simulation = expectOk(simulationResult);
+      await repository.save(simulation);
+
+      // Switch to it
+      const switchResult = await repository.switchActive(simulation.id);
+      expect(switchResult.isOk()).toBe(true);
+
+      // Verify it's now active
+      const activeResult = await repository.getActive();
+      expect(activeResult.isOk()).toBe(true);
+      if (activeResult.isOk()) {
+        expect(activeResult.value.id).toBe(simulation.id);
+      }
+    });
+
+    it('should overwrite existing HEAD without conflict check', async () => {
+      // Create two simulations
+      const sim1Result = DebateSimulation.create({
+        topic: 'First debate',
+        createdAt: new Date().toISOString(),
+      });
+      const sim1 = expectOk(sim1Result);
+      await repository.save(sim1);
+
+      const sim2Result = DebateSimulation.create({
+        topic: 'Second debate',
+        createdAt: new Date(Date.now() + 1000).toISOString(),
+      });
+      const sim2 = expectOk(sim2Result);
+      await repository.save(sim2);
+
+      // Switch to first simulation
+      const switch1Result = await repository.switchActive(sim1.id);
+      expect(switch1Result.isOk()).toBe(true);
+
+      // Switch to second simulation (should overwrite without conflict error)
+      const switch2Result = await repository.switchActive(sim2.id);
+      expect(switch2Result.isOk()).toBe(true);
+
+      // Verify second is now active
+      const activeResult = await repository.getActive();
+      expect(activeResult.isOk()).toBe(true);
+      if (activeResult.isOk()) {
+        expect(activeResult.value.id).toBe(sim2.id);
+      }
+    });
+
+    it('should return NotFoundError when simulation does not exist', async () => {
+      const nonExistentId = 'a'.repeat(64) as SimulationId;
+      const switchResult = await repository.switchActive(nonExistentId);
+
+      expect(switchResult.isErr()).toBe(true);
+      if (switchResult.isErr()) {
+        expect(switchResult.error.constructor.name).toBe('NotFoundError');
+        expect(switchResult.error.message).toContain('Simulation');
+      }
+    });
+
+    it('should create refs directory if it does not exist', async () => {
+      // Create and save a simulation
+      const simulationResult = DebateSimulation.create({
+        topic: 'Test debate',
+        createdAt: new Date().toISOString(),
+      });
+      const simulation = expectOk(simulationResult);
+      await repository.save(simulation);
+
+      // Ensure refs directory doesn't exist
+      const refsDir = join(testDir, 'refs');
+      try {
+        await fs.rm(refsDir, { recursive: true, force: true });
+      } catch {
+        // Directory might not exist, which is fine
+      }
+
+      // Switch should create the directory
+      const switchResult = await repository.switchActive(simulation.id);
+      expect(switchResult.isOk()).toBe(true);
+
+      // Verify directory was created
+      const stats = await fs.stat(refsDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
+    it('should handle filesystem write errors gracefully', async () => {
+      // Create and save a simulation
+      const simulationResult = DebateSimulation.create({
+        topic: 'Test debate',
+        createdAt: new Date().toISOString(),
+      });
+      const simulation = expectOk(simulationResult);
+      await repository.save(simulation);
+
+      // Make refs directory read-only to force write error (Unix only)
+      if (process.platform !== 'win32') {
+        const refsDir = join(testDir, 'refs');
+        await fs.mkdir(refsDir, { recursive: true });
+        await fs.chmod(refsDir, 0o444); // Read-only
+
+        const switchResult = await repository.switchActive(simulation.id);
+
+        // Should return StorageError
+        expect(switchResult.isErr()).toBe(true);
+        if (switchResult.isErr()) {
+          expect(switchResult.error.constructor.name).toBe('StorageError');
+          expect(switchResult.error.message).toContain('Failed to switch active simulation');
+        }
+
+        // Restore permissions for cleanup
+        await fs.chmod(refsDir, 0o755);
+      }
+    });
+
+    it('should write correct simulation ID to HEAD file', async () => {
+      // Create and save a simulation
+      const simulationResult = DebateSimulation.create({
+        topic: 'Test debate',
+        createdAt: new Date().toISOString(),
+      });
+      const simulation = expectOk(simulationResult);
+      await repository.save(simulation);
+
+      // Switch to it
+      await repository.switchActive(simulation.id);
+
+      // Verify HEAD file contains correct ID
+      const headPath = join(testDir, 'refs', 'HEAD');
+      const headContent = await fs.readFile(headPath, 'utf8');
+      expect(headContent).toBe(simulation.id);
+    });
+  });
 });

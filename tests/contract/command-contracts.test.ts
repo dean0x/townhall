@@ -66,7 +66,7 @@ describe('Command/Query Handler Contracts', () => {
       }
     });
 
-    it('should prevent multiple active debates', async () => {
+    it('should allow multiple simulations with auto-checkout', async () => {
       // Start first debate
       const firstResult = await commandBus.execute(
         { topic: 'First debate' },
@@ -76,15 +76,15 @@ describe('Command/Query Handler Contracts', () => {
       // Ensure first debate was created successfully
       expect(firstResult.isOk()).toBe(true);
 
-      // Try to start second debate
-      const result = await commandBus.execute(
+      // Start second debate (should succeed and auto-checkout)
+      const secondResult = await commandBus.execute(
         { topic: 'Second debate' },
         'InitializeDebateCommand'
       );
 
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error.message).toContain('active');
+      expect(secondResult.isOk()).toBe(true);
+      if (secondResult.isOk()) {
+        expect(secondResult.value.topic).toBe('Second debate');
       }
     });
   });

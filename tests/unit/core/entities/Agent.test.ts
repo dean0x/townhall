@@ -7,11 +7,14 @@ import { describe, it, expect } from 'vitest';
 import { Agent } from '../../../../src/core/entities/Agent';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { expectOk, expectErr, expectErrMessage } from '../../../helpers/result-assertions';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('Agent Entity', () => {
+  const cryptoService = new MockCryptoService();
+
   describe('Factory method', () => {
     it('should create agent with valid properties', () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
 
       const agent = expectOk(Agent.create({
         id: agentId,
@@ -32,7 +35,7 @@ describe('Agent Entity', () => {
     });
 
     it('should validate agent name length', () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
 
       const error = expectErr(Agent.create({
         id: agentId,
@@ -47,7 +50,7 @@ describe('Agent Entity', () => {
     });
 
     it('should validate agent type', () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
 
       expectErrMessage(Agent.create({
         id: agentId,
@@ -60,7 +63,7 @@ describe('Agent Entity', () => {
     });
 
     it('should require at least one capability', () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
 
       const error = expectErr(Agent.create({
         id: agentId,
@@ -77,7 +80,7 @@ describe('Agent Entity', () => {
 
   describe('Immutability', () => {
     it('should create immutable agent', () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
 
       const agent = expectOk(Agent.create({
         id: agentId,
@@ -101,7 +104,7 @@ describe('Agent Entity', () => {
 
   describe('Agent types', () => {
     it('should accept valid agent types', () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
 
       const validTypes = ['human', 'llm', 'hybrid'] as const;
 
@@ -122,7 +125,7 @@ describe('Agent Entity', () => {
 
   describe('Capabilities validation', () => {
     it('should accept valid capabilities', () => {
-      const agentId = AgentIdGenerator.generate();
+      const agentId = AgentIdGenerator.generate(cryptoService);
 
       const validCapabilities = [
         ['debate'],

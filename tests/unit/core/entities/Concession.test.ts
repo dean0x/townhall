@@ -10,12 +10,14 @@ import { ArgumentIdGenerator } from '../../../../src/core/value-objects/Argument
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('Concession Entity', () => {
-  const mockAgentId = AgentIdGenerator.generate();
+  const cryptoService = new MockCryptoService();
+  const mockAgentId = AgentIdGenerator.generate(cryptoService);
   const mockSimulationId = SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z');
   const mockTimestamp = TimestampGenerator.now();
-  const mockTargetArgumentId = ArgumentIdGenerator.fromContent('target-argument');
+  const mockTargetArgumentId = ArgumentIdGenerator.fromContent('target-argument', cryptoService);
 
   const createBaseConcessionParams = (concessionType: 'full' | 'partial' | 'conditional'): CreateConcessionParams => ({
     agentId: mockAgentId,
@@ -37,7 +39,7 @@ describe('Concession Entity', () => {
     it('should create full concession with valid parameters', () => {
       const params = createBaseConcessionParams('full');
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -54,7 +56,7 @@ describe('Concession Entity', () => {
     it('should create partial concession with valid parameters', () => {
       const params = createBaseConcessionParams('partial');
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -73,7 +75,7 @@ describe('Concession Entity', () => {
         conditions: 'Only if we assume perfect information',
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -93,7 +95,7 @@ describe('Concession Entity', () => {
         explanation: 'After reviewing the evidence, I see the merit in your position.',
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -108,7 +110,7 @@ describe('Concession Entity', () => {
         concessionType: 'invalid-type' as any,
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -123,7 +125,7 @@ describe('Concession Entity', () => {
         // conditions omitted
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -137,7 +139,7 @@ describe('Concession Entity', () => {
         conditions: '   ', // whitespace only
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -151,7 +153,7 @@ describe('Concession Entity', () => {
         targetArgumentId: '' as any,
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -165,7 +167,7 @@ describe('Concession Entity', () => {
         targetArgumentId: null as any,
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -185,7 +187,7 @@ describe('Concession Entity', () => {
         },
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -198,21 +200,21 @@ describe('Concession Entity', () => {
   describe('Instance methods', () => {
     it('should correctly identify concession target with isConcessionTo()', () => {
       const params = createBaseConcessionParams('full');
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         const concession = result.value;
         expect(concession.isConcessionTo(mockTargetArgumentId)).toBe(true);
 
-        const otherArgumentId = ArgumentIdGenerator.fromContent('different-argument');
+        const otherArgumentId = ArgumentIdGenerator.fromContent('different-argument', cryptoService);
         expect(concession.isConcessionTo(otherArgumentId)).toBe(false);
       }
     });
 
     it('should have immutable properties', () => {
       const params = createBaseConcessionParams('full');
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -235,7 +237,7 @@ describe('Concession Entity', () => {
 
     it('should inherit all Argument properties and methods', () => {
       const params = createBaseConcessionParams('full');
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -263,7 +265,7 @@ describe('Concession Entity', () => {
           conditions: type === 'conditional' ? 'Some condition' : undefined,
         };
 
-        const result = Concession.create(params);
+        const result = Concession.create(params, cryptoService);
         expect(result.isOk()).toBe(true);
         if (result.isOk()) {
           expect(result.value.concessionType).toBe(type);
@@ -272,10 +274,10 @@ describe('Concession Entity', () => {
     });
 
     it('should allow full and partial concessions without conditions', () => {
-      const fullResult = Concession.create(createBaseConcessionParams('full'));
+      const fullResult = Concession.create(createBaseConcessionParams('full'), cryptoService);
       expect(fullResult.isOk()).toBe(true);
 
-      const partialResult = Concession.create(createBaseConcessionParams('partial'));
+      const partialResult = Concession.create(createBaseConcessionParams('partial'), cryptoService);
       expect(partialResult.isOk()).toBe(true);
     });
 
@@ -283,13 +285,13 @@ describe('Concession Entity', () => {
       const fullWithConditions = Concession.create({
         ...createBaseConcessionParams('full'),
         conditions: 'Optional conditions for full concession',
-      });
+      }, cryptoService);
       expect(fullWithConditions.isOk()).toBe(true);
 
       const partialWithConditions = Concession.create({
         ...createBaseConcessionParams('partial'),
         conditions: 'Optional conditions for partial concession',
-      });
+      }, cryptoService);
       expect(partialWithConditions.isOk()).toBe(true);
     });
   });
@@ -298,8 +300,8 @@ describe('Concession Entity', () => {
     it('should generate unique content-addressed ID like Argument', () => {
       const params = createBaseConcessionParams('full');
 
-      const result1 = Concession.create(params);
-      const result2 = Concession.create(params);
+      const result1 = Concession.create(params, cryptoService);
+      const result2 = Concession.create(params, cryptoService);
 
       expect(result1.isOk()).toBe(true);
       expect(result2.isOk()).toBe(true);
@@ -311,7 +313,7 @@ describe('Concession Entity', () => {
 
     it('should have different ID from base Argument with same content', () => {
       const params = createBaseConcessionParams('full');
-      const concessionResult = Concession.create(params);
+      const concessionResult = Concession.create(params, cryptoService);
 
       expect(concessionResult.isOk()).toBe(true);
       if (concessionResult.isOk()) {
@@ -324,7 +326,7 @@ describe('Concession Entity', () => {
 
     it('should include metadata like base Argument', () => {
       const params = createBaseConcessionParams('full');
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -345,7 +347,7 @@ describe('Concession Entity', () => {
         conditions: longConditions,
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -360,7 +362,7 @@ describe('Concession Entity', () => {
         explanation: longExplanation,
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -375,7 +377,7 @@ describe('Concession Entity', () => {
         targetArgumentId: specialTargetId,
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -390,7 +392,7 @@ describe('Concession Entity', () => {
         explanation: 'Nach Überprüfung der Beweise', // German
       };
 
-      const result = Concession.create(params);
+      const result = Concession.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {

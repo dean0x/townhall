@@ -113,14 +113,7 @@ export class LogCommand extends BaseCommand {
   }
 
   private validateAgentId(agentId: string): Result<AgentId, ValidationError> {
-    try {
-      return ok(AgentIdGenerator.fromString(agentId));
-    } catch (error) {
-      return err(new ValidationError(
-        `Invalid agent ID format: ${agentId}`,
-        'agent'
-      ));
-    }
+    return AgentIdGenerator.fromString(agentId);
   }
 
   private validateLimit(limitStr: string): Result<number, ValidationError> {

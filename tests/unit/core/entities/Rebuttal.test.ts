@@ -10,12 +10,14 @@ import { ArgumentIdGenerator } from '../../../../src/core/value-objects/Argument
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('Rebuttal Entity', () => {
-  const mockAgentId = AgentIdGenerator.generate();
+  const cryptoService = new MockCryptoService();
+  const mockAgentId = AgentIdGenerator.generate(cryptoService);
   const mockSimulationId = SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z');
   const mockTimestamp = TimestampGenerator.now();
-  const mockTargetArgumentId = ArgumentIdGenerator.fromContent('target-argument');
+  const mockTargetArgumentId = ArgumentIdGenerator.fromContent('target-argument', cryptoService);
 
   const createBaseRebuttalParams = (rebuttalType: 'logical' | 'empirical' | 'methodological'): CreateRebuttalParams => ({
     agentId: mockAgentId,
@@ -37,7 +39,7 @@ describe('Rebuttal Entity', () => {
     it('should create logical rebuttal with valid parameters', () => {
       const params = createBaseRebuttalParams('logical');
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -72,7 +74,7 @@ describe('Rebuttal Entity', () => {
         rebuttalType: 'empirical',
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -85,7 +87,7 @@ describe('Rebuttal Entity', () => {
     it('should create methodological rebuttal with valid parameters', () => {
       const params = createBaseRebuttalParams('methodological');
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -101,7 +103,7 @@ describe('Rebuttal Entity', () => {
         rebuttalType: 'invalid-type' as any,
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -116,7 +118,7 @@ describe('Rebuttal Entity', () => {
         targetArgumentId: '' as any,
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -130,7 +132,7 @@ describe('Rebuttal Entity', () => {
         targetArgumentId: null as any,
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -142,21 +144,21 @@ describe('Rebuttal Entity', () => {
   describe('Instance methods', () => {
     it('should correctly identify rebuttal target with isRebuttalTo()', () => {
       const params = createBaseRebuttalParams('logical');
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         const rebuttal = result.value;
         expect(rebuttal.isRebuttalTo(mockTargetArgumentId)).toBe(true);
 
-        const otherArgumentId = ArgumentIdGenerator.fromContent('different-argument');
+        const otherArgumentId = ArgumentIdGenerator.fromContent('different-argument', cryptoService);
         expect(rebuttal.isRebuttalTo(otherArgumentId)).toBe(false);
       }
     });
 
     it('should have immutable properties', () => {
       const params = createBaseRebuttalParams('logical');
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -180,7 +182,7 @@ describe('Rebuttal Entity', () => {
 
     it('should inherit all Argument properties and methods', () => {
       const params = createBaseRebuttalParams('logical');
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -204,7 +206,7 @@ describe('Rebuttal Entity', () => {
 
       for (const type of validTypes) {
         const params = createBaseRebuttalParams(type);
-        const result = Rebuttal.create(params);
+        const result = Rebuttal.create(params, cryptoService);
 
         expect(result.isOk()).toBe(true);
         if (result.isOk()) {
@@ -222,7 +224,7 @@ describe('Rebuttal Entity', () => {
           rebuttalType: type as any,
         };
 
-        const result = Rebuttal.create(params);
+        const result = Rebuttal.create(params, cryptoService);
         expect(result.isErr()).toBe(true);
         if (result.isErr()) {
           expect(result.error.message).toContain('Invalid rebuttal type');
@@ -235,8 +237,8 @@ describe('Rebuttal Entity', () => {
     it('should generate content-addressed ID including rebuttal data', () => {
       const params = createBaseRebuttalParams('logical');
 
-      const result1 = Rebuttal.create(params);
-      const result2 = Rebuttal.create(params);
+      const result1 = Rebuttal.create(params, cryptoService);
+      const result2 = Rebuttal.create(params, cryptoService);
 
       expect(result1.isOk()).toBe(true);
       expect(result2.isOk()).toBe(true);
@@ -250,8 +252,8 @@ describe('Rebuttal Entity', () => {
       const logicalParams = createBaseRebuttalParams('logical');
       const empiricalParams = createBaseRebuttalParams('empirical');
 
-      const logicalResult = Rebuttal.create(logicalParams);
-      const empiricalResult = Rebuttal.create(empiricalParams);
+      const logicalResult = Rebuttal.create(logicalParams, cryptoService);
+      const empiricalResult = Rebuttal.create(empiricalParams, cryptoService);
 
       expect(logicalResult.isOk()).toBe(true);
       expect(empiricalResult.isOk()).toBe(true);
@@ -265,11 +267,11 @@ describe('Rebuttal Entity', () => {
       const params1 = createBaseRebuttalParams('logical');
       const params2 = {
         ...createBaseRebuttalParams('logical'),
-        targetArgumentId: ArgumentIdGenerator.fromContent('different-target'),
+        targetArgumentId: ArgumentIdGenerator.fromContent('different-target', cryptoService),
       };
 
-      const result1 = Rebuttal.create(params1);
-      const result2 = Rebuttal.create(params2);
+      const result1 = Rebuttal.create(params1, cryptoService);
+      const result2 = Rebuttal.create(params2, cryptoService);
 
       expect(result1.isOk()).toBe(true);
       expect(result2.isOk()).toBe(true);
@@ -281,7 +283,7 @@ describe('Rebuttal Entity', () => {
 
     it('should include metadata with hash and shortHash', () => {
       const params = createBaseRebuttalParams('logical');
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -299,7 +301,7 @@ describe('Rebuttal Entity', () => {
         sequenceNumber: 42,
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -310,7 +312,7 @@ describe('Rebuttal Entity', () => {
     it('should default sequenceNumber to 0 if not provided', () => {
       const params = createBaseRebuttalParams('logical');
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -337,7 +339,7 @@ describe('Rebuttal Entity', () => {
         rebuttalType: 'logical',
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
       expect(result.isOk()).toBe(true);
     });
 
@@ -359,7 +361,7 @@ describe('Rebuttal Entity', () => {
         rebuttalType: 'logical',
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
       expect(result.isOk()).toBe(true);
     });
 
@@ -387,7 +389,7 @@ describe('Rebuttal Entity', () => {
         rebuttalType: 'empirical',
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
       expect(result.isOk()).toBe(true);
     });
   });
@@ -400,7 +402,7 @@ describe('Rebuttal Entity', () => {
         targetArgumentId: longTargetId,
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -415,7 +417,7 @@ describe('Rebuttal Entity', () => {
         targetArgumentId: specialTargetId,
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -440,7 +442,7 @@ describe('Rebuttal Entity', () => {
         rebuttalType: 'logical',
       };
 
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -448,26 +450,14 @@ describe('Rebuttal Entity', () => {
       }
     });
 
-    it('should handle timestamp generation when not provided', () => {
-      const params = {
-        ...createBaseRebuttalParams('logical'),
-        timestamp: undefined as any,
-      };
-
-      const result = Rebuttal.create(params);
-
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(result.value.timestamp).toBeDefined();
-        expect(typeof result.value.timestamp).toBe('string');
-      }
-    });
+    // NOTE: Timestamp is now required (BLOCKING FIX #2 - removed side effects)
+    // No default timestamp generation - timestamp must be explicitly provided
   });
 
   describe('Comparison with base Argument', () => {
     it('should be instanceof Rebuttal and Argument', () => {
       const params = createBaseRebuttalParams('logical');
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -484,7 +474,7 @@ describe('Rebuttal Entity', () => {
 
     it('should have additional rebuttal-specific properties beyond Argument', () => {
       const params = createBaseRebuttalParams('logical');
-      const result = Rebuttal.create(params);
+      const result = Rebuttal.create(params, cryptoService);
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {

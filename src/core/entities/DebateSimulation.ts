@@ -58,6 +58,38 @@ export class DebateSimulation {
     return ok(simulation);
   }
 
+  /**
+   * Reconstitute a simulation from storage with original ID
+   * Used during deserialization to preserve content-addressed IDs
+   * Returns error if data is corrupted (missing required fields)
+   */
+  public static reconstitute(
+    id: SimulationId,
+    topic: string,
+    createdAt: Timestamp,
+    status: DebateStatus,
+    participantIds: readonly AgentId[],
+    argumentIds: readonly ArgumentId[],
+    votesToClose: readonly CloseVote[]
+  ): Result<DebateSimulation, ValidationError> {
+    // Validate required fields to detect corruption
+    if (!id || !topic || !createdAt || !status) {
+      return err(new ValidationError('Data corruption: Missing required fields in simulation data'));
+    }
+
+    const simulation = new DebateSimulation(
+      id,
+      topic,
+      createdAt,
+      status,
+      participantIds,
+      argumentIds,
+      votesToClose
+    );
+
+    return ok(simulation);
+  }
+
   public addParticipant(agentId: AgentId): DebateSimulation {
     if (this.participantIds.includes(agentId)) {
       return this; // Already a participant

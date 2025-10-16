@@ -26,9 +26,15 @@ export interface ISimulationRepository {
   getActive(): Promise<Result<DebateSimulation, NotFoundError>>;
 
   /**
-   * Set a simulation as the active one
+   * Set a simulation as the active one (fails if another is already active)
    */
   setActive(id: SimulationId): Promise<Result<void, NotFoundError | StorageError | ConflictError>>;
+
+  /**
+   * Switch to a different simulation (overwrites current active simulation)
+   * Used by checkout command to allow switching between simulations
+   */
+  switchActive(id: SimulationId): Promise<Result<void, NotFoundError | StorageError>>;
 
   /**
    * Check if there is an active simulation

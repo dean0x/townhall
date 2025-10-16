@@ -16,7 +16,9 @@ import { ArgumentValidator } from '../../core/services/ArgumentValidator';
 import { Argument } from '../../core/entities/Argument';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { ICryptoService } from '../ports/ICryptoService';
 import { TOKENS } from '../../shared/container';
+import { isDeductiveStructure, isInductiveStructure, isEmpiricalStructure } from '../utils/structure-guards';
 
 export interface CreateArgumentResult {
   readonly argumentId: ArgumentId;
@@ -31,7 +33,8 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
     @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator
+    @inject(TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
+    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}
 
   public async handle(command: CreateArgumentCommand): Promise<Result<CreateArgumentResult, Error>> {
@@ -75,7 +78,7 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
       simulationId: simulation.id,
       timestamp,
       sequenceNumber,
-    });
+    }, this.cryptoService);
 
     if (argumentResult.isErr()) {
       return err(argumentResult.error);
@@ -114,14 +117,25 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
       return textValidation;
     }
 
-    // Validate structure based on type
+    // Validate structure based on type using type guards
+    const structure = command.content.structure;
+
     switch (command.type) {
       case 'deductive':
-        return this.validator.validateDeductive(command.content.structure as any);
+        if (!isDeductiveStructure(structure)) {
+          return err(new ValidationError('Invalid structure for deductive argument'));
+        }
+        return this.validator.validateDeductive(structure);
       case 'inductive':
-        return this.validator.validateInductive(command.content.structure as any);
+        if (!isInductiveStructure(structure)) {
+          return err(new ValidationError('Invalid structure for inductive argument'));
+        }
+        return this.validator.validateInductive(structure);
       case 'empirical':
-        return this.validator.validateEmpirical(command.content.structure as any);
+        if (!isEmpiricalStructure(structure)) {
+          return err(new ValidationError('Invalid structure for empirical argument'));
+        }
+        return this.validator.validateEmpirical(structure);
       default:
         return err(new ValidationError(`Invalid argument type: ${command.type}`));
     }

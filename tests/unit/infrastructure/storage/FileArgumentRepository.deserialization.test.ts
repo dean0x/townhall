@@ -17,20 +17,22 @@ import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 import { expectOk } from '../../../helpers/result-assertions';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('FileArgumentRepository - Deserialization Refactoring', () => {
   let repository: FileArgumentRepository;
   let storage: ObjectStorage;
   let testDir: string;
+  const cryptoService = new MockCryptoService();
 
-  const mockAgentId = AgentIdGenerator.generate();
+  const mockAgentId = AgentIdGenerator.generate(cryptoService);
   const mockSimulationId = SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z');
   const mockTimestamp = TimestampGenerator.now();
 
   beforeEach(async () => {
     testDir = join(process.cwd(), '.test-townhall-arg-deserialize');
     storage = new ObjectStorage(testDir);
-    repository = new FileArgumentRepository(storage);
+    repository = new FileArgumentRepository(storage, cryptoService);
     await storage.initialize();
   });
 
@@ -54,7 +56,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       // Save argument
       const saveResult = await repository.save(argument);
@@ -92,7 +94,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         content,
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       await repository.save(argument);
       const retrieved = expectOk(await repository.findById(argument.id));
@@ -115,7 +117,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         },
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       await repository.save(targetArgument);
 
@@ -131,7 +133,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         timestamp: mockTimestamp,
         targetArgumentId: targetArgument.id,
         rebuttalType: 'logical',
-      }));
+      }, cryptoService));
 
       await repository.saveRebuttal(rebuttal);
 
@@ -157,7 +159,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         },
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       await repository.save(targetArgument);
 
@@ -172,7 +174,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
           timestamp: mockTimestamp,
           targetArgumentId: targetArgument.id,
           rebuttalType,
-        }));
+        }, cryptoService));
 
         await repository.saveRebuttal(rebuttal);
         const retrieved = expectOk(await repository.findById(rebuttal.id));
@@ -191,7 +193,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         content: { text: 'Original', structure: { premises: ['P1', 'P2'], conclusion: 'C' } },
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       await repository.save(targetArgument);
 
@@ -203,7 +205,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         timestamp: mockTimestamp,
         targetArgumentId: targetArgument.id,
         concessionType: 'full',
-      }));
+      }, cryptoService));
 
       await repository.saveConcession(concession);
       const retrieved = expectOk(await repository.findById(concession.id));
@@ -220,7 +222,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         content: { text: 'Original', structure: { premises: ['P1', 'P2'], conclusion: 'C' } },
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       await repository.save(targetArgument);
 
@@ -234,7 +236,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         concessionType: 'conditional',
         conditions: 'Only if we assume perfect information',
         explanation: 'This assumption may not hold in practice',
-      }));
+      }, cryptoService));
 
       await repository.saveConcession(concession);
       const retrieved = expectOk(await repository.findById(concession.id));
@@ -252,7 +254,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         content: { text: 'Target', structure: { premises: ['P1', 'P2'], conclusion: 'C' } },
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       await repository.save(targetArgument);
 
@@ -268,7 +270,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
           targetArgumentId: targetArgument.id,
           concessionType,
           conditions: concessionType === 'conditional' ? 'Some condition' : undefined,
-        }));
+        }, cryptoService));
 
         await repository.saveConcession(concession);
         const retrieved = expectOk(await repository.findById(concession.id));
@@ -288,7 +290,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         content: { text: 'Base', structure: { premises: ['P1', 'P2'], conclusion: 'C' } },
         simulationId: mockSimulationId,
         timestamp: mockTimestamp,
-      }));
+      }, cryptoService));
 
       await repository.save(baseArg);
 
@@ -301,7 +303,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         timestamp: mockTimestamp,
         targetArgumentId: baseArg.id,
         rebuttalType: 'logical',
-      }));
+      }, cryptoService));
 
       await repository.saveRebuttal(rebuttal);
 
@@ -314,7 +316,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
         timestamp: mockTimestamp,
         targetArgumentId: baseArg.id,
         concessionType: 'partial',
-      }));
+      }, cryptoService));
 
       await repository.saveConcession(concession);
 

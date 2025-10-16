@@ -12,6 +12,7 @@ import { ICommandBus } from '../../application/handlers/CommandBus';
 import { IQueryBus } from '../../application/handlers/QueryBus';
 import { ILogger } from '../../application/ports/ILogger';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
+import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { ObjectStorage } from '../../infrastructure/storage/ObjectStorage';
 import { TOKENS } from '../../shared/container';
 import { CommandContext } from './base/BaseCommand';
@@ -24,6 +25,11 @@ import { InitCommand } from './commands/InitCommand';
 import { LogCommand } from './commands/LogCommand';
 import { ConcedeCommand } from './commands/ConcedeCommand';
 import { VoteCommand } from './commands/VoteCommand';
+import { CheckoutCommand } from './commands/CheckoutCommand';
+import { StatusCommand } from './commands/StatusCommand';
+import { ListCommand } from './commands/ListCommand';
+import { ShowCommand } from './commands/ShowCommand';
+import { TraceCommand } from './commands/TraceCommand';
 
 @injectable()
 export class TownhallCLI {
@@ -35,7 +41,8 @@ export class TownhallCLI {
     @inject(TOKENS.QueryBus) private readonly queryBus: IQueryBus,
     @inject(TOKENS.Logger) private readonly logger: ILogger,
     @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage,
-    @inject(TOKENS.ArgumentRepository) private readonly argumentRepository: IArgumentRepository
+    @inject(TOKENS.ArgumentRepository) private readonly argumentRepository: IArgumentRepository,
+    @inject(TOKENS.SimulationRepository) private readonly simulationRepository: ISimulationRepository
   ) {
     this.program = new Command();
     this.context = {
@@ -98,6 +105,11 @@ export class TownhallCLI {
     // Register all commands (using Result types)
     const initCommand = new InitCommand(this.storage, this.context);
     const simulateCommand = new SimulateCommand(this.commandBus, this.context);
+    const checkoutCommand = new CheckoutCommand(this.commandBus, this.context);
+    const statusCommand = new StatusCommand(this.simulationRepository, this.context);
+    const listCommand = new ListCommand(this.simulationRepository, this.context);
+    const showCommand = new ShowCommand(this.queryBus, this.context);
+    const traceCommand = new TraceCommand(this.queryBus, this.context);
     const argumentCommand = new ArgumentCommand(this.commandBus, this.context);
     const logCommand = new LogCommand(this.queryBus, this.context);
     const rebuttalCommand = new RebuttalCommand(this.commandBus, this.argumentRepository, this.context);
@@ -107,6 +119,11 @@ export class TownhallCLI {
     // Add commands to program
     this.program.addCommand(initCommand.build());
     this.program.addCommand(simulateCommand.build());
+    this.program.addCommand(checkoutCommand.build());
+    this.program.addCommand(statusCommand.build());
+    this.program.addCommand(listCommand.build());
+    this.program.addCommand(showCommand.build());
+    this.program.addCommand(traceCommand.build());
     this.program.addCommand(argumentCommand.build());
     this.program.addCommand(logCommand.build());
     this.program.addCommand(rebuttalCommand.build());

@@ -8,6 +8,7 @@ import { Result, ok, err } from '../../shared/result';
 import { ValidationError } from '../../shared/errors';
 import { Argument, CreateArgumentParams } from './Argument';
 import { ArgumentId } from '../value-objects/ArgumentId';
+import { ICryptoService } from '../services/ICryptoService';
 
 export type ConcessionType = 'full' | 'partial' | 'conditional';
 
@@ -40,7 +41,7 @@ export class Concession extends Argument {
     Object.freeze(this);
   }
 
-  public static create(params: CreateConcessionParams): Result<Concession, ValidationError> {
+  public static create(params: CreateConcessionParams, cryptoService: ICryptoService): Result<Concession, ValidationError> {
     const concessionTypeValidation = this.validateConcessionType(params.concessionType);
     if (concessionTypeValidation.isErr()) {
       return err(concessionTypeValidation.error);
@@ -56,7 +57,7 @@ export class Concession extends Argument {
       return err(targetArgumentValidation.error);
     }
 
-    const argumentResult = Argument.create(params);
+    const argumentResult = Argument.create(params, cryptoService);
     if (argumentResult.isErr()) {
       return err(argumentResult.error);
     }

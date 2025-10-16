@@ -21,6 +21,7 @@ import { GetDebateHistoryHandler } from '../../application/handlers/GetDebateHis
 import { SubmitRebuttalHandler } from '../../application/handlers/SubmitRebuttalHandler';
 import { SubmitConcessionHandler } from '../../application/handlers/SubmitConcessionHandler';
 import { VoteToCloseHandler } from '../../application/handlers/VoteToCloseHandler';
+import { CheckoutSimulationHandler } from '../../application/handlers/CheckoutSimulationHandler';
 import { GetArgumentHandler } from '../../application/handlers/GetArgumentHandler';
 import { GetArgumentChainHandler } from '../../application/handlers/GetArgumentChainHandler';
 
@@ -32,6 +33,7 @@ import { FileAgentRepository } from '../../infrastructure/storage/FileAgentRepos
 import { InMemoryEventBus } from '../../infrastructure/events/InMemoryEventBus';
 import { StructuredLogger } from '../../infrastructure/logging/StructuredLogger';
 import { HashResolver } from '../../infrastructure/storage/HashResolver';
+import { NodeCryptoService } from '../../infrastructure/crypto/NodeCryptoService';
 
 export function configureContainer(): typeof container {
   // Core services (no dependencies)
@@ -39,7 +41,10 @@ export function configureContainer(): typeof container {
   container.register(TOKENS.RelationshipBuilder, { useClass: RelationshipBuilder });
   container.register(TOKENS.VoteCalculator, { useClass: VoteCalculator });
 
-  // Infrastructure
+  // Infrastructure - Application ports
+  container.register(TOKENS.CryptoService, { useClass: NodeCryptoService });
+
+  // Infrastructure - Storage and repositories
   container.register(TOKENS.ObjectStorage, {
     useFactory: () => new ObjectStorage('.townhall')
   });
@@ -59,6 +64,7 @@ export function configureContainer(): typeof container {
   container.register(TOKENS.SubmitRebuttalHandler, { useClass: SubmitRebuttalHandler });
   container.register(TOKENS.SubmitConcessionHandler, { useClass: SubmitConcessionHandler });
   container.register(TOKENS.VoteToCloseHandler, { useClass: VoteToCloseHandler });
+  container.register(TOKENS.CheckoutSimulationHandler, { useClass: CheckoutSimulationHandler });
   container.register(TOKENS.GetArgumentHandler, { useClass: GetArgumentHandler });
   container.register(TOKENS.GetArgumentChainHandler, { useClass: GetArgumentChainHandler });
 
@@ -72,6 +78,7 @@ export function configureContainer(): typeof container {
       commandBus.register('SubmitRebuttalCommand', container.resolve(TOKENS.SubmitRebuttalHandler));
       commandBus.register('SubmitConcessionCommand', container.resolve(TOKENS.SubmitConcessionHandler));
       commandBus.register('VoteToCloseCommand', container.resolve(TOKENS.VoteToCloseHandler));
+      commandBus.register('CheckoutSimulationCommand', container.resolve(TOKENS.CheckoutSimulationHandler));
       return commandBus;
     }
   });
