@@ -5,7 +5,7 @@
  */
 
 import { injectable } from 'tsyringe';
-import { ITimestampService } from '../../application/ports/ITimestampService';
+import { ITimestampService } from '../../core/services/ITimestampService';
 
 /**
  * Production implementation of ITimestampService using system clock

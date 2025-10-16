@@ -1,5 +1,5 @@
 /**
- * ARCHITECTURE: Application layer port for timestamp operations
+ * ARCHITECTURE: Core service interface for timestamp operations
  * Pattern: Adapter interface for framework-agnostic time operations
  * Rationale: Allows Core layer to remain deterministic and testable
  */
