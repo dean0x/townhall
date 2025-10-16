@@ -3,7 +3,7 @@
  * Provides predictable values for UUIDs and hashes
  */
 
-import { ICryptoService } from '../../src/application/ports/ICryptoService';
+import { ICryptoService } from '../../src/core/services/ICryptoService';
 import { randomBytes, createHash } from 'crypto';
 
 /**
