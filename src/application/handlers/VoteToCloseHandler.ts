@@ -12,6 +12,7 @@ import { VoteToCloseCommand } from '../commands/VoteToCloseCommand';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { IVoteCalculator } from '../../core/services/VoteCalculator';
+import { ITimestampService } from '../../core/services/ITimestampService';
 import { Vote } from '../../core/value-objects/Vote';
 import { TOKENS } from '../../shared/container';
 
@@ -28,7 +29,8 @@ export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, V
   constructor(
     @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.VoteCalculator) private readonly voteCalculator: IVoteCalculator
+    @inject(TOKENS.VoteCalculator) private readonly voteCalculator: IVoteCalculator,
+    @inject(TOKENS.TimestampService) private readonly timestampService: ITimestampService
   ) {}
 
   public async handle(command: VoteToCloseCommand): Promise<Result<VoteToCloseResult, Error>> {
@@ -66,7 +68,8 @@ export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, V
     });
 
     // Add vote to simulation
-    simulation = simulation.recordCloseVote(command.agentId, command.vote, command.reason);
+    const timestamp = this.timestampService.now();
+    simulation = simulation.recordCloseVote(command.agentId, command.vote, command.reason, timestamp);
 
     // Transition to voting if not already voting
     if (simulation.status === 'active') {

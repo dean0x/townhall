@@ -8,12 +8,14 @@ import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, StorageError } from '../../shared/errors';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { Argument } from '../../core/entities/Argument';
-import { Rebuttal } from '../../core/entities/Rebuttal';
-import { Concession } from '../../core/entities/Concession';
+import { Argument, ArgumentContent, ArgumentMetadata } from '../../core/entities/Argument';
+import { Rebuttal, VALID_REBUTTAL_TYPES } from '../../core/entities/Rebuttal';
+import { Concession, VALID_CONCESSION_TYPES } from '../../core/entities/Concession';
 import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
-import { SimulationId } from '../../core/value-objects/SimulationId';
+import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
 import { AgentId } from '../../core/value-objects/AgentId';
+import { Timestamp, TimestampGenerator } from '../../core/value-objects/Timestamp';
+import { ArgumentType, parseArgumentType } from '../../core/value-objects/ArgumentType';
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
@@ -22,10 +24,10 @@ interface ArgumentData {
   readonly id: string;
   readonly agentId: string;
   readonly type: string;
-  readonly content: any;
+  readonly content: ArgumentContent;
   readonly timestamp: string;
   readonly simulationId: string;
-  readonly metadata: any;
+  readonly metadata: ArgumentMetadata;
   readonly targetArgumentId?: string; // For rebuttals/concessions
   readonly rebuttalType?: string;
   readonly concessionType?: string;
@@ -275,44 +277,147 @@ export class FileArgumentRepository implements IArgumentRepository {
 
   /**
    * Creates an Argument from stored data
+   * ARCHITECTURE: Runtime validation before type assertions
+   * Rationale: Ensure storage data is valid before reconstituting domain entities
    */
   private deserializeBaseArgument(data: ArgumentData): Result<Argument, Error> {
+    // Validate AgentId (simple string validation)
+    if (typeof data.agentId !== 'string' || data.agentId.length === 0) {
+      throw new Error(`Data corruption: Invalid agentId '${data.agentId}'`);
+    }
+
+    // Validate ArgumentType
+    const typeResult = parseArgumentType(data.type);
+    if (typeResult.isErr()) {
+      throw new Error(`Data corruption: Invalid argument type '${data.type}' - ${typeResult.error.message}`);
+    }
+
+    // Validate SimulationId
+    const simIdResult = SimulationIdGenerator.fromHash(data.simulationId);
+    if (simIdResult.isErr()) {
+      throw new Error(`Data corruption: Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`);
+    }
+
+    // Validate Timestamp
+    const timestampResult = TimestampGenerator.fromString(data.timestamp);
+    if (timestampResult.isErr()) {
+      throw new Error(`Data corruption: Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`);
+    }
+
     return Argument.create({
       agentId: data.agentId as AgentId,
-      type: data.type as any,
+      type: typeResult.value,
       content: data.content,
-      simulationId: data.simulationId as SimulationId,
-      timestamp: data.timestamp as any,
+      simulationId: simIdResult.value,
+      timestamp: timestampResult.value,
       sequenceNumber: data.metadata.sequenceNumber,
     }, this.cryptoService);
   }
 
   /**
    * Creates a Rebuttal from stored data
+   * ARCHITECTURE: Runtime validation before type assertions
+   * Rationale: Ensure storage data is valid before reconstituting domain entities
    */
   private deserializeRebuttal(data: ArgumentData): Result<Rebuttal, Error> {
+    // Validate AgentId (simple string validation)
+    if (typeof data.agentId !== 'string' || data.agentId.length === 0) {
+      throw new Error(`Data corruption: Invalid agentId '${data.agentId}'`);
+    }
+
+    // Validate ArgumentType
+    const typeResult = parseArgumentType(data.type);
+    if (typeResult.isErr()) {
+      throw new Error(`Data corruption: Invalid argument type '${data.type}' - ${typeResult.error.message}`);
+    }
+
+    // Validate SimulationId
+    const simIdResult = SimulationIdGenerator.fromHash(data.simulationId);
+    if (simIdResult.isErr()) {
+      throw new Error(`Data corruption: Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`);
+    }
+
+    // Validate Timestamp
+    const timestampResult = TimestampGenerator.fromString(data.timestamp);
+    if (timestampResult.isErr()) {
+      throw new Error(`Data corruption: Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`);
+    }
+
+    // Validate targetArgumentId
+    if (!data.targetArgumentId) {
+      throw new Error('Data corruption: Rebuttal missing targetArgumentId');
+    }
+    const targetIdResult = ArgumentIdGenerator.fromHash(data.targetArgumentId);
+    if (targetIdResult.isErr()) {
+      throw new Error(`Data corruption: Invalid targetArgumentId '${data.targetArgumentId}' - ${targetIdResult.error.message}`);
+    }
+
+    // Validate rebuttalType
+    if (!data.rebuttalType || !VALID_REBUTTAL_TYPES.includes(data.rebuttalType as any)) {
+      throw new Error(`Data corruption: Invalid rebuttalType '${data.rebuttalType}'. Must be one of: ${VALID_REBUTTAL_TYPES.join(', ')}`);
+    }
+
     return Rebuttal.create({
       agentId: data.agentId as AgentId,
-      type: data.type as any,
+      type: typeResult.value,
       content: data.content,
-      simulationId: data.simulationId as SimulationId,
-      timestamp: data.timestamp as any,
-      targetArgumentId: data.targetArgumentId as ArgumentId,
+      simulationId: simIdResult.value,
+      timestamp: timestampResult.value,
+      targetArgumentId: targetIdResult.value,
       rebuttalType: data.rebuttalType as any,
     }, this.cryptoService);
   }
 
   /**
    * Creates a Concession from stored data
+   * ARCHITECTURE: Runtime validation before type assertions
+   * Rationale: Ensure storage data is valid before reconstituting domain entities
    */
   private deserializeConcession(data: ArgumentData): Result<Concession, Error> {
+    // Validate AgentId (simple string validation)
+    if (typeof data.agentId !== 'string' || data.agentId.length === 0) {
+      throw new Error(`Data corruption: Invalid agentId '${data.agentId}'`);
+    }
+
+    // Validate ArgumentType
+    const typeResult = parseArgumentType(data.type);
+    if (typeResult.isErr()) {
+      throw new Error(`Data corruption: Invalid argument type '${data.type}' - ${typeResult.error.message}`);
+    }
+
+    // Validate SimulationId
+    const simIdResult = SimulationIdGenerator.fromHash(data.simulationId);
+    if (simIdResult.isErr()) {
+      throw new Error(`Data corruption: Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`);
+    }
+
+    // Validate Timestamp
+    const timestampResult = TimestampGenerator.fromString(data.timestamp);
+    if (timestampResult.isErr()) {
+      throw new Error(`Data corruption: Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`);
+    }
+
+    // Validate targetArgumentId
+    if (!data.targetArgumentId) {
+      throw new Error('Data corruption: Concession missing targetArgumentId');
+    }
+    const targetIdResult = ArgumentIdGenerator.fromHash(data.targetArgumentId);
+    if (targetIdResult.isErr()) {
+      throw new Error(`Data corruption: Invalid targetArgumentId '${data.targetArgumentId}' - ${targetIdResult.error.message}`);
+    }
+
+    // Validate concessionType
+    if (!data.concessionType || !VALID_CONCESSION_TYPES.includes(data.concessionType as any)) {
+      throw new Error(`Data corruption: Invalid concessionType '${data.concessionType}'. Must be one of: ${VALID_CONCESSION_TYPES.join(', ')}`);
+    }
+
     return Concession.create({
       agentId: data.agentId as AgentId,
-      type: data.type as any,
+      type: typeResult.value,
       content: data.content,
-      simulationId: data.simulationId as SimulationId,
-      timestamp: data.timestamp as any,
-      targetArgumentId: data.targetArgumentId as ArgumentId,
+      simulationId: simIdResult.value,
+      timestamp: timestampResult.value,
+      targetArgumentId: targetIdResult.value,
       concessionType: data.concessionType as any,
       conditions: data.conditions,
       explanation: data.explanation,

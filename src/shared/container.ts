@@ -17,6 +17,7 @@ export const TOKENS = {
   ArgumentValidator: Symbol.for('ArgumentValidator'),
   RelationshipBuilder: Symbol.for('RelationshipBuilder'),
   VoteCalculator: Symbol.for('VoteCalculator'),
+  TimestampService: Symbol.for('TimestampService'),
 
   // Infrastructure
   ObjectStorage: Symbol.for('ObjectStorage'),
@@ -29,8 +30,10 @@ export const TOKENS = {
   CommandBus: Symbol.for('CommandBus'),
   QueryBus: Symbol.for('QueryBus'),
   CryptoService: Symbol.for('CryptoService'),
+  StorageInitializer: Symbol.for('StorageInitializer'),
 
   // Command Handlers
+  InitializeRepositoryHandler: Symbol.for('InitializeRepositoryHandler'),
   InitializeDebateHandler: Symbol.for('InitializeDebateHandler'),
   CreateArgumentHandler: Symbol.for('CreateArgumentHandler'),
   SubmitRebuttalHandler: Symbol.for('SubmitRebuttalHandler'),

@@ -2,13 +2,15 @@
  * ARCHITECTURE: Interface layer - Init command (refactored)
  * Pattern: Command adapter with Result-based error handling
  * Rationale: Simple initialization with proper error propagation
+ * Note: Uses CommandBus to maintain hexagonal architecture boundaries
  */
 
 import { Command } from 'commander';
 import { BaseCommand, CommandContext } from '../base/BaseCommand';
-import { Result, ok } from '../../../shared/result';
+import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
-import { ObjectStorage } from '../../../infrastructure/storage/ObjectStorage';
+import { ICommandBus } from '../../../application/handlers/CommandBus';
+import { InitializeRepositoryCommand } from '../../../application/commands/InitializeRepositoryCommand';
 
 interface InitOptions {
   force?: boolean;
@@ -20,7 +22,7 @@ interface ValidatedInitOptions {
 
 export class InitCommand extends BaseCommand {
   constructor(
-    private readonly storage: ObjectStorage,
+    private readonly commandBus: ICommandBus,
     context: CommandContext
   ) {
     super('init', 'Initialize a new Townhall repository', context);
@@ -42,10 +44,14 @@ export class InitCommand extends BaseCommand {
       force: validatedOptions.force,
     });
 
-    const result = await this.storage.initialize();
+    const command: InitializeRepositoryCommand = {
+      force: validatedOptions.force,
+    };
+
+    const result = await this.commandBus.execute(command, 'InitializeRepositoryCommand');
 
     if (result.isErr()) {
-      return result;
+      return err(result.error);
     }
 
     this.displayRepositoryStructure();

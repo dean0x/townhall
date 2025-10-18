@@ -11,6 +11,7 @@ import { Timestamp } from '../value-objects/Timestamp';
 import { DebateStatus, canTransitionTo } from '../value-objects/DebateStatus';
 import { AgentId } from '../value-objects/AgentId';
 import { ArgumentId } from '../value-objects/ArgumentId';
+import type { ICryptoService } from '../services/ICryptoService';
 
 export interface CloseVote {
   readonly agentId: AgentId;
@@ -22,6 +23,7 @@ export interface CloseVote {
 export interface CreateSimulationParams {
   readonly topic: string;
   readonly createdAt: Timestamp;
+  readonly cryptoService: ICryptoService;
 }
 
 export class DebateSimulation {
@@ -43,10 +45,18 @@ export class DebateSimulation {
       return err(topicValidation.error);
     }
 
-    const id = SimulationIdGenerator.fromTopicAndTimestamp(params.topic, params.createdAt);
+    const idResult = SimulationIdGenerator.fromTopicAndTimestamp(
+      params.topic,
+      params.createdAt,
+      params.cryptoService
+    );
+
+    if (!idResult.isOk()) {
+      return idResult;
+    }
 
     const simulation = new DebateSimulation(
-      id,
+      idResult.value,
       params.topic,
       params.createdAt,
       DebateStatus.ACTIVE,
@@ -138,7 +148,7 @@ export class DebateSimulation {
     );
   }
 
-  public recordCloseVote(agentId: AgentId, vote: boolean, reason?: string): DebateSimulation {
+  public recordCloseVote(agentId: AgentId, vote: boolean, reason: string | undefined, timestamp: Timestamp): DebateSimulation {
     // For now, allow the vote and let the handler validate participants
     // This maintains the Entity as pure data without business rule validation
 
@@ -146,7 +156,7 @@ export class DebateSimulation {
       agentId,
       vote,
       reason,
-      timestamp: new Date().toISOString() as Timestamp,
+      timestamp,
     };
 
     return new DebateSimulation(

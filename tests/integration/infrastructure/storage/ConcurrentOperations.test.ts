@@ -58,6 +58,7 @@ describe('Concurrent Operations Tests', () => {
       const simResults = await Promise.all(
         Array(count).fill(null).map((_, i) =>
           DebateSimulation.create({
+        cryptoService,
             topic: `Concurrent Simulation ${i}`,
             createdAt: new Date(Date.now() + i), // Unique timestamps
           })
@@ -204,6 +205,7 @@ description: Test agent ${i}
     it('should handle concurrent reads while writing', async () => {
       // Create a simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Concurrent R/W Test',
         createdAt: new Date(),
       });
@@ -220,6 +222,7 @@ description: Test agent ${i}
 
         const writeOps = Array(5).fill(null).map(async (_, i) => {
           const result = DebateSimulation.create({
+        cryptoService,
             topic: `New Simulation ${i}`,
             createdAt: new Date(Date.now() + i + 1000),
           });
@@ -247,6 +250,7 @@ description: Test agent ${i}
     it('should maintain consistency during concurrent updates', async () => {
       // Create a simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Update Test',
         createdAt: new Date(),
       });
@@ -304,6 +308,7 @@ description: Test agent ${i}
       const sims = await Promise.all(
         Array(10).fill(null).map((_, i) =>
           DebateSimulation.create({
+        cryptoService,
             topic: `Delete Test ${i}`,
             createdAt: new Date(Date.now() + i),
           })
@@ -368,6 +373,7 @@ description: Test agent ${i}
     it('should handle concurrent read/delete without crashes', async () => {
       // Create a simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Read/Delete Race',
         createdAt: new Date(),
       });
@@ -405,6 +411,7 @@ description: Test agent ${i}
       const sims = await Promise.all(
         Array(10).fill(null).map((_, i) =>
           DebateSimulation.create({
+        cryptoService,
             topic: `Active Race ${i}`,
             createdAt: new Date(Date.now() + i),
           })
@@ -451,6 +458,7 @@ description: Test agent ${i}
     it('should handle concurrent clearActive calls safely', async () => {
       // Create and set an active simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Clear Active Race',
         createdAt: new Date(),
       });
@@ -564,6 +572,7 @@ description: Test
     it('should handle high concurrency mixed operations', async () => {
       // Create initial data
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Stress Test',
         createdAt: new Date(),
       });
@@ -585,6 +594,7 @@ description: Test
           operations.push(
             (async () => {
               const result = DebateSimulation.create({
+        cryptoService,
                 topic: `Stress ${i}`,
                 createdAt: new Date(Date.now() + i + 1000),
               });

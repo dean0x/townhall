@@ -15,6 +15,7 @@ import { VoteCalculator } from '../../core/services/VoteCalculator';
 // Application layer
 import { CommandBus } from '../../application/handlers/CommandBus';
 import { QueryBus } from '../../application/handlers/QueryBus';
+import { InitializeRepositoryHandler } from '../../application/handlers/InitializeRepositoryHandler';
 import { InitializeDebateHandler } from '../../application/handlers/InitializeDebateHandler';
 import { CreateArgumentHandler } from '../../application/handlers/CreateArgumentHandler';
 import { GetDebateHistoryHandler } from '../../application/handlers/GetDebateHistoryHandler';
@@ -34,6 +35,7 @@ import { InMemoryEventBus } from '../../infrastructure/events/InMemoryEventBus';
 import { StructuredLogger } from '../../infrastructure/logging/StructuredLogger';
 import { HashResolver } from '../../infrastructure/storage/HashResolver';
 import { NodeCryptoService } from '../../infrastructure/crypto/NodeCryptoService';
+import { SystemTimestampService } from '../../infrastructure/time/SystemTimestampService';
 
 export function configureContainer(): typeof container {
   // Core services (no dependencies)
@@ -43,10 +45,16 @@ export function configureContainer(): typeof container {
 
   // Infrastructure - Application ports
   container.register(TOKENS.CryptoService, { useClass: NodeCryptoService });
+  container.register(TOKENS.TimestampService, { useClass: SystemTimestampService });
 
   // Infrastructure - Storage and repositories
+  const objectStorage = new ObjectStorage('.townhall');
   container.register(TOKENS.ObjectStorage, {
-    useFactory: () => new ObjectStorage('.townhall')
+    useValue: objectStorage
+  });
+  // Register ObjectStorage as IStorageInitializer for application layer
+  container.register(TOKENS.StorageInitializer, {
+    useValue: objectStorage
   });
   container.register(TOKENS.HashResolver, { useClass: HashResolver });
   container.register(TOKENS.ArgumentRepository, { useClass: FileArgumentRepository });
@@ -58,6 +66,7 @@ export function configureContainer(): typeof container {
   });
 
   // Application layer - handlers
+  container.register(TOKENS.InitializeRepositoryHandler, { useClass: InitializeRepositoryHandler });
   container.register(TOKENS.InitializeDebateHandler, { useClass: InitializeDebateHandler });
   container.register(TOKENS.CreateArgumentHandler, { useClass: CreateArgumentHandler });
   container.register(TOKENS.GetDebateHistoryHandler, { useClass: GetDebateHistoryHandler });
@@ -73,6 +82,7 @@ export function configureContainer(): typeof container {
     useFactory: () => {
       const commandBus = new CommandBus();
       // Register command handlers
+      commandBus.register('InitializeRepositoryCommand', container.resolve(TOKENS.InitializeRepositoryHandler));
       commandBus.register('InitializeDebateCommand', container.resolve(TOKENS.InitializeDebateHandler));
       commandBus.register('CreateArgumentCommand', container.resolve(TOKENS.CreateArgumentHandler));
       commandBus.register('SubmitRebuttalCommand', container.resolve(TOKENS.SubmitRebuttalHandler));

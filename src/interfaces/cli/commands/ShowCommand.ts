@@ -34,11 +34,20 @@ export class ShowCommand extends BaseCommand {
       .argument('<argument-id>', 'Full argument ID (64-char hash) to display');
   }
 
-  protected validateOptions(rawOptions: any): Result<ValidatedShowOptions, ValidationError> {
+  protected validateOptions(rawOptions: unknown): Result<ValidatedShowOptions, ValidationError> {
     // Extract argument ID from first positional argument
-    const argumentId = typeof rawOptions === 'string' ? rawOptions : (rawOptions as any)?.argumentId;
+    let argumentId: string;
 
-    if (!argumentId || typeof argumentId !== 'string' || argumentId.trim().length === 0) {
+    if (typeof rawOptions === 'string') {
+      argumentId = rawOptions;
+    } else if (typeof rawOptions === 'object' && rawOptions !== null) {
+      const opts = rawOptions as Record<string, unknown>;
+      argumentId = typeof opts.argumentId === 'string' ? opts.argumentId : '';
+    } else {
+      argumentId = '';
+    }
+
+    if (!argumentId || argumentId.trim().length === 0) {
       return err(new ValidationError(
         'Argument ID is required',
         'argumentId'

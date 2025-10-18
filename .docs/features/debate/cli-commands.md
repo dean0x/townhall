@@ -3,6 +3,42 @@
 ## Overview
 Townhall provides a Git-inspired CLI for agents to log structured actions during simulations. This reference focuses on debate simulations where agents make arguments, respond to each other, and build a traceable interaction history.
 
+## Implementation Status
+
+### ✅ Currently Implemented (Phase 1 MVP)
+
+**Core Commands**:
+- `init` - Initialize repository
+- `simulate debate` - Create new debate simulation
+- `checkout` - Switch to simulation context
+- `status` - Show current simulation status
+- `list` - List all simulations
+
+**Debate Commands**:
+- `argument` - Submit structured argument
+- `rebuttal` - Respond to argument
+- `concede` - Acknowledge valid point
+- `vote` - Vote to close debate
+
+**Query Commands**:
+- `log` - View debate history
+- `show` - Display argument details
+- `trace` - Show argument chain
+
+### 🔮 Planned Features (Future Releases)
+
+The following commands are documented for future implementation:
+
+**Agent Management**: `register`, `whoami`
+**Analysis**: `positions`, `analyze`, `export`
+**Data Management**: `archive`, `validate`
+**Configuration**: `config`
+**Evidence**: `citation` (standalone command)
+
+These features represent the planned roadmap and are included in this documentation to show the complete vision for the CLI.
+
+---
+
 ## Core Commands
 
 ### townhall init
@@ -214,7 +250,7 @@ To: arg_004
 Type: partial
 ```
 
-### townhall citation
+### townhall citation *(Planned Feature)*
 Add evidence or references
 ```bash
 townhall citation [options]
@@ -250,25 +286,36 @@ Can be referenced with: @cit_3b2c1a4f
 ```
 
 ### townhall vote
-Cast a vote on positions (voting stage only)
+Vote to close the current debate
 ```bash
 townhall vote [options]
 
 # Options
-  --position <pos>      Position to support (required)
-  --strength <1-5>      Vote strength (default: 3)
-  --reason <text>       Voting rationale
+  --agent <uuid>        Agent UUID (required)
+  --yes                 Vote to close the debate
+  --no                  Vote against closing the debate
+  --reason <text>       Optional reason for your vote
 
 # Examples
-townhall vote --position pro_regulation \
-  --strength 4 \
-  --reason "Arguments for safety were most compelling"
+# Vote to close
+townhall vote --agent f05482e4-324d-4b50-8be3-a49f870cd968 --yes \
+  --reason "All key points have been addressed"
+
+# Vote against closing
+townhall vote --agent a1b2c3d4-e5f6-7890-abcd-ef1234567890 --no \
+  --reason "Still need to discuss implementation details"
 
 # Output
-Vote recorded: pro_regulation (strength: 4/5)
-Current tally:
-  pro_regulation: 3 votes (avg strength: 3.7)
-  anti_regulation: 2 votes (avg strength: 2.5)
+✓ Vote cast successfully
+Total votes: 2/3 needed
+1 more vote(s) needed to close the debate
+
+# When debate closes
+✓ Vote cast successfully
+Total votes: 3/3 needed
+
+🎯 Debate closed!
+All key points have been addressed
 ```
 
 ## Query Commands
@@ -361,7 +408,7 @@ arg_001
     └── con_005
 ```
 
-### townhall positions
+### townhall positions *(Planned Feature)*
 Analyze positions taken
 ```bash
 townhall positions [options]
@@ -381,9 +428,9 @@ Position Summary:
 Consensus: None (split decision)
 ```
 
-## Analysis Commands
+## Analysis Commands *(Planned Features)*
 
-### townhall analyze
+### townhall analyze *(Planned Feature)*
 Analyze debate patterns
 ```bash
 townhall analyze [options]
@@ -415,7 +462,7 @@ Agent Participation:
   agent_neutral: 3 arguments, 2 rebuttals
 ```
 
-### townhall export
+### townhall export *(Planned Feature)*
 Export simulation data
 ```bash
 townhall export [options] <output-file>
@@ -446,9 +493,9 @@ townhall export --format dot graph.dot
 dot -Tpng graph.dot -o debate-graph.png
 ```
 
-## Agent Management
+## Agent Management *(Planned Features)*
 
-### townhall register
+### townhall register *(Planned Feature)*
 Register as an agent
 ```bash
 townhall register <agent-id> [options]
@@ -467,7 +514,7 @@ Registered agent: agent_ethicist
 You can now participate in simulations
 ```
 
-### townhall whoami
+### townhall whoami *(Planned Feature)*
 Show current agent identity
 ```bash
 townhall whoami
@@ -480,9 +527,9 @@ Active in: ai-regulation (debate)
 Total arguments: 15
 ```
 
-## Configuration
+## Configuration *(Planned Features)*
 
-### townhall config
+### townhall config *(Planned Feature)*
 Get and set configuration
 ```bash
 townhall config [options] [key] [value]
@@ -506,9 +553,9 @@ debate.argument.format = structured
 debate.citation.required = false
 ```
 
-## Utility Commands
+## Utility Commands *(Planned Features)*
 
-### townhall validate
+### townhall validate *(Planned Feature)*
 Validate simulation integrity
 ```bash
 townhall validate [simulation]
@@ -527,7 +574,7 @@ Validating simulation: ai-regulation
 Simulation is valid.
 ```
 
-### townhall archive
+### townhall archive *(Planned Feature)*
 Archive completed simulation
 ```bash
 townhall archive <simulation>

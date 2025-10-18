@@ -15,6 +15,7 @@ import { Agent } from '../../core/entities/Agent';
 import { AgentId, AgentIdGenerator } from '../../core/value-objects/AgentId';
 import { AgentFileParser } from './AgentFileParser';
 import { TOKENS } from '../../shared/container';
+import { hasErrorCode, isNodeSystemError } from './NodeSystemError';
 
 @injectable()
 export class FileAgentRepository implements IAgentRepository {
@@ -65,7 +66,7 @@ export class FileAgentRepository implements IAgentRepository {
         return err(new StorageError('Invalid file type', 'security'));
       }
     } catch (error) {
-      if ((error as any).code !== 'ENOENT') {
+      if (!hasErrorCode(error, 'ENOENT')) {
         return err(new StorageError('File access error', 'read'));
       }
     }
@@ -180,7 +181,7 @@ export class FileAgentRepository implements IAgentRepository {
       this.logger.error('Failed to save agent file', err, {
         agentId: agent.id,
         filePath,
-        errorCode: (error as any).code
+        errorCode: isNodeSystemError(error) ? error.code : undefined
       });
       return err(new StorageError(
         `Failed to save agent file: ${err.message}`,
@@ -316,7 +317,7 @@ export class FileAgentRepository implements IAgentRepository {
 
       return ok(undefined);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         // Directory doesn't exist yet, that's okay
         this.logger.debug('Agents directory does not exist yet', { agentsDir: this.agentsDir });
         return ok(undefined);
@@ -324,7 +325,7 @@ export class FileAgentRepository implements IAgentRepository {
       const err = error as Error;
       this.logger.error('Failed to refresh agents', err, {
         agentsDir: this.agentsDir,
-        errorCode: (error as any).code
+        errorCode: isNodeSystemError(error) ? error.code : undefined
       });
       return err(new StorageError(
         `Failed to refresh agents: ${err.message}`,

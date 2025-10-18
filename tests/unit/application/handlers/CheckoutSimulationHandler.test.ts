@@ -14,8 +14,10 @@ import { DebateStatus } from '../../../../src/core/value-objects/DebateStatus';
 import { ok, err } from '../../../../src/shared/result';
 import { NotFoundError, StorageError } from '../../../../src/shared/errors';
 import { expectOk, expectErr } from '../../../helpers/result-assertions';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('CheckoutSimulationHandler', () => {
+  const cryptoService = new MockCryptoService();
   let handler: CheckoutSimulationHandler;
   let mockSimulationRepo: ISimulationRepository;
 
@@ -37,6 +39,7 @@ describe('CheckoutSimulationHandler', () => {
   });
 
   describe('Successful checkout', () => {
+  const cryptoService = new MockCryptoService();
     it('should successfully checkout existing simulation', async () => {
       const simulationId = 'abc123def456' as SimulationId;
       const command: CheckoutSimulationCommand = {
@@ -45,6 +48,7 @@ describe('CheckoutSimulationHandler', () => {
 
       // Create a mock simulation
       const mockSimulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate topic',
         createdAt: new Date().toISOString(),
       }));
@@ -79,6 +83,7 @@ describe('CheckoutSimulationHandler', () => {
 
       // Create a simulation with arguments
       const mockSimulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Complex debate',
         createdAt: new Date().toISOString(),
       }));
@@ -108,6 +113,7 @@ describe('CheckoutSimulationHandler', () => {
   });
 
   describe('Error handling', () => {
+  const cryptoService = new MockCryptoService();
     it('should return NotFoundError when simulation does not exist', async () => {
       const simulationId = 'nonexistent' as SimulationId;
       const command: CheckoutSimulationCommand = { simulationId };
@@ -161,6 +167,7 @@ describe('CheckoutSimulationHandler', () => {
   });
 
   describe('Repository interaction', () => {
+  const cryptoService = new MockCryptoService();
     it('should call switchActive before findById', async () => {
       const simulationId = 'test123' as SimulationId;
       const command: CheckoutSimulationCommand = { simulationId };
@@ -175,6 +182,7 @@ describe('CheckoutSimulationHandler', () => {
       vi.mocked(mockSimulationRepo.findById).mockImplementation(async () => {
         callOrder.push('findById');
         const mockSimulation = expectOk(DebateSimulation.create({
+        cryptoService,
           topic: 'Test',
           createdAt: new Date().toISOString(),
         }));

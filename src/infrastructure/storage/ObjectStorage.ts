@@ -10,6 +10,7 @@ import { join, dirname, resolve, relative } from 'path';
 import { injectable } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
 import { StorageError } from '../../shared/errors';
+import { hasErrorCode } from './NodeSystemError';
 
 export interface StorageObject {
   readonly id: string;
@@ -229,13 +230,24 @@ export class ObjectStorage {
         return err(pathValidation.error);
       }
 
-      const content = await fs.readFile(filePath, 'utf8');
-
-      if (content.length > this.MAX_FILE_SIZE) {
+      // PERFORMANCE: Check file size before reading to avoid loading large files into memory
+      const stats = await fs.stat(filePath);
+      if (stats.size > this.MAX_FILE_SIZE) {
         return err(new StorageError('File size exceeds limit', 'validation'));
       }
 
-      const obj = JSON.parse(content) as StorageObject;
+      const content = await fs.readFile(filePath, 'utf8');
+
+      // SECURITY: Handle JSON.parse errors explicitly to detect corrupted/tampered files
+      let obj: StorageObject;
+      try {
+        obj = JSON.parse(content) as StorageObject;
+      } catch (parseError) {
+        return err(new StorageError(
+          `Failed to parse object data: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`,
+          'validation'
+        ));
+      }
 
       const depthCheck = this.validateObjectDepth(obj);
       if (depthCheck.isErr()) {
@@ -249,7 +261,7 @@ export class ObjectStorage {
 
       return ok(obj);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         return err(new StorageError(`Object not found: ${type}/${id}`, 'read'));
       }
       return err(new StorageError(
@@ -283,7 +295,7 @@ export class ObjectStorage {
       await fs.access(filePath);
       return ok(true);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         return ok(false);
       }
       return err(new StorageError(
@@ -317,7 +329,7 @@ export class ObjectStorage {
 
         return ok(ids);
       } catch (error) {
-        if ((error as any).code === 'ENOENT') {
+        if (hasErrorCode(error, 'ENOENT')) {
           return ok([]); // Directory doesn't exist, return empty list
         }
         throw error;
@@ -354,7 +366,7 @@ export class ObjectStorage {
       await fs.unlink(filePath);
       return ok(undefined);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         return ok(undefined); // Already deleted
       }
       return err(new StorageError(

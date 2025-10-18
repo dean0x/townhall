@@ -33,13 +33,22 @@ export class CheckoutCommand extends BaseCommand {
       .argument('<simulation-id>', 'Simulation ID to switch to');
   }
 
-  protected validateOptions(rawOptions: any): Result<ValidatedCheckoutOptions, ValidationError> {
+  protected validateOptions(rawOptions: unknown): Result<ValidatedCheckoutOptions, ValidationError> {
     // When using argument('<simulation-id>'), Commander passes it as args[0]
     // BaseCommand extracts it as the first parameter
-    const simulationId = typeof rawOptions === 'string' ? rawOptions : (rawOptions as any)?.simulationId;
+    let simulationId: string;
+
+    if (typeof rawOptions === 'string') {
+      simulationId = rawOptions;
+    } else if (typeof rawOptions === 'object' && rawOptions !== null) {
+      const opts = rawOptions as Record<string, unknown>;
+      simulationId = typeof opts.simulationId === 'string' ? opts.simulationId : '';
+    } else {
+      simulationId = '';
+    }
 
     // Validate simulation ID format
-    if (!simulationId || typeof simulationId !== 'string' || simulationId.trim().length === 0) {
+    if (!simulationId || simulationId.trim().length === 0) {
       return err(new ValidationError(
         'Simulation ID is required',
         'simulationId'

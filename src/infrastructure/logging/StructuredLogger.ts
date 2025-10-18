@@ -27,6 +27,26 @@ export class StructuredLogger implements ILogger {
     this.baseContext = baseContext;
   }
 
+  /**
+   * SECURITY: Sanitize stack traces to prevent information disclosure
+   * Removes absolute file paths, keeping only relative paths within project
+   */
+  private sanitizeStackTrace(stack: string | undefined): string | undefined {
+    if (!stack) return undefined;
+
+    return stack
+      .split('\n')
+      .map(line => {
+        // Remove absolute paths, keep only filename and line number
+        // Match patterns like: at Function.name (/absolute/path/to/file.ts:123:45)
+        return line.replace(/\(.*?([^/\\]+\.(?:ts|js|mjs)):(\d+):(\d+)\)/g, '($1:$2:$3)')
+                  .replace(/at\s+(.*?)\s+\(.*?([^/\\]+\.(?:ts|js|mjs)):(\d+):(\d+)\)/g, 'at $1 ($2:$3:$4)')
+                  // Also handle lines without function names
+                  .replace(/^\s*at\s+.*?([^/\\]+\.(?:ts|js|mjs)):(\d+):(\d+)/g, '    at $1:$2:$3');
+      })
+      .join('\n');
+  }
+
   public debug(message: string, context?: LogContext): void {
     this.log('debug', message, context);
   }
@@ -44,7 +64,7 @@ export class StructuredLogger implements ILogger {
       error: {
         name: error.name,
         message: error.message,
-        stack: error.stack,
+        stack: this.sanitizeStackTrace(error.stack),
       }
     } : {};
 

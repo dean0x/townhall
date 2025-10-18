@@ -1,0 +1,48 @@
+# Test files
+**/*.test.js
+**/*.test.d.ts
+**/*.test.ts
+**/*.spec.js
+**/*.spec.d.ts
+**/*.spec.ts
+tests/
+coverage/
+
+# Build artifacts
+**/*.map
+.tsbuildinfo
+*.tsbuildinfo
+
+# Development configs
+tsconfig.dev.json
+vitest.config.ts
+
+# Documentation and specs (not needed in npm package)
+.docs/
+specs/
+docs/
+
+# Git and CI
+.git/
+.github/
+.gitignore
+
+# Claude Code
+.claude/
+
+# Development files
+src/
+*.log
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

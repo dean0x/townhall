@@ -53,7 +53,7 @@ describe('Checkout Workflow Integration Tests', () => {
     queryBus = new QueryBus();
 
     // Register handlers
-    const initHandler = new InitializeDebateHandler(simulationRepo);
+    const initHandler = new InitializeDebateHandler(simulationRepo, cryptoService);
     const checkoutHandler = new CheckoutSimulationHandler(simulationRepo);
     commandBus.register('InitializeDebateCommand', initHandler);
     commandBus.register('CheckoutSimulationCommand', checkoutHandler);
@@ -67,6 +67,7 @@ describe('Checkout Workflow Integration Tests', () => {
     it('should checkout a simulation and update HEAD file', async () => {
       // Create a simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test Topic',
         createdAt: new Date(),
       });
@@ -95,10 +96,12 @@ describe('Checkout Workflow Integration Tests', () => {
     it('should switch between simulations', async () => {
       // Create two simulations
       const sim1Result = DebateSimulation.create({
+        cryptoService,
         topic: 'Simulation 1',
         createdAt: new Date(),
       });
       const sim2Result = DebateSimulation.create({
+        cryptoService,
         topic: 'Simulation 2',
         createdAt: new Date(),
       });
@@ -155,6 +158,7 @@ describe('Checkout Workflow Integration Tests', () => {
     it('should return active simulation when one is checked out', async () => {
       // Create and checkout a simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Active Simulation',
         createdAt: new Date(),
       });
@@ -183,10 +187,12 @@ describe('Checkout Workflow Integration Tests', () => {
     it('should return updated simulation after switch', async () => {
       // Create two simulations
       const sim1Result = DebateSimulation.create({
+        cryptoService,
         topic: 'First',
         createdAt: new Date(),
       });
       const sim2Result = DebateSimulation.create({
+        cryptoService,
         topic: 'Second',
         createdAt: new Date(),
       });
@@ -220,7 +226,7 @@ describe('Checkout Workflow Integration Tests', () => {
       const topics = ['Sim A', 'Sim B', 'Sim C'];
       const simulations = await Promise.all(
         topics.map(async (topic) => {
-          const result = DebateSimulation.create({ topic, createdAt: new Date() });
+          const result = DebateSimulation.create({ topic, createdAt: new Date(), cryptoService });
           expect(result.isOk()).toBe(true);
           await simulationRepo.save(result.value);
           return result.value;
@@ -247,10 +253,12 @@ describe('Checkout Workflow Integration Tests', () => {
     it('should list simulations with active marker', async () => {
       // Create two simulations
       const sim1Result = DebateSimulation.create({
+        cryptoService,
         topic: 'Not Active',
         createdAt: new Date(),
       });
       const sim2Result = DebateSimulation.create({
+        cryptoService,
         topic: 'Active One',
         createdAt: new Date(),
       });
@@ -341,6 +349,7 @@ describe('Checkout Workflow Integration Tests', () => {
       const simulations = await Promise.all(
         Array(5).fill(null).map(async (_, i) => {
           const result = DebateSimulation.create({
+        cryptoService,
             topic: `Simulation ${i}`,
             createdAt: new Date(Date.now() + i), // Unique timestamps
           });
@@ -376,6 +385,7 @@ describe('Checkout Workflow Integration Tests', () => {
 
       // Create and checkout simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test',
         createdAt: new Date(),
       });
@@ -393,8 +403,8 @@ describe('Checkout Workflow Integration Tests', () => {
       const headPath = join(testDir, 'refs', 'HEAD');
 
       // Create two simulations
-      const sim1Result = DebateSimulation.create({ topic: 'First', createdAt: new Date() });
-      const sim2Result = DebateSimulation.create({ topic: 'Second', createdAt: new Date() });
+      const sim1Result = DebateSimulation.create({ topic: 'First', createdAt: new Date(), cryptoService });
+      const sim2Result = DebateSimulation.create({ topic: 'Second', createdAt: new Date(), cryptoService });
 
       expect(sim1Result.isOk()).toBe(true);
       expect(sim2Result.isOk()).toBe(true);
@@ -419,7 +429,7 @@ describe('Checkout Workflow Integration Tests', () => {
 
     it('should preserve HEAD file across repository instances', async () => {
       // Create and checkout simulation
-      const simResult = DebateSimulation.create({ topic: 'Persistent', createdAt: new Date() });
+      const simResult = DebateSimulation.create({ topic: 'Persistent', createdAt: new Date(), cryptoService });
       expect(simResult.isOk()).toBe(true);
 
       await simulationRepo.save(simResult.value);

@@ -4,13 +4,49 @@ A Git-inspired CLI for structured agent debate simulations with content-addresse
 
 ## Installation
 
-```bash
-# Install globally
-npm install -g @townhall/cli
+### For Development
 
-# Or use locally
-npm install @townhall/cli
+Clone and run commands without building:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd chorus
+
+# Install dependencies
+npm install
+
+# Run commands during development
+npm run dev -- init
+npm run dev -- simulate debate "Should AI be regulated?"
+npm run dev -- --help
 ```
+
+### For Production Use
+
+Install globally to use `townhall` command anywhere:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd chorus
+
+# Install dependencies and build
+npm install
+npm run build
+
+# Link globally (requires build first)
+npm link
+
+# Verify installation
+townhall --help
+
+# Now you can use it from any directory
+cd ~/my-project
+townhall init
+```
+
+**Note**: `npm link` creates a global symlink to the built CLI. You must run `npm run build` first, and rebuild after any code changes.
 
 ## Quick Start
 
@@ -41,7 +77,7 @@ townhall concede --target <arg-id> --agent <uuid> \
   --reason "convinced"
 
 # Vote to close debate
-townhall vote --agent <uuid>
+townhall vote --agent <uuid> --yes
 ```
 
 ## Features
@@ -103,6 +139,7 @@ Options:
 - `--generalization <text>`: Generalization (for inductive)
 - `--evidence <evidence...>`: Evidence (for empirical)
 - `--claim <text>`: Claim (for empirical)
+- `--relevance <text>`: Relevance explanation (for empirical)
 
 ### `townhall rebuttal`
 Submit a rebuttal to an existing argument.
@@ -133,12 +170,28 @@ Options:
 - `--limit <number>`: Limit number of entries
 - `--json`: Output as JSON
 
+### `townhall show`
+Display detailed information about a specific argument.
+
+Options:
+- `<id>`: Argument ID (full or short hash)
+
+### `townhall trace`
+Show the complete argument chain (ancestors and descendants) for a specific argument.
+
+Options:
+- `<id>`: Argument ID (full or short hash)
+
 ### `townhall vote`
 Vote to close the current debate.
 
 Options:
-- `--agent <uuid>`: Agent UUID
-- `--reason <text>`: Optional reason for closure
+- `--agent <uuid>`: Agent UUID (required)
+- `--yes`: Vote to close the debate
+- `--no`: Vote against closing the debate
+- `--reason <text>`: Optional reason for your vote
+
+Note: You must specify either `--yes` or `--no`
 
 ## Repository Structure
 

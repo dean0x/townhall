@@ -6,17 +6,15 @@ Townhall is a Git-inspired CLI for structured agent debate simulations. It provi
 
 ## Installation & Setup
 
-### Global Installation
+### Global Installation (Not Yet Published)
 
-```bash
-npm install -g @townhall/cli
-```
+**Note**: The package is not yet published to npm. Use local development setup below.
 
 ### Local Development
 
 ```bash
 # Clone repository
-git clone <repo-url>
+git clone https://github.com/dean0x/townhall.git
 cd townhall
 
 # Install dependencies
@@ -25,9 +23,14 @@ npm install
 # Build the project
 npm run build
 
-# Link for local testing
+# Link globally for testing
 npm link
+
+# Verify installation
+townhall --help
 ```
+
+After `npm link`, you can use the `townhall` command from any directory.
 
 ## Basic Workflow
 
@@ -107,10 +110,14 @@ townhall argument \
   --agent <uuid> \
   --type empirical \
   --evidence "Stanford 2-year study data" \
+  --relevance "Demonstrates long-term productivity gains" \
   --evidence "Microsoft productivity metrics" \
+  --relevance "Shows consistent cross-company patterns" \
   --claim "Remote work increases output by 13%" \
   --methodology "Controlled A/B testing"
 ```
+
+**Note**: `--relevance` is required for each `--evidence` source.
 
 ### 5. Submit Rebuttals
 
@@ -167,13 +174,43 @@ JSON output:
 townhall log --json > debate.json
 ```
 
-### 8. Vote to Close
+### 8. Check Simulation Status
 
 ```bash
-townhall vote --agent <uuid> --reason "Consensus reached"
+townhall status
 ```
 
-Debates close when majority of participants vote.
+Shows current active debate status and statistics.
+
+### 9. Switch Between Simulations
+
+```bash
+townhall list
+townhall checkout <simulation-id>
+```
+
+### 10. View Argument Details
+
+```bash
+townhall show <argument-id>
+townhall trace <argument-id>
+```
+
+- `show`: Display detailed information about a specific argument
+- `trace`: Show complete argument chain (ancestors and descendants)
+
+### 11. Vote to Close
+
+```bash
+townhall vote --agent <uuid> --yes --reason "Consensus reached"
+```
+
+Or vote against closing:
+```bash
+townhall vote --agent <uuid> --no --reason "More discussion needed"
+```
+
+Debates close when majority of participants vote yes.
 
 ## Advanced Usage
 
@@ -274,9 +311,10 @@ For inductive:
 - `--confidence <0-1>` - Confidence level
 
 For empirical:
-- `--evidence <text>` - Evidence sources (multiple)
+- `--evidence <text>` - Evidence sources (multiple, required)
+- `--relevance <text>` - Relevance for each evidence (required, must match evidence count)
 - `--claim <text>` - Main claim (required)
-- `--methodology <text>` - Research method
+- `--methodology <text>` - Research method (optional)
 
 ### townhall rebuttal
 
@@ -322,6 +360,58 @@ Options:
 - `--limit <n>` - Limit results
 - `--json` - Output as JSON
 
+### townhall checkout
+
+Switch to a different simulation.
+
+```bash
+townhall checkout <simulation-id>
+```
+
+Arguments:
+- `simulation-id` - ID of simulation to switch to (required)
+
+### townhall list
+
+List all simulations.
+
+```bash
+townhall list
+```
+
+### townhall status
+
+Show current simulation status.
+
+```bash
+townhall status
+```
+
+### townhall show
+
+Display detailed information about an argument.
+
+```bash
+townhall show <argument-id>
+```
+
+Arguments:
+- `argument-id` - Full or short hash of argument (required)
+
+### townhall trace
+
+Show complete argument chain.
+
+```bash
+townhall trace <argument-id> [options]
+```
+
+Arguments:
+- `argument-id` - Full or short hash of argument (required)
+
+Options:
+- `--depth <number>` - Maximum traversal depth (default: 5)
+
 ### townhall vote
 
 Vote to close debate.
@@ -332,6 +422,8 @@ townhall vote [options]
 
 Options:
 - `--agent <uuid>` - Agent UUID (required)
+- `--yes` - Vote to close the debate (required: either --yes or --no)
+- `--no` - Vote against closing the debate (required: either --yes or --no)
 - `--reason <text>` - Optional reason
 
 ## Error Handling
@@ -418,8 +510,8 @@ townhall concede --target <alice-rebuttal> --agent bob-uuid \
 townhall log --graph
 
 # Vote to close
-townhall vote --agent alice-uuid --reason "Key points addressed"
-townhall vote --agent bob-uuid --reason "Sufficient exploration"
+townhall vote --agent alice-uuid --yes --reason "Key points addressed"
+townhall vote --agent bob-uuid --yes --reason "Sufficient exploration"
 ```
 
 ## Troubleshooting

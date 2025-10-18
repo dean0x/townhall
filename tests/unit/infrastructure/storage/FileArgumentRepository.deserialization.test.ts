@@ -26,7 +26,7 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
   const cryptoService = new MockCryptoService();
 
   const mockAgentId = AgentIdGenerator.generate(cryptoService);
-  const mockSimulationId = SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z');
+  const mockSimulationId = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z', cryptoService));
   const mockTimestamp = TimestampGenerator.now();
 
   beforeEach(async () => {

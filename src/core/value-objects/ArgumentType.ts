@@ -3,6 +3,9 @@
  * Defines the three supported argument types
  */
 
+import { Result, ok, err } from '../../shared/result';
+import { ValidationError } from '../../shared/errors';
+
 export enum ArgumentType {
   DEDUCTIVE = 'deductive',
   INDUCTIVE = 'inductive',
@@ -15,11 +18,16 @@ export function isValidArgumentType(value: string): value is ArgumentType {
   return ARGUMENT_TYPES.includes(value as ArgumentType);
 }
 
-export function parseArgumentType(value: string): ArgumentType {
+export function parseArgumentType(value: string): Result<ArgumentType, ValidationError> {
   if (!isValidArgumentType(value)) {
-    throw new Error(`Invalid argument type: ${value}. Must be one of: ${ARGUMENT_TYPES.join(', ')}`);
+    return err(
+      new ValidationError(
+        `Invalid argument type: ${value}. Must be one of: ${ARGUMENT_TYPES.join(', ')}`,
+        'argumentType'
+      )
+    );
   }
-  return value;
+  return ok(value);
 }
 
 export function getArgumentTypeDescription(type: ArgumentType): string {

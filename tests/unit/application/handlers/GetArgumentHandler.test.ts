@@ -26,7 +26,7 @@ describe('GetArgumentHandler', () => {
 
   // Create a sample argument for testing
   const mockAgentId = AgentIdGenerator.generate(cryptoService);
-  const mockSimulationId = SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z');
+  const mockSimulationId = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z', cryptoService));
   const mockTimestamp = TimestampGenerator.now();
 
   let sampleArgument: Argument;

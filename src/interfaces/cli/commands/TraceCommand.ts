@@ -36,7 +36,7 @@ export class TraceCommand extends BaseCommand {
       .option('--depth <number>', 'Maximum depth to traverse', '5');
   }
 
-  protected validateOptions(rawOptions: any): Result<ValidatedTraceOptions, ValidationError> {
+  protected validateOptions(rawOptions: unknown): Result<ValidatedTraceOptions, ValidationError> {
     // Extract argument ID from first positional argument
     let argumentId: string;
     let depth: string | undefined;
@@ -44,10 +44,13 @@ export class TraceCommand extends BaseCommand {
     if (typeof rawOptions === 'string') {
       // Just the argument ID passed
       argumentId = rawOptions;
-    } else {
+    } else if (typeof rawOptions === 'object' && rawOptions !== null) {
       // Object with argumentId and options
-      argumentId = (rawOptions as any)?.argumentId || '';
-      depth = (rawOptions as any)?.depth;
+      const opts = rawOptions as Record<string, unknown>;
+      argumentId = (typeof opts.argumentId === 'string' ? opts.argumentId : '') || '';
+      depth = typeof opts.depth === 'string' ? opts.depth : undefined;
+    } else {
+      argumentId = '';
     }
 
     if (!argumentId || argumentId.trim().length === 0) {

@@ -10,10 +10,15 @@ import { join } from 'path';
 import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, StorageError, ConflictError } from '../../shared/errors';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
-import { DebateSimulation } from '../../core/entities/DebateSimulation';
-import { SimulationId } from '../../core/value-objects/SimulationId';
+import { DebateSimulation, CloseVote } from '../../core/entities/DebateSimulation';
+import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
+import { Timestamp, TimestampGenerator } from '../../core/value-objects/Timestamp';
+import { DebateStatus, parseDebateStatus } from '../../core/value-objects/DebateStatus';
+import { AgentId } from '../../core/value-objects/AgentId';
+import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
+import { hasErrorCode } from './NodeSystemError';
 
 interface SimulationData {
   readonly id: string;
@@ -22,7 +27,7 @@ interface SimulationData {
   readonly status: string;
   readonly participantIds: string[];
   readonly argumentIds: string[];
-  readonly votesToClose: any[];
+  readonly votesToClose: CloseVote[];
 }
 
 @injectable()
@@ -70,7 +75,7 @@ export class FileSimulationRepository implements ISimulationRepository {
       const activeId = await fs.readFile(headPath, 'utf8');
       return this.findById(activeId.trim() as SimulationId);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         return err(new NotFoundError('Active Simulation', 'HEAD'));
       }
       return err(new NotFoundError('Active Simulation', `HEAD: ${(error as Error).message}`));
@@ -155,7 +160,7 @@ export class FileSimulationRepository implements ISimulationRepository {
 
       return ok(existsResult.value);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         return ok(false);
       }
       return err(new StorageError(
@@ -171,7 +176,7 @@ export class FileSimulationRepository implements ISimulationRepository {
       await fs.unlink(headPath);
       return ok(undefined);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         return ok(undefined); // Already cleared
       }
       return err(new StorageError(
@@ -221,20 +226,50 @@ export class FileSimulationRepository implements ISimulationRepository {
   }
 
   private deserializeSimulation(data: SimulationData): DebateSimulation {
-    // Reconstitute the simulation with its original ID from storage
-    // This preserves content-addressed IDs instead of regenerating them
+    // ARCHITECTURE: Runtime validation before type assertions
+    // Rationale: Ensure storage data is valid before reconstituting domain entities
+
+    // Validate SimulationId
+    const idResult = SimulationIdGenerator.fromHash(data.id);
+    if (idResult.isErr()) {
+      throw new Error(`Data corruption: Invalid simulation ID '${data.id}' - ${idResult.error.message}`);
+    }
+
+    // Validate Timestamp
+    const timestampResult = TimestampGenerator.fromString(data.createdAt);
+    if (timestampResult.isErr()) {
+      throw new Error(`Data corruption: Invalid timestamp '${data.createdAt}' - ${timestampResult.error.message}`);
+    }
+
+    // Validate DebateStatus
+    const statusResult = parseDebateStatus(data.status);
+    if (statusResult.isErr()) {
+      throw new Error(`Data corruption: Invalid status '${data.status}' - ${statusResult.error.message}`);
+    }
+
+    // Validate participantIds array
+    if (!Array.isArray(data.participantIds) || !data.participantIds.every(id => typeof id === 'string')) {
+      throw new Error('Data corruption: participantIds must be an array of strings');
+    }
+
+    // Validate argumentIds array
+    if (!Array.isArray(data.argumentIds) || !data.argumentIds.every(id => typeof id === 'string')) {
+      throw new Error('Data corruption: argumentIds must be an array of strings');
+    }
+
+    // Reconstitute with validated data
     const result = DebateSimulation.reconstitute(
-      data.id as SimulationId,
+      idResult.value,
       data.topic,
-      data.createdAt as any,
-      data.status as any,
-      data.participantIds as any[],
-      data.argumentIds as any[],
+      timestampResult.value,
+      statusResult.value,
+      data.participantIds as AgentId[],
+      data.argumentIds as ArgumentId[],
       data.votesToClose
     );
 
-    // SAFETY: Deserialization from trusted storage should always succeed
-    // If it fails, it indicates data corruption - throw to surface the issue
+    // SAFETY: Deserialization with validated data should always succeed
+    // If it still fails, it indicates data corruption - throw to surface the issue
     if (result.isErr()) {
       throw new Error(`Data corruption: Failed to deserialize simulation - ${result.error.message}`);
     }

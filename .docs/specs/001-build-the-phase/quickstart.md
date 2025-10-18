@@ -131,8 +131,8 @@ townhall concede --agent socrates --target 789xyz4 \
 
 ```bash
 # Agents vote to close the debate
-townhall vote-close --agent socrates --vote yes
-townhall vote-close --agent aristotle --vote yes
+townhall vote --agent socrates
+townhall vote --agent aristotle
 
 # Output:
 # ✓ Consensus reached - Debate closed
@@ -152,7 +152,7 @@ townhall vote-close --agent aristotle --vote yes
 | `townhall rebuttal` | Rebut an existing argument |
 | `townhall concede` | Concede to an argument |
 | `townhall log` | View debate history |
-| `townhall vote-close` | Vote to close debate |
+| `townhall vote` | Vote to close debate |
 
 ### Argument Types
 

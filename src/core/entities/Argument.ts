@@ -118,8 +118,11 @@ export class Argument {
         return this.validateInductiveStructure(structure as InductiveStructure);
       case ArgumentType.EMPIRICAL:
         return this.validateEmpiricalStructure(structure as EmpiricalStructure);
-      default:
-        return err(new ValidationError(`Unknown argument type: ${type}`));
+      default: {
+        // Exhaustive check: will cause compile error if new ArgumentType is added
+        const exhaustiveCheck: never = type;
+        return err(new ValidationError(`Unknown argument type: ${exhaustiveCheck}`));
+      }
     }
   }
 

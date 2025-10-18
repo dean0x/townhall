@@ -8,14 +8,19 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { InitializeDebateHandler } from '../../../../src/application/handlers/InitializeDebateHandler';
 import { InitializeDebateCommand } from '../../../../src/application/commands/InitializeDebateCommand';
 import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
+import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
 import { StorageError, ConflictError } from '../../../../src/shared/errors';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('InitializeDebateHandler', () => {
   let handler: InitializeDebateHandler;
   let mockSimulationRepo: ISimulationRepository;
+  let cryptoService: ICryptoService;
 
   beforeEach(() => {
+    cryptoService = new MockCryptoService();
+
     mockSimulationRepo = {
       save: vi.fn(),
       findById: vi.fn(),
@@ -29,7 +34,7 @@ describe('InitializeDebateHandler', () => {
       delete: vi.fn(),
     };
 
-    handler = new InitializeDebateHandler(mockSimulationRepo);
+    handler = new InitializeDebateHandler(mockSimulationRepo, cryptoService);
   });
 
   it('should create new debate and auto-checkout', async () => {

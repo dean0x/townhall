@@ -20,6 +20,7 @@ describe('DebateSimulation Entity', () => {
   describe('Factory method', () => {
     it('should create simulation with valid properties', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Should AI be regulated?',
         createdAt: mockTimestamp,
       }));
@@ -36,6 +37,7 @@ describe('DebateSimulation Entity', () => {
 
     it('should validate topic length', () => {
       const error1 = expectErr(DebateSimulation.create({
+        cryptoService,
         topic: '', // Empty topic should fail
         createdAt: mockTimestamp,
       }));
@@ -43,6 +45,7 @@ describe('DebateSimulation Entity', () => {
       expect(error1.message).toBe('Topic must be between 1 and 500 characters');
 
       const error2 = expectErr(DebateSimulation.create({
+        cryptoService,
         topic: 'a'.repeat(501), // Too long topic should fail
         createdAt: mockTimestamp,
       }));
@@ -55,11 +58,13 @@ describe('DebateSimulation Entity', () => {
       const timestamp = TimestampGenerator.fromString('2025-01-26T10:00:00.000Z');
 
       const simulation1 = expectOk(DebateSimulation.create({
+        cryptoService,
         topic,
         createdAt: timestamp,
       }));
 
       const simulation2 = expectOk(DebateSimulation.create({
+        cryptoService,
         topic,
         createdAt: timestamp,
       }));
@@ -71,6 +76,7 @@ describe('DebateSimulation Entity', () => {
   describe('Participant management', () => {
     it('should add participant to simulation', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
@@ -84,6 +90,7 @@ describe('DebateSimulation Entity', () => {
 
     it('should not add duplicate participants', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
@@ -99,6 +106,7 @@ describe('DebateSimulation Entity', () => {
   describe('Argument management', () => {
     it('should add argument to simulation', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
@@ -112,6 +120,7 @@ describe('DebateSimulation Entity', () => {
 
     it('should maintain argument order', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
@@ -132,6 +141,7 @@ describe('DebateSimulation Entity', () => {
   describe('Status transitions', () => {
     it('should transition from active to voting', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
@@ -143,6 +153,7 @@ describe('DebateSimulation Entity', () => {
 
     it('should validate status transitions', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
@@ -156,13 +167,14 @@ describe('DebateSimulation Entity', () => {
   describe('Vote management', () => {
     it('should record close votes', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
 
       const agentId = AgentIdGenerator.generate(cryptoService);
       const withParticipant = simulation.addParticipant(agentId);
-      const updated = withParticipant.recordCloseVote(agentId, true, 'All points covered');
+      const updated = withParticipant.recordCloseVote(agentId, true, 'All points covered', mockTimestamp);
 
       expect(updated.votesToClose).toHaveLength(1);
       expect(updated.votesToClose[0]?.agentId).toBe(agentId);
@@ -171,16 +183,17 @@ describe('DebateSimulation Entity', () => {
 
     it('should not allow duplicate votes from same agent', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
 
       const agentId = AgentIdGenerator.generate(cryptoService);
       const withParticipant = simulation.addParticipant(agentId);
-      const updated1 = withParticipant.recordCloseVote(agentId, true);
+      const updated1 = withParticipant.recordCloseVote(agentId, true, undefined, mockTimestamp);
 
       // Entities are now pure data - validation happens in handlers
-      const updated2 = updated1.recordCloseVote(agentId, false);
+      const updated2 = updated1.recordCloseVote(agentId, false, undefined, mockTimestamp);
       expect(updated2.votesToClose).toHaveLength(2); // Should allow adding second vote
     });
   });
@@ -188,6 +201,7 @@ describe('DebateSimulation Entity', () => {
   describe('Immutability', () => {
     it('should create immutable simulation', () => {
       const simulation = expectOk(DebateSimulation.create({
+        cryptoService,
         topic: 'Test topic',
         createdAt: mockTimestamp,
       }));
@@ -205,7 +219,7 @@ describe('DebateSimulation Entity', () => {
 
   describe('reconstitute() method', () => {
     it('should preserve original ID instead of regenerating', () => {
-      const originalId = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const originalId = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp, cryptoService));
       const timestamp = TimestampGenerator.now();
 
       const simulation = expectOk(DebateSimulation.reconstitute(
@@ -222,7 +236,7 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should reconstitute simulation with all fields', () => {
-      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const id = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp, cryptoService));
       const timestamp = TimestampGenerator.now();
       const agent1 = AgentIdGenerator.generate(cryptoService);
       const agent2 = AgentIdGenerator.generate(cryptoService);
@@ -266,7 +280,7 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should return error when topic is missing', () => {
-      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const id = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp, cryptoService));
 
       const error = expectErr(DebateSimulation.reconstitute(
         id,
@@ -282,7 +296,7 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should return error when createdAt is null', () => {
-      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const id = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp, cryptoService));
 
       const error = expectErr(DebateSimulation.reconstitute(
         id,
@@ -298,7 +312,7 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should return error when status is missing', () => {
-      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const id = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp, cryptoService));
 
       const error = expectErr(DebateSimulation.reconstitute(
         id,
@@ -314,7 +328,7 @@ describe('DebateSimulation Entity', () => {
     });
 
     it('should allow empty arrays for optional collections', () => {
-      const id = SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp);
+      const id = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('Test', mockTimestamp, cryptoService));
 
       const simulation = expectOk(DebateSimulation.reconstitute(
         id,

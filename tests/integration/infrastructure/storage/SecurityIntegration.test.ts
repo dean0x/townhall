@@ -228,9 +228,9 @@ description: Test
     it('should handle concurrent saves without corruption', async () => {
       // Create multiple simulations concurrently
       const simulations = await Promise.all([
-        DebateSimulation.create({ topic: 'Simulation 1', createdAt: new Date() }),
-        DebateSimulation.create({ topic: 'Simulation 2', createdAt: new Date() }),
-        DebateSimulation.create({ topic: 'Simulation 3', createdAt: new Date() }),
+        DebateSimulation.create({ topic: 'Simulation 1', createdAt: new Date(), cryptoService }),
+        DebateSimulation.create({ topic: 'Simulation 2', createdAt: new Date(), cryptoService }),
+        DebateSimulation.create({ topic: 'Simulation 3', createdAt: new Date(), cryptoService }),
       ]);
 
       const savePromises = simulations.map(simResult => {
@@ -258,6 +258,7 @@ description: Test
     it('should handle concurrent reads without corruption', async () => {
       // Create a simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Concurrent Test',
         createdAt: new Date(),
       });
@@ -299,6 +300,7 @@ description: Test
     it('should maintain data integrity across save/load cycles', async () => {
       // Create a complex simulation with arguments
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Integrity Test',
         createdAt: new Date(),
       });
@@ -346,6 +348,7 @@ description: Test
     it('should detect and reject corrupted data', async () => {
       // Create a valid simulation
       const simResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Corruption Test',
         createdAt: new Date(),
       });
@@ -418,6 +421,7 @@ description: Test
         await fs.chmod(testDir, 0o444);
 
         const simResult = DebateSimulation.create({
+        cryptoService,
           topic: 'I/O Test',
           createdAt: new Date(),
         });

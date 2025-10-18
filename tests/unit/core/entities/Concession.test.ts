@@ -10,12 +10,13 @@ import { ArgumentIdGenerator } from '../../../../src/core/value-objects/Argument
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { expectOk } from '../../../helpers/result-assertions';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('Concession Entity', () => {
   const cryptoService = new MockCryptoService();
   const mockAgentId = AgentIdGenerator.generate(cryptoService);
-  const mockSimulationId = SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z');
+  const mockSimulationId = expectOk(SimulationIdGenerator.fromTopicAndTimestamp('test', '2025-01-26T10:00:00.000Z', cryptoService));
   const mockTimestamp = TimestampGenerator.now();
   const mockTargetArgumentId = ArgumentIdGenerator.fromContent('target-argument', cryptoService);
 

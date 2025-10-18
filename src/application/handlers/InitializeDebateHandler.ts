@@ -10,6 +10,7 @@ import { ValidationError, ConflictError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { InitializeDebateCommand } from '../commands/InitializeDebateCommand';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import { ICryptoService } from '../../core/services/ICryptoService';
 import { DebateSimulation } from '../../core/entities/DebateSimulation';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { SimulationId } from '../../core/value-objects/SimulationId';
@@ -25,7 +26,8 @@ export interface InitializeDebateResult {
 @injectable()
 export class InitializeDebateHandler implements ICommandHandler<InitializeDebateCommand, InitializeDebateResult> {
   constructor(
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository
+    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
+    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}
 
   public async handle(command: InitializeDebateCommand): Promise<Result<InitializeDebateResult, Error>> {
@@ -40,6 +42,7 @@ export class InitializeDebateHandler implements ICommandHandler<InitializeDebate
     const simulationResult = DebateSimulation.create({
       topic: command.topic,
       createdAt: timestamp,
+      cryptoService: this.cryptoService,
     });
 
     if (simulationResult.isErr()) {

@@ -103,7 +103,7 @@ export class TownhallCLI {
       .version('1.0.0');
 
     // Register all commands (using Result types)
-    const initCommand = new InitCommand(this.storage, this.context);
+    const initCommand = new InitCommand(this.commandBus, this.context);
     const simulateCommand = new SimulateCommand(this.commandBus, this.context);
     const checkoutCommand = new CheckoutCommand(this.commandBus, this.context);
     const statusCommand = new StatusCommand(this.simulationRepository, this.context);
@@ -147,16 +147,19 @@ export class TownhallCLI {
     });
   }
 
-  private isCommanderHelpOrVersion(error: any): boolean {
+  private isCommanderHelpOrVersion(error: unknown): boolean {
     if (!(error instanceof Error) || error.name !== 'CommanderError') {
       return false;
     }
 
-    const commanderError = error as any;
+    // Commander errors have a code property
+    const hasCode = 'code' in error && typeof error.code === 'string';
     return (
-      commanderError.code === 'commander.help' ||
-      commanderError.code === 'commander.version' ||
-      commanderError.message === '(outputHelp)'
+      hasCode && (
+        error.code === 'commander.help' ||
+        error.code === 'commander.version'
+      ) ||
+      error.message === '(outputHelp)'
     );
   }
 

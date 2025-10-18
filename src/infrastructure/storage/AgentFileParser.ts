@@ -9,6 +9,7 @@ import { Result, ok, err } from '../../shared/result';
 import { ValidationError, StorageError } from '../../shared/errors';
 import { Agent } from '../../core/entities/Agent';
 import { AgentIdGenerator } from '../../core/value-objects/AgentId';
+import { hasErrorCode } from './NodeSystemError';
 
 export interface AgentFileData {
   readonly id: string;
@@ -21,6 +22,9 @@ export interface AgentFileData {
 }
 
 export class AgentFileParser {
+  // SECURITY: Limit agent file size to 1MB to prevent DoS
+  private readonly MAX_AGENT_FILE_SIZE = 1_000_000; // 1MB
+
   /**
    * Parses an agent MD file with YAML frontmatter
    * Expected format:
@@ -37,9 +41,17 @@ export class AgentFileParser {
   public async parseFile(filePath: string): Promise<Result<AgentFileData, Error>> {
     try {
       const content = await fs.readFile(filePath, 'utf8');
+
+      // SECURITY: Check file size to prevent DoS attacks
+      if (content.length > this.MAX_AGENT_FILE_SIZE) {
+        return err(new ValidationError(
+          `Agent file exceeds maximum size of ${this.MAX_AGENT_FILE_SIZE} bytes: ${content.length} bytes`
+        ));
+      }
+
       return this.parseContent(content, filePath);
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if (hasErrorCode(error, 'ENOENT')) {
         return err(new StorageError(`Agent file not found: ${filePath}`, 'read'));
       }
       return err(new StorageError(

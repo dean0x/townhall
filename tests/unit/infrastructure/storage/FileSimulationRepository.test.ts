@@ -12,8 +12,10 @@ import { ObjectStorage } from '../../../../src/infrastructure/storage/ObjectStor
 import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
 import { SimulationId } from '../../../../src/core/value-objects/SimulationId';
 import { expectOk, expectErr } from '../../../helpers/result-assertions';
+import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('FileSimulationRepository Security Tests', () => {
+  const cryptoService = new MockCryptoService();
   let repository: FileSimulationRepository;
   let storage: ObjectStorage;
   let testDir: string;
@@ -30,10 +32,12 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('SimulationId validation in save()', () => {
+  const cryptoService = new MockCryptoService();
     it('should reject simulation IDs with path traversal attempts', async () => {
       // Create simulation with malicious ID
       const maliciousId = '../../../etc/passwd' as SimulationId;
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -58,6 +62,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should reject simulation IDs with null bytes', async () => {
       const maliciousId = 'abc123\0/etc/passwd' as SimulationId;
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -80,6 +85,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should reject simulation IDs with uppercase characters', async () => {
       const maliciousId = 'ABC123DEF456' as SimulationId;
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -101,6 +107,7 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('SimulationId validation in findById()', () => {
+  const cryptoService = new MockCryptoService();
     it('should reject path traversal with ../ in simulation ID', async () => {
       const maliciousId = '../../../etc/passwd' as SimulationId;
       const result = await repository.findById(maliciousId);
@@ -134,6 +141,7 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('SimulationId validation in setActive()', () => {
+  const cryptoService = new MockCryptoService();
     it('should reject path traversal in setActive()', async () => {
       const maliciousId = '../../../etc/passwd' as SimulationId;
       const result = await repository.setActive(maliciousId);
@@ -151,6 +159,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should prevent path traversal when writing HEAD file', async () => {
       // Create valid simulation first
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -166,8 +175,10 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('File permission security', () => {
+  const cryptoService = new MockCryptoService();
     it('should create simulation files with secure permissions', async () => {
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -189,6 +200,7 @@ describe('FileSimulationRepository Security Tests', () => {
 
     it('should create refs directory with secure permissions', async () => {
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -210,8 +222,10 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('Input sanitization', () => {
+  const cryptoService = new MockCryptoService();
     it('should handle simulation topics with special characters safely', async () => {
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test <script>alert("XSS")</script> debate',
         createdAt: new Date().toISOString(),
       });
@@ -229,6 +243,7 @@ describe('FileSimulationRepository Security Tests', () => {
 
     it('should handle simulation topics with path-like strings safely', async () => {
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Should we use ../../../etc/passwd in our paths?',
         createdAt: new Date().toISOString(),
       });
@@ -246,6 +261,7 @@ describe('FileSimulationRepository Security Tests', () => {
 
     it('should handle simulation topics with unicode characters', async () => {
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: '测试辩论 🔥 Тест дебаты',
         createdAt: new Date().toISOString(),
       });
@@ -263,9 +279,11 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('HEAD file security', () => {
+  const cryptoService = new MockCryptoService();
     it('should reject symlink attacks on HEAD file', async () => {
       // Create valid simulation
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -305,6 +323,7 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('Edge cases and regression tests', () => {
+  const cryptoService = new MockCryptoService();
     it('should handle empty simulation ID gracefully', async () => {
       const emptyId = '' as SimulationId;
       const result = await repository.findById(emptyId);
@@ -322,6 +341,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should handle concurrent save operations safely', async () => {
       const promises = Array.from({ length: 5 }, async (_, i) => {
         const simulationResult = DebateSimulation.create({
+        cryptoService,
           topic: `Concurrent debate ${i}`,
           createdAt: new Date().toISOString(),
         });
@@ -343,6 +363,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should prevent directory traversal in listAll()', async () => {
       // Create simulation in correct location
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -360,8 +381,10 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('Data integrity', () => {
+  const cryptoService = new MockCryptoService();
     it('should detect corrupted simulation data', async () => {
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -387,9 +410,11 @@ describe('FileSimulationRepository Security Tests', () => {
   });
 
   describe('switchActive() functionality', () => {
+  const cryptoService = new MockCryptoService();
     it('should successfully switch to existing simulation', async () => {
       // Create and save a simulation
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -411,6 +436,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should overwrite existing HEAD without conflict check', async () => {
       // Create two simulations
       const sim1Result = DebateSimulation.create({
+        cryptoService,
         topic: 'First debate',
         createdAt: new Date().toISOString(),
       });
@@ -418,6 +444,7 @@ describe('FileSimulationRepository Security Tests', () => {
       await repository.save(sim1);
 
       const sim2Result = DebateSimulation.create({
+        cryptoService,
         topic: 'Second debate',
         createdAt: new Date(Date.now() + 1000).toISOString(),
       });
@@ -454,6 +481,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should create refs directory if it does not exist', async () => {
       // Create and save a simulation
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -480,6 +508,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should handle filesystem write errors gracefully', async () => {
       // Create and save a simulation
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
@@ -509,6 +538,7 @@ describe('FileSimulationRepository Security Tests', () => {
     it('should write correct simulation ID to HEAD file', async () => {
       // Create and save a simulation
       const simulationResult = DebateSimulation.create({
+        cryptoService,
         topic: 'Test debate',
         createdAt: new Date().toISOString(),
       });
