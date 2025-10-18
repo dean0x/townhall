@@ -1,0 +1,518 @@
+# Command Contracts for Townhall CLI
+# These define the command/query interface that all interfaces will use
+
+openapi: 3.0.0
+info:
+  title: Townhall Command/Query Contracts
+  version: 1.0.0
+  description: Command and Query definitions for debate simulation operations
+
+paths:
+  # Commands (Write Operations)
+  /commands/initialize-debate:
+    post:
+      summary: Initialize a new debate simulation
+      operationId: initializeDebate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitializeDebateCommand'
+      responses:
+        '200':
+          description: Debate initialized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitializeDebateResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /commands/create-argument:
+    post:
+      summary: Create a new argument
+      operationId: createArgument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateArgumentCommand'
+      responses:
+        '200':
+          description: Argument created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateArgumentResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /commands/submit-rebuttal:
+    post:
+      summary: Submit a rebuttal to an existing argument
+      operationId: submitRebuttal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRebuttalCommand'
+      responses:
+        '200':
+          description: Rebuttal submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitRebuttalResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ArgumentNotFound'
+
+  /commands/submit-concession:
+    post:
+      summary: Submit a concession to an existing argument
+      operationId: submitConcession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitConcessionCommand'
+      responses:
+        '200':
+          description: Concession submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitConcessionResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ArgumentNotFound'
+
+  /commands/vote-to-close:
+    post:
+      summary: Vote to close the debate
+      operationId: voteToClose
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteToCloseCommand'
+      responses:
+        '200':
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteToCloseResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  # Queries (Read Operations)
+  /queries/get-debate-status:
+    get:
+      summary: Get current debate status
+      operationId: getDebateStatus
+      responses:
+        '200':
+          description: Current debate status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebateStatusResult'
+        '404':
+          $ref: '#/components/responses/NoActiveDebate'
+
+  /queries/get-debate-history:
+    get:
+      summary: Get complete debate history
+      operationId: getDebateHistory
+      parameters:
+        - in: query
+          name: simulationId
+          schema:
+            type: string
+          description: Optional simulation ID, defaults to current
+      responses:
+        '200':
+          description: Debate history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebateHistoryResult'
+
+  /queries/get-argument:
+    get:
+      summary: Get specific argument by ID
+      operationId: getArgument
+      parameters:
+        - in: query
+          name: argumentId
+          required: true
+          schema:
+            type: string
+          description: Full or short SHA hash
+      responses:
+        '200':
+          description: Argument details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArgumentResult'
+        '404':
+          $ref: '#/components/responses/ArgumentNotFound'
+
+  /queries/get-argument-chain:
+    get:
+      summary: Get argument relationship chain
+      operationId: getArgumentChain
+      parameters:
+        - in: query
+          name: argumentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Argument chain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArgumentChainResult'
+
+components:
+  schemas:
+    # Commands
+    InitializeDebateCommand:
+      type: object
+      required:
+        - topic
+      properties:
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 500
+
+    CreateArgumentCommand:
+      type: object
+      required:
+        - agentId
+        - type
+        - content
+      properties:
+        agentId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/ArgumentType'
+        content:
+          $ref: '#/components/schemas/ArgumentContent'
+
+    SubmitRebuttalCommand:
+      type: object
+      required:
+        - agentId
+        - targetArgumentId
+        - content
+      properties:
+        agentId:
+          type: string
+          format: uuid
+        targetArgumentId:
+          type: string
+        rebuttalType:
+          type: string
+          enum: [logical, empirical, methodological]
+        content:
+          $ref: '#/components/schemas/ArgumentContent'
+
+    SubmitConcessionCommand:
+      type: object
+      required:
+        - agentId
+        - targetArgumentId
+        - concessionType
+      properties:
+        agentId:
+          type: string
+          format: uuid
+        targetArgumentId:
+          type: string
+        concessionType:
+          type: string
+          enum: [full, partial, conditional]
+        conditions:
+          type: string
+        explanation:
+          type: string
+
+    VoteToCloseCommand:
+      type: object
+      required:
+        - agentId
+        - vote
+      properties:
+        agentId:
+          type: string
+          format: uuid
+        vote:
+          type: boolean
+        reason:
+          type: string
+
+    # Shared Schemas
+    ArgumentType:
+      type: string
+      enum: [deductive, inductive, empirical]
+
+    ArgumentContent:
+      type: object
+      required:
+        - text
+        - structure
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        structure:
+          oneOf:
+            - $ref: '#/components/schemas/DeductiveStructure'
+            - $ref: '#/components/schemas/InductiveStructure'
+            - $ref: '#/components/schemas/EmpiricalStructure'
+
+    DeductiveStructure:
+      type: object
+      required:
+        - premises
+        - conclusion
+      properties:
+        premises:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        conclusion:
+          type: string
+        form:
+          type: string
+
+    InductiveStructure:
+      type: object
+      required:
+        - observations
+        - generalization
+      properties:
+        observations:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        generalization:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    EmpiricalStructure:
+      type: object
+      required:
+        - evidence
+        - claim
+      properties:
+        evidence:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              citation:
+                type: string
+              relevance:
+                type: string
+        claim:
+          type: string
+        methodology:
+          type: string
+
+    # Result Schemas
+    InitializeDebateResult:
+      type: object
+      properties:
+        simulationId:
+          type: string
+        topic:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateArgumentResult:
+      type: object
+      properties:
+        argumentId:
+          type: string
+        shortHash:
+          type: string
+        sequenceNumber:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    SubmitRebuttalResult:
+      allOf:
+        - $ref: '#/components/schemas/CreateArgumentResult'
+        - type: object
+          properties:
+            targetArgumentId:
+              type: string
+
+    SubmitConcessionResult:
+      allOf:
+        - $ref: '#/components/schemas/CreateArgumentResult'
+        - type: object
+          properties:
+            targetArgumentId:
+              type: string
+
+    VoteToCloseResult:
+      type: object
+      properties:
+        votesReceived:
+          type: integer
+        votesRequired:
+          type: integer
+        status:
+          type: string
+          enum: [active, voting, closed]
+
+    DebateStatusResult:
+      type: object
+      properties:
+        simulationId:
+          type: string
+        topic:
+          type: string
+        status:
+          type: string
+        participantCount:
+          type: integer
+        argumentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    DebateHistoryResult:
+      type: object
+      properties:
+        arguments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArgumentSummary'
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArgumentRelationship'
+
+    ArgumentResult:
+      type: object
+      properties:
+        id:
+          type: string
+        agentId:
+          type: string
+        type:
+          $ref: '#/components/schemas/ArgumentType'
+        content:
+          $ref: '#/components/schemas/ArgumentContent'
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+
+    ArgumentChainResult:
+      type: object
+      properties:
+        root:
+          $ref: '#/components/schemas/ArgumentResult'
+        chain:
+          type: array
+          items:
+            type: object
+            properties:
+              argument:
+                $ref: '#/components/schemas/ArgumentResult'
+              relationship:
+                type: string
+
+    ArgumentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        shortHash:
+          type: string
+        agentName:
+          type: string
+        type:
+          type: string
+        preview:
+          type: string
+        timestamp:
+          type: string
+
+    ArgumentRelationship:
+      type: object
+      properties:
+        fromId:
+          type: string
+        toId:
+          type: string
+        type:
+          type: string
+
+    # Error Schemas
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ArgumentNotFound:
+      description: Argument not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NoActiveDebate:
+      description: No active debate
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

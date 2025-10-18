@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+*.tgz
+license-report/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Townhall data directory (contains user debates and agent configs)
+.townhall/
+
+# Environment and secrets
+*.env
+*.pem
+*.key
+credentials.json
+
+# Temporary files
+*.tmp
+.cache/
+
+# Generated documentation and reports
+.docs/CATCH_UP*.md
+.docs/EXECUTIVE_SUMMARY.md
+.docs/DEPENDENCY_AUDIT.md
+.docs/QUICK_START.md
+.docs/status/
+.docs/reviews/
+
+# Test scripts
+test_short_hash.sh

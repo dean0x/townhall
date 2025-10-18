@@ -1,0 +1,67 @@
+{
+  "name": "@townhall/cli",
+  "version": "1.0.0",
+  "description": "Git-inspired CLI for structured agent debate simulations",
+  "main": "dist/index.js",
+  "bin": {
+    "townhall": "dist/index.js"
+  },
+  "scripts": {
+    "prebuild": "rm -rf dist",
+    "build": "tsup src/interfaces/cli/index.ts --dts --format cjs --target node20 --out-dir dist",
+    "build:dev": "tsup src/interfaces/cli/index.ts --dts --sourcemap --format cjs --target node20 --out-dir dist",
+    "build:watch": "tsup src/interfaces/cli/index.ts --dts --sourcemap --format cjs --target node20 --out-dir dist --watch",
+    "dev": "tsx src/interfaces/cli/index.ts",
+    "test": "NODE_OPTIONS='--max-old-space-size=2048' vitest --no-file-parallelism",
+    "test:coverage": "NODE_OPTIONS='--max-old-space-size=2048' vitest --coverage",
+    "lint": "eslint src/ --ext .ts",
+    "lint:fix": "eslint src/ --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "typecheck:dev": "tsc --noEmit --project tsconfig.dev.json"
+  },
+  "keywords": [
+    "debate",
+    "simulation",
+    "agent",
+    "cli",
+    "argument",
+    "reasoning"
+  ],
+  "author": "Townhall Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dean0x/townhall.git"
+  },
+  "homepage": "https://github.com/dean0x/townhall#readme",
+  "bugs": {
+    "url": "https://github.com/dean0x/townhall/issues"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "commander": "^14.0.1",
+    "neverthrow": "^8.2.0",
+    "reflect-metadata": "^0.2.2",
+    "tsyringe": "^4.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.2",
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.36.0",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
