@@ -35,9 +35,10 @@ export class Rebuttal extends Argument {
     simulationId: SimulationId,
     metadata: ArgumentMetadata,
     targetArgumentId: ArgumentId,
-    rebuttalType: RebuttalType
+    rebuttalType: RebuttalType,
+    citationIds: readonly string[] = []
   ) {
-    super(id, agentId, type, content, timestamp, simulationId, metadata);
+    super(id, agentId, type, content, timestamp, simulationId, metadata, citationIds);
     this.targetArgumentId = targetArgumentId;
     this.rebuttalType = rebuttalType;
   }
@@ -81,7 +82,8 @@ export class Rebuttal extends Argument {
       params.simulationId,
       metadata,
       params.targetArgumentId,
-      params.rebuttalType
+      params.rebuttalType,
+      params.citationIds || []
     );
 
     Object.freeze(rebuttal);
