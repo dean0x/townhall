@@ -78,6 +78,7 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
       simulationId: simulation.id,
       timestamp,
       sequenceNumber,
+      citationIds: command.citationIds,
     }, this.cryptoService);
 
     if (argumentResult.isErr()) {

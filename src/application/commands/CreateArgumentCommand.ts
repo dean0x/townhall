@@ -12,4 +12,5 @@ export interface CreateArgumentCommand {
   readonly agentId: AgentId;
   readonly type: ArgumentType;
   readonly content: ArgumentContent;
+  readonly citationIds?: readonly string[];  // Optional array of citation IDs
 }

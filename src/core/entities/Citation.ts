@@ -7,7 +7,8 @@
 
 import { CitationId } from '../value-objects/CitationId';
 import { CitationType } from '../value-objects/CitationType';
-import { Timestamp } from '../value-objects/Timestamp';
+import type { Timestamp } from '../value-objects/Timestamp';
+import { TimestampGenerator } from '../value-objects/Timestamp';
 import { ICryptoService } from '../services/ICryptoService';
 
 export interface CitationMetadata {
@@ -53,7 +54,7 @@ export class Citation {
       source,
       type,
       metadata,
-      Timestamp.now()
+      TimestampGenerator.now()
     );
   }
 

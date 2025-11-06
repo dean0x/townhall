@@ -27,12 +27,14 @@ interface ArgumentOptions {
   citation?: string[];
   claim?: string;
   methodology?: string;
+  cites?: string[];  // Citation IDs to reference
 }
 
 interface ValidatedArgumentOptions {
   agentId: string;
   type: ArgumentType;
   content: ArgumentContent;
+  citationIds?: string[];
 }
 
 export class ArgumentCommand extends BaseCommand {
@@ -62,7 +64,10 @@ export class ArgumentCommand extends BaseCommand {
       .option('--relevance <relevance...>', 'Relevance description for each evidence (required for empirical)')
       .option('--citation <citation...>', 'Citations for evidence (optional)')
       .option('--claim <claim>', 'Claim for empirical arguments')
-      .option('--methodology <methodology>', 'Research methodology (optional)');
+      .option('--methodology <methodology>', 'Research methodology (optional)')
+
+      // Citation references (for all argument types)
+      .option('--cites <ids...>', 'Citation IDs to reference (supports short IDs)');
   }
 
   protected validateOptions(options: ArgumentOptions): Result<ValidatedArgumentOptions, ValidationError> {
@@ -82,6 +87,7 @@ export class ArgumentCommand extends BaseCommand {
       agentId: agentIdResult.value,
       type: options.type,
       content: contentResult.value,
+      citationIds: options.cites,
     });
   }
 
@@ -100,6 +106,7 @@ export class ArgumentCommand extends BaseCommand {
       agentId: agentIdResult.value,
       type: validatedOptions.type,
       content: validatedOptions.content,
+      citationIds: validatedOptions.citationIds,
     };
 
     const result = await this.commandBus.execute(command, 'CreateArgumentCommand');
