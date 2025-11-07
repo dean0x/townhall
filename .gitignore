@@ -50,3 +50,4 @@ credentials.json
 
 # Test scripts
 test_short_hash.sh
+.docs/audits/
