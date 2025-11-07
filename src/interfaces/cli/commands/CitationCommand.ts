@@ -14,6 +14,7 @@ import { CreateCitationCommand } from '../../../application/commands/CreateCitat
 import { GetCitationStatsQuery } from '../../../application/queries/GetCitationStatsQuery';
 import { CitationType } from '../../../core/value-objects/CitationType';
 import { SimulationId } from '../../../core/value-objects/SimulationId';
+import { ISimulationRepository } from '../../../core/repositories/ISimulationRepository';
 
 interface CitationOptions {
   source: string;
@@ -37,12 +38,15 @@ interface ValidatedCitationOptions {
   quote?: string;
   authors?: string[];
   year?: number;
+  list?: boolean;
+  stats?: boolean;
 }
 
 export class CitationCommand extends BaseCommand {
   constructor(
     private readonly commandBus: ICommandBus,
     private readonly queryBus: IQueryBus,
+    private readonly simulationRepo: ISimulationRepository,
     context: CommandContext
   ) {
     super('citation', 'Create or manage citations for arguments', context);
@@ -124,15 +128,13 @@ export class CitationCommand extends BaseCommand {
   }
 
   protected async execute(validatedOptions: ValidatedCitationOptions): Promise<Result<void, DomainError>> {
-    const rawOptions = validatedOptions as unknown as CitationOptions;
-
     // Handle --list option
-    if (rawOptions.list) {
+    if (validatedOptions.list) {
       return this.listCitations();
     }
 
     // Handle --stats option
-    if (rawOptions.stats) {
+    if (validatedOptions.stats) {
       return this.showStats();
     }
 
@@ -257,9 +259,10 @@ export class CitationCommand extends BaseCommand {
   }
 
   private async getCurrentSimulationId(): Promise<string | null> {
-    // This would typically come from a simulation context or repository
-    // For now, return a placeholder
-    // TODO: Implement proper simulation context retrieval
-    return 'current-sim-id';
+    const activeSimResult = await this.simulationRepo.getActive();
+    if (activeSimResult.isErr()) {
+      return null;
+    }
+    return activeSimResult.value.id;
   }
 }

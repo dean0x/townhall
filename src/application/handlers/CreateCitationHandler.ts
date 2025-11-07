@@ -49,12 +49,12 @@ export class CreateCitationHandler
       command.source,
       command.type,
       {
-        doi: command.doi,
-        url: command.url,
-        page: command.page,
-        quote: command.quote,
-        authors: command.authors,
-        year: command.year,
+        ...(command.doi && { doi: command.doi }),
+        ...(command.url && { url: command.url }),
+        ...(command.page !== undefined && { page: command.page }),
+        ...(command.quote && { quote: command.quote }),
+        ...(command.authors && { authors: command.authors }),
+        ...(command.year !== undefined && { year: command.year }),
       },
       this.cryptoService
     );
@@ -91,6 +91,69 @@ export class CreateCitationHandler
 
     if (command.quote && command.quote.length > 1000) {
       return err(new ValidationError('Quote must be less than 1000 characters'));
+    }
+
+    // Validate URL if provided
+    if (command.url) {
+      const urlValidation = this.validateUrl(command.url);
+      if (urlValidation.isErr()) {
+        return urlValidation;
+      }
+    }
+
+    // Validate DOI if provided
+    if (command.doi) {
+      const doiValidation = this.validateDoi(command.doi);
+      if (doiValidation.isErr()) {
+        return doiValidation;
+      }
+    }
+
+    return ok(undefined);
+  }
+
+  private validateUrl(url: string): Result<void, ValidationError> {
+    try {
+      const parsed = new URL(url);
+
+      // Only allow http/https protocols
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return err(new ValidationError('URL must use http or https protocol'));
+      }
+
+      // Prevent localhost/private IPs to mitigate SSRF
+      const hostname = parsed.hostname.toLowerCase();
+      if (
+        hostname === 'localhost' ||
+        hostname.startsWith('127.') ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+      ) {
+        return err(new ValidationError('URL cannot reference private network addresses'));
+      }
+
+      // Length check
+      if (url.length > 2048) {
+        return err(new ValidationError('URL must be less than 2048 characters'));
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      return err(new ValidationError('Invalid URL format'));
+    }
+  }
+
+  private validateDoi(doi: string): Result<void, ValidationError> {
+    // DOI format: 10.XXXX/YYYY where XXXX is registrant, YYYY is suffix
+    const doiPattern = /^10\.\d{4,}\/[^\s]+$/;
+
+    if (!doiPattern.test(doi)) {
+      return err(new ValidationError('Invalid DOI format. Expected: 10.XXXX/YYYY'));
+    }
+
+    if (doi.length > 256) {
+      return err(new ValidationError('DOI must be less than 256 characters'));
     }
 
     return ok(undefined);

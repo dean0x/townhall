@@ -121,13 +121,13 @@ A test agent for citation testing.`, 'utf8');
       expect(listResult).toContain('Climate Science Review 2023');
       expect(listResult).toContain('Nature Climate Study');
       expect(listResult).toContain('Climate News Website');
-      expect(listResult).toContain('Usage: 0'); // None cited yet
+      expect(listResult).toContain('Referenced: 0 time(s)'); // None cited yet
 
       // 6. Create argument referencing first two citations (using short IDs)
       const argResult = execSync(
         `node ${cliPath} argument --agent ${testAgentId} --type empirical ` +
-        `--evidence "Study 1" --evidence "Study 2" --conclusion "Climate change is real" ` +
-        `--cites ${citation1ShortId} ${citation2ShortId}`,
+        `--evidence "Study 1" --evidence "Study 2" --relevance "Supports claim" --relevance "Provides data" ` +
+        `--claim "Climate change is real" --cites ${citation1ShortId} ${citation2ShortId}`,
         { encoding: 'utf8', cwd: process.cwd() }
       );
       expect(argResult).toContain('Argument created');
@@ -276,7 +276,7 @@ A test agent for citation testing.`, 'utf8');
 
       expect(statsResult).toContain('Total citations: 3');
       expect(statsResult).toContain('Peer-reviewed: 2'); // 2 out of 3
-      expect(statsResult).toContain('66.67%'); // Percentage
+      expect(statsResult).toContain('67%'); // Percentage (rounded)
     });
 
     it('should show empty stats for simulation with no citations', () => {
@@ -293,7 +293,7 @@ A test agent for citation testing.`, 'utf8');
       );
 
       expect(statsResult).toContain('Total citations: 0');
-      expect(statsResult).toContain('0.00%'); // Peer-reviewed percentage
+      expect(statsResult).toContain('0%'); // Peer-reviewed percentage
     });
   });
 });

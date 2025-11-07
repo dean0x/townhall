@@ -7,10 +7,11 @@
 import { AgentId } from '../../core/value-objects/AgentId';
 import { ArgumentType } from '../../core/value-objects/ArgumentType';
 import { ArgumentContent } from '../../core/entities/Argument';
+import { CitationId } from '../../core/value-objects/CitationId';
 
 export interface CreateArgumentCommand {
   readonly agentId: AgentId;
   readonly type: ArgumentType;
   readonly content: ArgumentContent;
-  readonly citationIds?: readonly string[];  // Optional array of citation IDs
+  readonly citationIds?: readonly CitationId[];  // Optional array of citation IDs
 }

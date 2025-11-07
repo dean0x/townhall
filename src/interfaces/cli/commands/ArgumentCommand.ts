@@ -13,6 +13,7 @@ import { CreateArgumentCommand } from '../../../application/commands/CreateArgum
 import { ArgumentType } from '../../../core/value-objects/ArgumentType';
 import { AgentIdGenerator } from '../../../core/value-objects/AgentId';
 import { ArgumentContent } from '../../../core/entities/Argument';
+import { CitationId } from '../../../core/value-objects/CitationId';
 
 interface ArgumentOptions {
   agent: string;
@@ -34,7 +35,7 @@ interface ValidatedArgumentOptions {
   agentId: string;
   type: ArgumentType;
   content: ArgumentContent;
-  citationIds?: string[];
+  citationIds?: CitationId[];
 }
 
 export class ArgumentCommand extends BaseCommand {
@@ -87,7 +88,7 @@ export class ArgumentCommand extends BaseCommand {
       agentId: agentIdResult.value,
       type: options.type,
       content: contentResult.value,
-      citationIds: options.cites,
+      citationIds: options.cites?.map(id => CitationId.fromString(id)),
     });
   }
 

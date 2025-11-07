@@ -116,7 +116,7 @@ export class TownhallCLI {
     const rebuttalCommand = new RebuttalCommand(this.commandBus, this.argumentRepository, this.context);
     const concedeCommand = new ConcedeCommand(this.commandBus, this.argumentRepository, this.context);
     const voteCommand = new VoteCommand(this.commandBus, this.context);
-    const citationCommand = new CitationCommand(this.commandBus, this.queryBus, this.context);
+    const citationCommand = new CitationCommand(this.commandBus, this.queryBus, this.simulationRepository, this.context);
 
     // Add commands to program
     this.program.addCommand(initCommand.build());
