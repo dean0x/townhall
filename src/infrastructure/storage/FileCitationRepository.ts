@@ -50,7 +50,7 @@ export class FileCitationRepository implements ICitationRepository {
       authors: citation.metadata.authors,
       year: citation.metadata.year,
       createdAt: citation.createdAt,
-      simulationId: SimulationId.toString(simulationId),
+      simulationId: simulationId as string,
     };
 
     const result = await this.storage.store('citations', data as Record<string, unknown>);
@@ -75,7 +75,7 @@ export class FileCitationRepository implements ICitationRepository {
   }
 
   public async findBySimulation(simulationId: SimulationId): Promise<Result<Citation[], CitationStorageError>> {
-    const simIdString = SimulationId.toString(simulationId);
+    const simIdString = simulationId as string;
 
     // List all citations
     const listResult = await this.storage.list('citations');

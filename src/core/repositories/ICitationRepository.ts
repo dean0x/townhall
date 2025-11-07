@@ -87,6 +87,8 @@ export class CitationStorageError extends Error {
  * Error when citation is not found
  */
 export class CitationNotFoundError extends Error {
+  public readonly code = 'NOT_FOUND';
+
   constructor(
     public readonly citationId: string
   ) {
