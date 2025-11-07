@@ -166,7 +166,27 @@ export class Citation {
 
   /**
    * Generate deterministic content string for hashing
-   * Same content → same hash → same ID
+   *
+   * Content-addressed storage: Same content → same hash → same ID
+   * This provides automatic deduplication and prevents duplicate citations.
+   *
+   * Field inclusion rationale:
+   * - source: Primary identifier (required field)
+   * - type: Same source cited as different types = different citations
+   * - doi: Unique persistent identifier when available
+   * - url: Web location (part of citation at creation time, even if URL changes later)
+   * - page: Different pages = different citations (specific location matters)
+   * - quote: Different quotes from same source = different citations
+   * - authors: Attribution affects citation identity (different editions, translations)
+   * - year: Edition/version distinction (same source, different years = different editions)
+   *
+   * Implementation notes:
+   * - Empty optional fields included as '' to maintain consistent field positions
+   * - Delimiter '::' prevents collision attacks (e.g., ["ab", "cd"] vs ["a", "bcd"])
+   * - Authors joined with ',' (simpler delimiter for array field)
+   * - Numbers converted to strings for consistent hashing
+   *
+   * @returns Deterministic string suitable for SHA-256 hashing
    */
   private static getContentForHashing(
     source: string,

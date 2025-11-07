@@ -258,6 +258,14 @@ export class CitationCommand extends BaseCommand {
     return ok(undefined);
   }
 
+  /**
+   * Get the current active simulation ID
+   *
+   * Citations must be associated with a simulation. This retrieves the currently
+   * active simulation from the repository.
+   *
+   * @returns Active simulation ID, or null if no simulation is active
+   */
   private async getCurrentSimulationId(): Promise<string | null> {
     const activeSimResult = await this.simulationRepo.getActive();
     if (activeSimResult.isErr()) {

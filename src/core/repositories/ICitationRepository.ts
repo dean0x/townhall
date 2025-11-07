@@ -81,10 +81,29 @@ export interface ICitationRepository {
 
 /**
  * Error when citation storage operation fails
+ *
+ * Common causes:
+ * - File system permission errors (read/write access)
+ * - Disk space exhaustion
+ * - Concurrent write conflicts
+ * - Malformed data during deserialization
+ *
+ * @example
+ * ```typescript
+ * const result = await citationRepo.save(citation, simulationId);
+ * if (result.isErr()) {
+ *   const error = result.error; // CitationStorageError
+ *   logger.error('Storage operation failed', {
+ *     operation: error.operation, // 'save', 'list', 'retrieve'
+ *     message: error.message,
+ *   });
+ * }
+ * ```
  */
 export class CitationStorageError extends Error {
   constructor(
     message: string,
+    /** The storage operation that failed (save, list, retrieve, etc.) */
     public readonly operation: string
   ) {
     super(message);
@@ -93,12 +112,27 @@ export class CitationStorageError extends Error {
 }
 
 /**
- * Error when citation is not found
+ * Error when citation is not found by ID
+ *
+ * Occurs when:
+ * - Citation ID doesn't exist in storage
+ * - Citation was deleted
+ * - Using wrong simulation context
+ *
+ * @example
+ * ```typescript
+ * const result = await citationRepo.findById(citationId);
+ * if (result.isErr()) {
+ *   // User provided invalid citation ID
+ *   console.error(`Citation ${result.error.citationId} not found`);
+ * }
+ * ```
  */
 export class CitationNotFoundError extends Error {
   public readonly code = 'NOT_FOUND';
 
   constructor(
+    /** The citation ID that was not found (full 64-char hash) */
     public readonly citationId: string
   ) {
     super(`Citation not found: ${citationId}`);
@@ -107,11 +141,31 @@ export class CitationNotFoundError extends Error {
 }
 
 /**
- * Error when short ID cannot be resolved
+ * Error when short ID cannot be resolved to full ID
+ *
+ * Resolution fails when:
+ * - 'not_found': No citations match the short ID prefix
+ * - 'ambiguous': Multiple citations match (need longer prefix)
+ * - 'too_short': Short ID < 7 characters (minimum required)
+ *
+ * @example
+ * ```typescript
+ * const result = await citationRepo.resolveShortId('abc1234');
+ * if (result.isErr()) {
+ *   const error = result.error;
+ *   if (error.reason === 'ambiguous') {
+ *     console.log('Multiple matches found, provide longer ID');
+ *   } else if (error.reason === 'too_short') {
+ *     console.log('Minimum 7 characters required');
+ *   }
+ * }
+ * ```
  */
 export class CitationResolutionError extends Error {
   constructor(
+    /** The short ID that could not be resolved */
     public readonly shortId: string,
+    /** Why resolution failed */
     public readonly reason: 'not_found' | 'ambiguous' | 'too_short'
   ) {
     super(`Cannot resolve citation ID ${shortId}: ${reason}`);

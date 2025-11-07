@@ -190,6 +190,30 @@ export class FileCitationRepository implements ICitationRepository {
     return ok(usageCounts);
   }
 
+  /**
+   * Resolve short citation ID to full ID (git-style short hash resolution)
+   *
+   * Behavior:
+   * - Minimum 7 characters required (git standard)
+   * - Prefix matching: Finds citation IDs starting with the short ID
+   * - Returns error if no matches found (not_found)
+   * - Returns error if multiple citations match (ambiguous)
+   * - Returns full 64-character ID if exactly one match
+   *
+   * Edge cases:
+   * - Empty string: Returns 'too_short' error
+   * - 1-6 characters: Returns 'too_short' error
+   * - No matches: Returns 'not_found' error
+   * - Multiple matches: Returns 'ambiguous' error (user should provide longer ID)
+   * - Case sensitivity: SHA-256 hashes are lowercase hex, comparison is case-sensitive
+   * - Full ID provided (64 chars): Also works, just returns same ID
+   *
+   * Performance: O(n) where n = total citations (scans all citation IDs)
+   * With typical workloads (< 1000 citations), this is acceptable.
+   *
+   * @param shortId - Short citation ID (minimum 7 characters, hex string)
+   * @returns Full CitationId if unique match found, CitationResolutionError otherwise
+   */
   public async resolveShortId(shortId: string): Promise<Result<CitationId, CitationResolutionError>> {
     // Validate minimum length
     if (shortId.length < 7) {
