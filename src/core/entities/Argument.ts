@@ -57,6 +57,7 @@ export interface CreateArgumentParams {
   readonly simulationId: SimulationId;
   readonly timestamp: Timestamp;
   readonly sequenceNumber?: number;
+  readonly citationIds?: readonly string[];  // Array of citation IDs referenced by this argument
 }
 
 export class Argument {
@@ -67,7 +68,8 @@ export class Argument {
     public readonly content: ArgumentContent,
     public readonly timestamp: Timestamp,
     public readonly simulationId: SimulationId,
-    public readonly metadata: ArgumentMetadata
+    public readonly metadata: ArgumentMetadata,
+    public readonly citationIds: readonly string[] = []
   ) {
     // Note: Object.freeze(this) moved to static create methods for inheritance support
   }
@@ -103,7 +105,8 @@ export class Argument {
       params.content,
       params.timestamp,
       params.simulationId,
-      metadata
+      metadata,
+      params.citationIds || []
     );
 
     Object.freeze(argument);

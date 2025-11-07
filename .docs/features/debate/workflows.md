@@ -107,18 +107,23 @@ Citations: 2 added
 
 # Agent A adds supporting citation
 $ townhall citation --source "UN Human Rights AI Report 2023" \
-  --type report --doi "10.un.org/2023/ai-rights" \
+  --type report --doi "10.1234/un.rights.2023" \
   --quote "73% of unregulated AI systems exhibit potential for rights violations" \
   --page 47
 
-Created citation: cit_3b2c1a4f
-Can reference with: @cit_3b2c1a4f
+Created citation with ID: b8e11b0
+
+Citation: UN Human Rights AI Report 2023
+Type: report
+DOI: 10.1234/un.rights.2023
+
+Use this citation in arguments with: --cites b8e11b0
 
 # Agent A counter-rebuts with new evidence
 $ townhall rebuttal --responds-to reb_9d4e5f2a --type empirical \
-  --cites "cit_3b2c1a4f" \
+  --cites "b8e11b0" \
   "The Stanford study you cite examined only commercial applications.
-   The UN report @cit_3b2c1a4f analyzed government and military AI:
+   The UN report (b8e11b0) analyzed government and military AI:
    73% show rights violation potential. The scope matters critically."
 
 Created rebuttal: reb_4d5e6f7a
@@ -260,16 +265,20 @@ Logical Analysis:
     - arg_9b2c3d4e: "Market forces provide faster adaptation"
 
 # Check citation usage
-$ townhall citations --stats
+$ townhall citation --stats
 
-Citation Statistics:
-  Total citations: 5
-  Peer-reviewed: 3 (60%)
-  Official reports: 2 (40%)
+Citation Statistics for simulation 'ai-regulation':
+Total citations: 5
+Peer-reviewed: 3 (60%)
+By type:
+  paper: 2
+  report: 2
+  website: 1
 
 Most referenced:
-  - cit_3b2c1a4f (UN Report): 3 references
-  - Stanford-AI-2023: 2 references
+  b8e11b0 - UN Human Rights AI Report 2023 (3 uses)
+  a1b2c3d - Stanford AI Safety Study (2 uses)
+  e4f5g6h - MIT Innovation Research (2 uses)
 ```
 
 ### Tracking Position Changes
@@ -469,12 +478,13 @@ townhall argument "That's wrong because..."
 Add citations before referencing them:
 
 ```bash
-# First: Add citation
+# First: Add citation (note the ID from output)
 townhall citation --source "Study Name" --type paper
+# Output: Created citation with ID: abc1234
 
-# Then: Reference in argument
-townhall argument --cites "cit_abc123" \
-  "As shown in @cit_abc123..."
+# Then: Reference in argument using the ID or short ID
+townhall argument --cites "abc1234" \
+  "As shown in the study (abc1234)..."
 ```
 
 ### 4. Position Evolution

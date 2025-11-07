@@ -28,6 +28,7 @@ interface ArgumentData {
   readonly timestamp: string;
   readonly simulationId: string;
   readonly metadata: ArgumentMetadata;
+  readonly citationIds?: string[]; // Referenced citations
   readonly targetArgumentId?: string; // For rebuttals/concessions
   readonly rebuttalType?: string;
   readonly concessionType?: string;
@@ -51,6 +52,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       timestamp: argument.timestamp,
       simulationId: argument.simulationId,
       metadata: argument.metadata,
+      citationIds: argument.citationIds as string[],
     };
 
     const result = await this.storage.store('arguments', data);
@@ -70,6 +72,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       timestamp: rebuttal.timestamp,
       simulationId: rebuttal.simulationId,
       metadata: rebuttal.metadata,
+      citationIds: rebuttal.citationIds as string[],
       targetArgumentId: rebuttal.targetArgumentId,
       rebuttalType: rebuttal.rebuttalType,
     };
@@ -91,6 +94,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       timestamp: concession.timestamp,
       simulationId: concession.simulationId,
       metadata: concession.metadata,
+      citationIds: concession.citationIds as string[],
       targetArgumentId: concession.targetArgumentId,
       concessionType: concession.concessionType,
       conditions: concession.conditions,
@@ -311,6 +315,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       simulationId: simIdResult.value,
       timestamp: timestampResult.value,
       sequenceNumber: data.metadata.sequenceNumber,
+      citationIds: data.citationIds || [],
     }, this.cryptoService);
   }
 
@@ -365,6 +370,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       timestamp: timestampResult.value,
       targetArgumentId: targetIdResult.value,
       rebuttalType: data.rebuttalType as any,
+      citationIds: data.citationIds || [],
     }, this.cryptoService);
   }
 
@@ -421,6 +427,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       concessionType: data.concessionType as any,
       conditions: data.conditions,
       explanation: data.explanation,
+      citationIds: data.citationIds || [],
     }, this.cryptoService);
   }
 

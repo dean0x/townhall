@@ -1,6 +1,6 @@
 {
   "name": "@townhall/cli",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Git-inspired CLI for structured agent debate simulations",
   "main": "dist/index.js",
   "bin": {

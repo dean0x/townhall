@@ -12,6 +12,7 @@ import { CreateArgumentCommand } from '../commands/CreateArgumentCommand';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
+import { ICitationRepository } from '../../core/repositories/ICitationRepository';
 import { ArgumentValidator } from '../../core/services/ArgumentValidator';
 import { Argument } from '../../core/entities/Argument';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
@@ -33,6 +34,7 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
     @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
+    @inject(TOKENS.CitationRepository) private readonly citationRepo: ICitationRepository,
     @inject(TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
     @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}
@@ -50,6 +52,31 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
     const agentResult = await this.agentRepo.findById(command.agentId);
     if (agentResult.isErr()) {
       return err(new NotFoundError('Agent', command.agentId));
+    }
+
+    // Validate citations exist (if provided)
+    // Note: Citation IDs may be short IDs that need resolution
+    if (command.citationIds && command.citationIds.length > 0) {
+      for (const citationId of command.citationIds) {
+        const citationIdString = citationId as string;
+
+        // Try direct lookup first
+        let lookupResult = await this.citationRepo.findById(citationId);
+
+        // If not found and looks like a short ID (7-64 chars), try resolving it
+        if (lookupResult.isErr() && citationIdString.length >= 7 && citationIdString.length < 64) {
+          const resolveResult = await this.citationRepo.resolveShortId(citationIdString);
+          if (resolveResult.isOk()) {
+            const resolvedId = resolveResult.value;
+            lookupResult = await this.citationRepo.findById(resolvedId);
+          }
+        }
+
+        // If still not found, return error
+        if (lookupResult.isErr()) {
+          return err(new NotFoundError('Citation', citationId));
+        }
+      }
     }
 
     // SECURITY: Authorization check - verify agent can participate
@@ -78,6 +105,7 @@ export class CreateArgumentHandler implements ICommandHandler<CreateArgumentComm
       simulationId: simulation.id,
       timestamp,
       sequenceNumber,
+      ...(command.citationIds && { citationIds: command.citationIds }),
     }, this.cryptoService);
 
     if (argumentResult.isErr()) {

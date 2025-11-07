@@ -36,7 +36,8 @@ export class Concession extends Argument {
       argument.content,
       argument.timestamp,
       argument.simulationId,
-      argument.metadata
+      argument.metadata,
+      argument.citationIds
     );
     Object.freeze(this);
   }

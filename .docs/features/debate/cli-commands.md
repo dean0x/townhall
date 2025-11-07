@@ -19,6 +19,7 @@ Townhall provides a Git-inspired CLI for agents to log structured actions during
 - `rebuttal` - Respond to argument
 - `concede` - Acknowledge valid point
 - `vote` - Vote to close debate
+- `citation` - Add evidence and references
 
 **Query Commands**:
 - `log` - View debate history
@@ -33,7 +34,6 @@ The following commands are documented for future implementation:
 **Analysis**: `positions`, `analyze`, `export`
 **Data Management**: `archive`, `validate`
 **Configuration**: `config`
-**Evidence**: `citation` (standalone command)
 
 These features represent the planned roadmap and are included in this documentation to show the complete vision for the CLI.
 
@@ -250,40 +250,80 @@ To: arg_004
 Type: partial
 ```
 
-### townhall citation *(Planned Feature)*
-Add evidence or references
+### townhall citation
+Add evidence or references to support arguments
 ```bash
 townhall citation [options]
 
 # Options
-  --source <source>     Citation source (required)
-  --type <type>         Source type (paper/article/report/data)
-  --quote <text>        Relevant quote
-  --page <page>         Page number
-  --doi <doi>           Digital object identifier
-  --url <url>           Web URL
+  --source <source>     Citation source/title (required)
+  --type <type>         Citation type (required)
+                        paper: Peer-reviewed academic paper
+                        study: Research study or survey
+                        book: Book or book chapter
+                        website: Web resource
+                        report: Technical/government report
+
+  --doi <doi>          Digital Object Identifier (format: 10.XXXX/YYYY)
+  --url <url>          Web URL (http/https only, no private IPs)
+  --page <number>      Page number reference
+  --quote <text>       Direct quote from source (max 1000 chars)
+  --authors <names>    Comma-separated author names
+  --year <year>        Publication year (1000 to current year + 1)
+
+  --list               List all citations in current simulation
+  --stats              Show citation statistics for simulation
 
 # Examples
 
-# Academic paper citation
-townhall citation --source "MIT AI Safety Study 2023" \
+# Academic paper with DOI
+townhall citation \
+  --source "Deep Learning for AI Safety" \
   --type paper \
-  --doi "10.1234/mit.ai.2023" \
-  --quote "73% of unregulated AI systems show risk patterns" \
-  --page 47
+  --doi "10.1234/ai.safety.2023" \
+  --authors "Smith, J., Doe, A." \
+  --year 2023 \
+  --page 47 \
+  --quote "73% of unregulated AI systems show risk patterns"
 
-# Report citation
-townhall citation --source "FCC Internet Growth Report" \
+# Web resource
+townhall citation \
+  --source "WHO COVID-19 Statistics" \
+  --type website \
+  --url "https://who.int/data/covid19" \
+  --year 2024
+
+# Government report
+townhall citation \
+  --source "FCC Internet Growth Report" \
   --type report \
   --url "https://fcc.gov/reports/2001/growth" \
   --quote "Unregulated period saw 10000% growth"
 
+# List all citations in simulation
+townhall citation --list
+
+# View citation statistics
+townhall citation --stats
+
 # Output
-Created citation: cit_3b2c1a4f
-Source: MIT AI Safety Study 2023
-Type: paper
-Can be referenced with: @cit_3b2c1a4f
+Created citation with ID: b8e11b0
+
+Citation: Deep Learning for AI Safety
+Type: paper (peer-reviewed)
+Authors: Smith, J., Doe, A.
+Year: 2023
+DOI: 10.1234/ai.safety.2023
+
+Use this citation in arguments with: --cites b8e11b0
 ```
+
+**Citation Features**:
+- **Content-addressed IDs**: Identical citations automatically deduplicated
+- **Short IDs**: Use 7+ character prefixes (git-style) instead of full 64-char IDs
+- **Credibility scoring**: Papers and studies marked as peer-reviewed
+- **Usage tracking**: See which arguments reference each citation
+- **SSRF protection**: URLs validated to prevent security vulnerabilities
 
 ### townhall vote
 Vote to close the current debate
@@ -641,9 +681,10 @@ townhall checkout ai-regulation
 townhall rebuttal --responds-to arg_001 --type empirical \
   "Innovation data contradicts this. See Internet growth."
 
-# Add citation
+# Add citation (get ID from output)
 townhall citation --source "Internet Growth Study 2000" \
   --type report --quote "Unregulated growth of 10000%"
+# Output: Created citation with ID: abc1234
 
 # Continue debate...
 
@@ -666,7 +707,7 @@ townhall log --author agent_proponent --oneline
 townhall trace reb_008 --upstream --depth 5
 
 # Analyze citation usage
-townhall citations --stats
+townhall citation --stats
 ```
 
 ## Error Messages

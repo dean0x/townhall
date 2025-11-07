@@ -25,12 +25,16 @@ import { VoteToCloseHandler } from '../../application/handlers/VoteToCloseHandle
 import { CheckoutSimulationHandler } from '../../application/handlers/CheckoutSimulationHandler';
 import { GetArgumentHandler } from '../../application/handlers/GetArgumentHandler';
 import { GetArgumentChainHandler } from '../../application/handlers/GetArgumentChainHandler';
+import { CreateCitationHandler } from '../../application/handlers/CreateCitationHandler';
+import { GetCitationHandler } from '../../application/handlers/GetCitationHandler';
+import { GetCitationStatsHandler } from '../../application/handlers/GetCitationStatsHandler';
 
 // Infrastructure
 import { ObjectStorage } from '../../infrastructure/storage/ObjectStorage';
 import { FileArgumentRepository } from '../../infrastructure/storage/FileArgumentRepository';
 import { FileSimulationRepository } from '../../infrastructure/storage/FileSimulationRepository';
 import { FileAgentRepository } from '../../infrastructure/storage/FileAgentRepository';
+import { FileCitationRepository } from '../../infrastructure/storage/FileCitationRepository';
 import { InMemoryEventBus } from '../../infrastructure/events/InMemoryEventBus';
 import { StructuredLogger } from '../../infrastructure/logging/StructuredLogger';
 import { HashResolver } from '../../infrastructure/storage/HashResolver';
@@ -60,6 +64,7 @@ export function configureContainer(): typeof container {
   container.register(TOKENS.ArgumentRepository, { useClass: FileArgumentRepository });
   container.register(TOKENS.SimulationRepository, { useClass: FileSimulationRepository });
   container.register(TOKENS.AgentRepository, { useClass: FileAgentRepository });
+  container.register(TOKENS.CitationRepository, { useClass: FileCitationRepository });
   container.register(TOKENS.EventBus, { useClass: InMemoryEventBus });
   container.register(TOKENS.Logger, {
     useFactory: () => new StructuredLogger({ component: 'townhall-cli' })
@@ -76,6 +81,9 @@ export function configureContainer(): typeof container {
   container.register(TOKENS.CheckoutSimulationHandler, { useClass: CheckoutSimulationHandler });
   container.register(TOKENS.GetArgumentHandler, { useClass: GetArgumentHandler });
   container.register(TOKENS.GetArgumentChainHandler, { useClass: GetArgumentChainHandler });
+  container.register(TOKENS.CreateCitationHandler, { useClass: CreateCitationHandler });
+  container.register(TOKENS.GetCitationHandler, { useClass: GetCitationHandler });
+  container.register(TOKENS.GetCitationStatsHandler, { useClass: GetCitationStatsHandler });
 
   // Application layer - buses with handler registration
   container.register(TOKENS.CommandBus, {
@@ -89,6 +97,7 @@ export function configureContainer(): typeof container {
       commandBus.register('SubmitConcessionCommand', container.resolve(TOKENS.SubmitConcessionHandler));
       commandBus.register('VoteToCloseCommand', container.resolve(TOKENS.VoteToCloseHandler));
       commandBus.register('CheckoutSimulationCommand', container.resolve(TOKENS.CheckoutSimulationHandler));
+      commandBus.register('CreateCitationCommand', container.resolve(TOKENS.CreateCitationHandler));
       return commandBus;
     }
   });
@@ -100,6 +109,8 @@ export function configureContainer(): typeof container {
       queryBus.register('GetDebateHistoryQuery', container.resolve(TOKENS.GetDebateHistoryHandler));
       queryBus.register('GetArgumentQuery', container.resolve(TOKENS.GetArgumentHandler));
       queryBus.register('GetArgumentChainQuery', container.resolve(TOKENS.GetArgumentChainHandler));
+      queryBus.register('GetCitationQuery', container.resolve(TOKENS.GetCitationHandler));
+      queryBus.register('GetCitationStatsQuery', container.resolve(TOKENS.GetCitationStatsHandler));
       return queryBus;
     }
   });

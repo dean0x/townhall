@@ -12,6 +12,7 @@ export const TOKENS = {
   ArgumentRepository: Symbol.for('ArgumentRepository'),
   SimulationRepository: Symbol.for('SimulationRepository'),
   AgentRepository: Symbol.for('AgentRepository'),
+  CitationRepository: Symbol.for('CitationRepository'),
 
   // Services
   ArgumentValidator: Symbol.for('ArgumentValidator'),
@@ -40,11 +41,14 @@ export const TOKENS = {
   SubmitConcessionHandler: Symbol.for('SubmitConcessionHandler'),
   VoteToCloseHandler: Symbol.for('VoteToCloseHandler'),
   CheckoutSimulationHandler: Symbol.for('CheckoutSimulationHandler'),
+  CreateCitationHandler: Symbol.for('CreateCitationHandler'),
 
   // Query Handlers
   GetDebateHistoryHandler: Symbol.for('GetDebateHistoryHandler'),
   GetArgumentHandler: Symbol.for('GetArgumentHandler'),
   GetArgumentChainHandler: Symbol.for('GetArgumentChainHandler'),
+  GetCitationHandler: Symbol.for('GetCitationHandler'),
+  GetCitationStatsHandler: Symbol.for('GetCitationStatsHandler'),
 } as const;
 
 export type TokenType = typeof TOKENS[keyof typeof TOKENS];

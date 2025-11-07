@@ -30,6 +30,7 @@ import { StatusCommand } from './commands/StatusCommand';
 import { ListCommand } from './commands/ListCommand';
 import { ShowCommand } from './commands/ShowCommand';
 import { TraceCommand } from './commands/TraceCommand';
+import { CitationCommand } from './commands/CitationCommand';
 
 @injectable()
 export class TownhallCLI {
@@ -115,6 +116,7 @@ export class TownhallCLI {
     const rebuttalCommand = new RebuttalCommand(this.commandBus, this.argumentRepository, this.context);
     const concedeCommand = new ConcedeCommand(this.commandBus, this.argumentRepository, this.context);
     const voteCommand = new VoteCommand(this.commandBus, this.context);
+    const citationCommand = new CitationCommand(this.commandBus, this.queryBus, this.simulationRepository, this.context);
 
     // Add commands to program
     this.program.addCommand(initCommand.build());
@@ -129,6 +131,7 @@ export class TownhallCLI {
     this.program.addCommand(rebuttalCommand.build());
     this.program.addCommand(concedeCommand.build());
     this.program.addCommand(voteCommand.build());
+    this.program.addCommand(citationCommand.build());
 
     // Configure error handling
     this.configureErrorHandling();
