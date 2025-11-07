@@ -25,7 +25,7 @@ export class GetCitationStatsHandler implements IQueryHandler<GetCitationStatsQu
   ) {}
 
   public async handle(query: GetCitationStatsQuery): Promise<Result<CitationStats, Error>> {
-    const simulationId = SimulationId.fromString(query.simulationId);
+    const simulationId = query.simulationId as SimulationId;
 
     // Get all citations for this simulation
     const citationsResult = await this.citationRepo.findBySimulation(simulationId);

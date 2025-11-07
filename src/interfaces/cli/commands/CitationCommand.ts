@@ -71,7 +71,7 @@ export class CitationCommand extends BaseCommand {
   protected validateOptions(options: CitationOptions): Result<ValidatedCitationOptions, ValidationError> {
     // If listing or showing stats, no validation needed
     if (options.list || options.stats) {
-      return ok({} as ValidatedCitationOptions);
+      return ok({ list: options.list, stats: options.stats } as ValidatedCitationOptions);
     }
 
     // For creating citations, source and type are required
