@@ -6,7 +6,7 @@
  */
 
 import { CitationId } from '../value-objects/CitationId';
-import { CitationType } from '../value-objects/CitationType';
+import { CitationType, isPeerReviewed as checkPeerReviewed, getCredibilityScore as getTypeCredibility } from '../value-objects/CitationType';
 import type { Timestamp } from '../value-objects/Timestamp';
 import { TimestampGenerator } from '../value-objects/Timestamp';
 import { ICryptoService } from '../services/ICryptoService';
@@ -27,7 +27,11 @@ export class Citation {
     public readonly type: CitationType,
     public readonly metadata: CitationMetadata,
     public readonly createdAt: Timestamp
-  ) {}
+  ) {
+    // Freeze object to ensure immutability
+    Object.freeze(this);
+    Object.freeze(this.metadata);
+  }
 
   /**
    * Create a new Citation with generated ID
@@ -74,6 +78,20 @@ export class Citation {
   }
 
   /**
+   * Alternative name for reconstitute (for clarity)
+   * @deprecated Use reconstitute instead
+   */
+  public static fromStorage(
+    id: CitationId,
+    source: string,
+    type: CitationType,
+    metadata: CitationMetadata,
+    createdAt: Timestamp
+  ): Citation {
+    return Citation.reconstitute(id, source, type, metadata, createdAt);
+  }
+
+  /**
    * Get a short version of the citation ID (first 7 characters)
    * Similar to git short hashes
    */
@@ -83,12 +101,38 @@ export class Citation {
 
   /**
    * Get a display name for the citation
-   * Format: "Source (Year)" or just "Source"
+   * Format: "Author(s) (Year) - Source" or variations
    */
   public getDisplayName(): string {
+    const parts: string[] = [];
+
+    // Add authors if present
+    if (this.metadata.authors && this.metadata.authors.length > 0) {
+      if (this.metadata.authors.length === 1) {
+        parts.push(this.metadata.authors[0]);
+      } else {
+        parts.push(`${this.metadata.authors[0]} et al.`);
+      }
+    }
+
+    // Add year in parentheses
+    if (this.metadata.year) {
+      parts.push(`(${this.metadata.year})`);
+    }
+
+    // Join author/year part
+    const prefix = parts.join(' ');
+
+    // Add source
+    if (prefix) {
+      return `${prefix} - ${this.source}`;
+    }
+
+    // Fallback: just source with year if present
     if (this.metadata.year) {
       return `${this.source} (${this.metadata.year})`;
     }
+
     return this.source;
   }
 
@@ -104,6 +148,20 @@ export class Citation {
    */
   public hasQuote(): boolean {
     return Boolean(this.metadata.quote);
+  }
+
+  /**
+   * Check if this citation type is peer-reviewed
+   */
+  public isPeerReviewed(): boolean {
+    return checkPeerReviewed(this.type);
+  }
+
+  /**
+   * Get the credibility score for this citation type (1-5)
+   */
+  public getCredibilityScore(): number {
+    return getTypeCredibility(this.type);
   }
 
   /**
