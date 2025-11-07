@@ -61,6 +61,15 @@ export interface ICitationRepository {
   getUsageCount(id: CitationId): Promise<Result<number, CitationStorageError>>;
 
   /**
+   * Get usage statistics for multiple citations in batch
+   * More efficient than calling getUsageCount multiple times
+   *
+   * @param ids - Array of citation IDs to get usage counts for
+   * @returns Result containing map of citation IDs to usage counts
+   */
+  getUsageCountsBatch(ids: readonly CitationId[]): Promise<Result<Map<CitationId, number>, CitationStorageError>>;
+
+  /**
    * Resolve short citation ID to full ID
    * Similar to git's short hash resolution
    *

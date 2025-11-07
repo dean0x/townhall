@@ -84,18 +84,20 @@ export class FileCitationRepository implements ICitationRepository {
     }
 
     const citationIds = listResult.value;
-    const citations: Citation[] = [];
 
-    // Fetch each citation and filter by simulation
-    for (const citationId of citationIds) {
-      const retrieveResult = await this.storage.retrieve('citations', citationId);
-      if (retrieveResult.isOk()) {
-        const data = retrieveResult.value.data as unknown as CitationData;
-        if (data.simulationId === simIdString) {
-          citations.push(this.deserialize(data));
-        }
-      }
-    }
+    // Fetch all citations in parallel
+    const retrievePromises = citationIds.map(citationId =>
+      this.storage.retrieve('citations', citationId)
+    );
+
+    const retrieveResults = await Promise.all(retrievePromises);
+
+    // Filter by simulation ID and deserialize
+    const citations: Citation[] = retrieveResults
+      .filter(result => result.isOk())
+      .map(result => result.value.data as unknown as CitationData)
+      .filter(data => data.simulationId === simIdString)
+      .map(data => this.deserialize(data));
 
     return ok(citations);
   }
@@ -139,6 +141,53 @@ export class FileCitationRepository implements ICitationRepository {
     }
 
     return ok(usageCount);
+  }
+
+  public async getUsageCountsBatch(ids: readonly CitationId[]): Promise<Result<Map<CitationId, number>, CitationStorageError>> {
+    // List all arguments once for efficiency
+    const listResult = await this.storage.list('arguments');
+    if (listResult.isErr()) {
+      return err(new CitationStorageError(listResult.error.message, 'list'));
+    }
+
+    const argumentIds = listResult.value;
+
+    // Initialize usage map with zeros
+    const usageCounts = new Map<CitationId, number>();
+    for (const id of ids) {
+      usageCounts.set(id, 0);
+    }
+
+    // Convert citation IDs to strings for comparison
+    const idStrings = new Set(ids.map(id => CitationId.toString(id)));
+
+    // Fetch all arguments in parallel
+    const retrievePromises = argumentIds.map(argId =>
+      this.storage.retrieve('arguments', argId)
+    );
+    const retrieveResults = await Promise.all(retrievePromises);
+
+    // Count citations across all arguments
+    for (const result of retrieveResults) {
+      if (result.isOk()) {
+        const argData = result.value.data as Record<string, unknown>;
+        const citationRefs = argData.citationIds as string[] | undefined;
+
+        if (citationRefs) {
+          for (const citationRef of citationRefs) {
+            if (idStrings.has(citationRef)) {
+              // Find the CitationId that matches this string
+              const matchingId = ids.find(id => CitationId.toString(id) === citationRef);
+              if (matchingId) {
+                usageCounts.set(matchingId, (usageCounts.get(matchingId) || 0) + 1);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return ok(usageCounts);
   }
 
   public async resolveShortId(shortId: string): Promise<Result<CitationId, CitationResolutionError>> {

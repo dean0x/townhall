@@ -49,17 +49,20 @@ export class GetCitationStatsHandler implements IQueryHandler<GetCitationStatsQu
       citationsByType[type] = (citationsByType[type] || 0) + 1;
     }
 
-    // Get usage counts and sort by most referenced
-    const citationsWithUsage = await Promise.all(
-      citations.map(async (citation) => {
-        const usageResult = await this.citationRepo.getUsageCount(citation.id);
-        const usageCount = usageResult.isOk() ? usageResult.value : 0;
-        return {
-          citation,
-          usageCount,
-        };
-      })
-    );
+    // Get usage counts in batch (more efficient than individual calls)
+    const citationIds = citations.map(c => c.id);
+    const usageCountsResult = await this.citationRepo.getUsageCountsBatch(citationIds);
+
+    // If batch fetch fails, fall back to zeros
+    const usageCounts = usageCountsResult.isOk()
+      ? usageCountsResult.value
+      : new Map<string, number>();
+
+    // Combine citations with their usage counts
+    const citationsWithUsage = citations.map(citation => ({
+      citation,
+      usageCount: usageCounts.get(citation.id) || 0,
+    }));
 
     // Sort by usage count descending and take top 5
     const mostReferenced = citationsWithUsage
