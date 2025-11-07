@@ -49,6 +49,18 @@ export class GetCitationStatsHandler implements IQueryHandler<GetCitationStatsQu
       citationsByType[type] = (citationsByType[type] || 0) + 1;
     }
 
+    // Handle empty citations case (no need to fetch usage counts)
+    if (citations.length === 0) {
+      const stats: CitationStats = {
+        totalCitations: 0,
+        peerReviewedCount: 0,
+        peerReviewedPercentage: 0,
+        citationsByType: {},
+        mostReferencedCitations: [],
+      };
+      return ok(stats);
+    }
+
     // Get usage counts in batch (more efficient than individual calls)
     const citationIds = citations.map(c => c.id);
     const usageCountsResult = await this.citationRepo.getUsageCountsBatch(citationIds);
