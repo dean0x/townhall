@@ -6,7 +6,7 @@
 
 import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
-import { join, dirname, resolve, relative } from 'path';
+import { join, resolve, relative } from 'path';
 import { injectable } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
 import { StorageError } from '../../shared/errors';

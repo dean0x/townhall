@@ -7,12 +7,12 @@
 import { injectable, inject } from 'tsyringe';
 import { promises as fs } from 'fs';
 import { join, basename, resolve, relative } from 'path';
-import { Result, ok, err } from '../../shared/result';
+import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError, ValidationError } from '../../shared/errors';
 import { IAgentRepository, AgentMetadata } from '../../core/repositories/IAgentRepository';
 import { ILogger } from '../../application/ports/ILogger';
 import { Agent } from '../../core/entities/Agent';
-import { AgentId, AgentIdGenerator } from '../../core/value-objects/AgentId';
+import { AgentId } from '../../core/value-objects/AgentId';
 import { AgentFileParser } from './AgentFileParser';
 import { TOKENS } from '../../shared/container';
 import { hasErrorCode, isNodeSystemError } from './NodeSystemError';
@@ -116,7 +116,8 @@ export class FileAgentRepository implements IAgentRepository {
     const parseResult = await this.parser.parseFile(filePath);
     if (parseResult.isErr()) {
       this.logger.error('Failed to parse agent file', parseResult.error, { filePath });
-      return parseResult;
+      // parseResult.error can be ValidationError or StorageError from parseFile
+      return err(parseResult.error as ValidationError | StorageError);
     }
 
     const agentData = parseResult.value;
@@ -177,14 +178,14 @@ export class FileAgentRepository implements IAgentRepository {
 
       return ok(undefined);
     } catch (error) {
-      const err = error as Error;
-      this.logger.error('Failed to save agent file', err, {
+      const errorObj = error as Error;
+      this.logger.error('Failed to save agent file', errorObj, {
         agentId: agent.id,
         filePath,
         errorCode: isNodeSystemError(error) ? error.code : undefined
       });
       return err(new StorageError(
-        `Failed to save agent file: ${err.message}`,
+        `Failed to save agent file: ${errorObj.message}`,
         'write'
       ));
     }
@@ -202,7 +203,7 @@ export class FileAgentRepository implements IAgentRepository {
   public async getMetadata(): Promise<Result<AgentMetadata[], StorageError>> {
     const listResult = await this.listAll();
     if (listResult.isErr()) {
-      return listResult;
+      return propagateError(listResult);
     }
 
     const agents = listResult.value;
@@ -293,7 +294,7 @@ export class FileAgentRepository implements IAgentRepository {
 
       // Remove deleted files from cache and timestamps
       const deletedFiles: string[] = [];
-      for (const [filePath, agent] of Array.from(this.agentCache.entries()).map(([id, agent]) => {
+      for (const [filePath, agent] of Array.from(this.agentCache.entries()).map(([_id, agent]) => {
         const fp = join(this.agentsDir, `${basename(agent.filePath)}`);
         return [fp, agent] as [string, Agent];
       })) {
@@ -322,13 +323,13 @@ export class FileAgentRepository implements IAgentRepository {
         this.logger.debug('Agents directory does not exist yet', { agentsDir: this.agentsDir });
         return ok(undefined);
       }
-      const err = error as Error;
-      this.logger.error('Failed to refresh agents', err, {
+      const errorObj = error as Error;
+      this.logger.error('Failed to refresh agents', errorObj, {
         agentsDir: this.agentsDir,
         errorCode: isNodeSystemError(error) ? error.code : undefined
       });
       return err(new StorageError(
-        `Failed to refresh agents: ${err.message}`,
+        `Failed to refresh agents: ${errorObj.message}`,
         'read'
       ));
     }

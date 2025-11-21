@@ -7,13 +7,13 @@
 import { injectable, inject } from 'tsyringe';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { Result, ok, err } from '../../shared/result';
+import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError, ConflictError } from '../../shared/errors';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { DebateSimulation, CloseVote } from '../../core/entities/DebateSimulation';
 import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
-import { Timestamp, TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { DebateStatus, parseDebateStatus } from '../../core/value-objects/DebateStatus';
+import { TimestampGenerator } from '../../core/value-objects/Timestamp';
+import { parseDebateStatus } from '../../core/value-objects/DebateStatus';
 import { AgentId } from '../../core/value-objects/AgentId';
 import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { ObjectStorage } from './ObjectStorage';
@@ -47,14 +47,14 @@ export class FileSimulationRepository implements ISimulationRepository {
       topic: simulation.topic,
       createdAt: simulation.createdAt,
       status: simulation.status,
-      participantIds: simulation.participantIds,
-      argumentIds: simulation.argumentIds,
-      votesToClose: simulation.votesToClose,
+      participantIds: [...simulation.participantIds],
+      argumentIds: [...simulation.argumentIds],
+      votesToClose: [...simulation.votesToClose],
     };
 
-    const result = await this.storage.store('simulations', data);
+    const result = await this.storage.store('simulations', data as unknown as Record<string, unknown>);
     if (result.isErr()) {
-      return result;
+      return propagateError(result);
     }
 
     return ok(simulation.id);
@@ -66,7 +66,7 @@ export class FileSimulationRepository implements ISimulationRepository {
       return err(new NotFoundError('Simulation', id));
     }
 
-    return ok(this.deserializeSimulation(result.value.data as SimulationData));
+    return ok(this.deserializeSimulation(result.value.data as unknown as SimulationData));
   }
 
   public async getActive(): Promise<Result<DebateSimulation, NotFoundError>> {
@@ -86,7 +86,7 @@ export class FileSimulationRepository implements ISimulationRepository {
     // Verify simulation exists
     const existsResult = await this.storage.exists('simulations', id);
     if (existsResult.isErr()) {
-      return existsResult;
+      return propagateError(existsResult);
     }
 
     if (!existsResult.value) {
@@ -96,7 +96,7 @@ export class FileSimulationRepository implements ISimulationRepository {
     // Check if another simulation is already active
     const hasActiveResult = await this.hasActive();
     if (hasActiveResult.isErr()) {
-      return hasActiveResult;
+      return propagateError(hasActiveResult);
     }
 
     if (hasActiveResult.value) {
@@ -122,7 +122,7 @@ export class FileSimulationRepository implements ISimulationRepository {
     // Verify simulation exists
     const existsResult = await this.storage.exists('simulations', id);
     if (existsResult.isErr()) {
-      return existsResult;
+      return propagateError(existsResult);
     }
 
     if (!existsResult.value) {
@@ -189,7 +189,7 @@ export class FileSimulationRepository implements ISimulationRepository {
   public async listAll(): Promise<Result<DebateSimulation[], StorageError>> {
     const listResult = await this.storage.list('simulations');
     if (listResult.isErr()) {
-      return listResult;
+      return propagateError(listResult);
     }
 
     // PERFORMANCE: Fetch all simulations in parallel instead of sequentially
@@ -201,7 +201,7 @@ export class FileSimulationRepository implements ISimulationRepository {
     const simulations: DebateSimulation[] = [];
     for (const simResult of results) {
       if (simResult.isOk()) {
-        simulations.push(this.deserializeSimulation(simResult.value.data as SimulationData));
+        simulations.push(this.deserializeSimulation(simResult.value.data as unknown as SimulationData));
       }
     }
 

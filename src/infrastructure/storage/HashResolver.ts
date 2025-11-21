@@ -35,7 +35,7 @@ export class HashResolver implements IHashResolver {
     // List all objects of the given type
     const listResult = await this.storage.list(type);
     if (listResult.isErr()) {
-      return listResult;
+      return err(listResult.error);
     }
 
     const hashes = listResult.value;
@@ -53,7 +53,8 @@ export class HashResolver implements IHashResolver {
       ));
     }
 
-    return ok(matches[0]);
+    // matches[0] is guaranteed to be defined since matches.length === 1
+    return ok(matches[0]!);
   }
 
   /**

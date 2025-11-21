@@ -61,7 +61,7 @@ export class AgentFileParser {
     }
   }
 
-  public parseContent(content: string, filePath: string): Result<AgentFileData, Error> {
+  public parseContent(content: string, _filePath: string): Result<AgentFileData, Error> {
     // Extract YAML frontmatter
     const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
     if (!frontmatterMatch) {
@@ -69,10 +69,23 @@ export class AgentFileParser {
     }
 
     const yamlContent = frontmatterMatch[1];
+    if (!yamlContent) {
+      return err(new ValidationError('Agent file has empty YAML frontmatter'));
+    }
     const markdown = content.slice(frontmatterMatch[0].length).trim();
 
     // Parse YAML manually (simple parser for our needs)
-    const data: Partial<AgentFileData> = {};
+    // Use mutable type for building, then convert to readonly
+    type MutableAgentFileData = {
+      id?: string;
+      name?: string;
+      type?: string;
+      capabilities?: string[];
+      description?: string;
+      model?: string;
+      instructions?: string;
+    };
+    const data: MutableAgentFileData = {};
     const lines = yamlContent.split('\n');
 
     for (const line of lines) {
@@ -110,7 +123,9 @@ export class AgentFileParser {
       data.instructions = markdown;
       // Use first paragraph as description
       const firstParagraph = markdown.split('\n\n')[0];
-      data.description = firstParagraph.replace(/^#+\s*/, '').trim();
+      if (firstParagraph) {
+        data.description = firstParagraph.replace(/^#+\s*/, '').trim();
+      }
     }
 
     // Validate required fields

@@ -5,7 +5,7 @@
  */
 
 import { injectable, inject } from 'tsyringe';
-import { Result, ok, err } from '../../shared/result';
+import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError } from '../../shared/errors';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { Argument, ArgumentContent, ArgumentMetadata } from '../../core/entities/Argument';
@@ -14,8 +14,8 @@ import { Concession, VALID_CONCESSION_TYPES } from '../../core/entities/Concessi
 import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
 import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
 import { AgentId } from '../../core/value-objects/AgentId';
-import { Timestamp, TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { ArgumentType, parseArgumentType } from '../../core/value-objects/ArgumentType';
+import { TimestampGenerator } from '../../core/value-objects/Timestamp';
+import { parseArgumentType } from '../../core/value-objects/ArgumentType';
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
@@ -55,9 +55,9 @@ export class FileArgumentRepository implements IArgumentRepository {
       citationIds: argument.citationIds as string[],
     };
 
-    const result = await this.storage.store('arguments', data);
+    const result = await this.storage.store('arguments', data as unknown as Record<string, unknown>);
     if (result.isErr()) {
-      return result;
+      return propagateError(result);
     }
 
     return ok(argument.id);
@@ -77,9 +77,9 @@ export class FileArgumentRepository implements IArgumentRepository {
       rebuttalType: rebuttal.rebuttalType,
     };
 
-    const result = await this.storage.store('arguments', data);
+    const result = await this.storage.store('arguments', data as unknown as Record<string, unknown>);
     if (result.isErr()) {
-      return result;
+      return propagateError(result);
     }
 
     return ok(rebuttal.id);
@@ -97,13 +97,13 @@ export class FileArgumentRepository implements IArgumentRepository {
       citationIds: concession.citationIds as string[],
       targetArgumentId: concession.targetArgumentId,
       concessionType: concession.concessionType,
-      conditions: concession.conditions,
-      explanation: concession.explanation,
+      ...(concession.conditions !== undefined && { conditions: concession.conditions }),
+      ...(concession.explanation !== undefined && { explanation: concession.explanation }),
     };
 
-    const result = await this.storage.store('arguments', data);
+    const result = await this.storage.store('arguments', data as unknown as Record<string, unknown>);
     if (result.isErr()) {
-      return result;
+      return propagateError(result);
     }
 
     return ok(concession.id);
@@ -132,13 +132,13 @@ export class FileArgumentRepository implements IArgumentRepository {
       return err(new NotFoundError('Argument', argumentId));
     }
 
-    return ok(this.deserializeArgument(result.value.data as ArgumentData));
+    return ok(this.deserializeArgument(result.value.data as unknown as ArgumentData));
   }
 
   public async findBySimulation(simulationId: SimulationId): Promise<Result<Argument[], StorageError>> {
     const listResult = await this.storage.list('arguments');
     if (listResult.isErr()) {
-      return listResult;
+      return propagateError(listResult);
     }
 
     // PERFORMANCE: Fetch all arguments in parallel instead of sequentially
@@ -150,7 +150,7 @@ export class FileArgumentRepository implements IArgumentRepository {
     const argumentList: Argument[] = [];
     for (const argResult of results) {
       if (argResult.isOk()) {
-        const data = argResult.value.data as ArgumentData;
+        const data = argResult.value.data as unknown as ArgumentData;
         if (data.simulationId === simulationId) {
           argumentList.push(this.deserializeArgument(data));
         }
@@ -163,7 +163,7 @@ export class FileArgumentRepository implements IArgumentRepository {
   public async findByAgent(agentId: AgentId): Promise<Result<Argument[], StorageError>> {
     const listResult = await this.storage.list('arguments');
     if (listResult.isErr()) {
-      return listResult;
+      return propagateError(listResult);
     }
 
     // PERFORMANCE: Fetch all arguments in parallel instead of sequentially
@@ -175,7 +175,7 @@ export class FileArgumentRepository implements IArgumentRepository {
     const argumentList: Argument[] = [];
     for (const argResult of results) {
       if (argResult.isOk()) {
-        const data = argResult.value.data as ArgumentData;
+        const data = argResult.value.data as unknown as ArgumentData;
         if (data.agentId === agentId) {
           argumentList.push(this.deserializeArgument(data));
         }
@@ -188,7 +188,7 @@ export class FileArgumentRepository implements IArgumentRepository {
   public async findReferencingArguments(targetId: ArgumentId): Promise<Result<Argument[], StorageError>> {
     const listResult = await this.storage.list('arguments');
     if (listResult.isErr()) {
-      return listResult;
+      return propagateError(listResult);
     }
 
     // PERFORMANCE: Fetch all arguments in parallel instead of sequentially
@@ -200,7 +200,7 @@ export class FileArgumentRepository implements IArgumentRepository {
     const argumentList: Argument[] = [];
     for (const argResult of results) {
       if (argResult.isOk()) {
-        const data = argResult.value.data as ArgumentData;
+        const data = argResult.value.data as unknown as ArgumentData;
         if (data.targetArgumentId === targetId) {
           argumentList.push(this.deserializeArgument(data));
         }
@@ -236,7 +236,7 @@ export class FileArgumentRepository implements IArgumentRepository {
   public async getAllIds(simulationId: SimulationId): Promise<Result<ArgumentId[], StorageError>> {
     const argumentsResult = await this.findBySimulation(simulationId);
     if (argumentsResult.isErr()) {
-      return argumentsResult;
+      return propagateError(argumentsResult);
     }
 
     const ids = argumentsResult.value.map(arg => arg.id);
@@ -250,7 +250,7 @@ export class FileArgumentRepository implements IArgumentRepository {
   }, StorageError>> {
     const referencingResult = await this.findReferencingArguments(argumentId);
     if (referencingResult.isErr()) {
-      return referencingResult;
+      return propagateError(referencingResult);
     }
 
     const relationships = {
@@ -417,18 +417,19 @@ export class FileArgumentRepository implements IArgumentRepository {
       throw new Error(`Data corruption: Invalid concessionType '${data.concessionType}'. Must be one of: ${VALID_CONCESSION_TYPES.join(', ')}`);
     }
 
-    return Concession.create({
+    const params = {
       agentId: data.agentId as AgentId,
       type: typeResult.value,
       content: data.content,
       simulationId: simIdResult.value,
       timestamp: timestampResult.value,
       targetArgumentId: targetIdResult.value,
-      concessionType: data.concessionType as any,
-      conditions: data.conditions,
-      explanation: data.explanation,
+      concessionType: data.concessionType as 'full' | 'partial' | 'conditional',
       citationIds: data.citationIds || [],
-    }, this.cryptoService);
+      ...(data.conditions !== undefined && { conditions: data.conditions }),
+      ...(data.explanation !== undefined && { explanation: data.explanation }),
+    };
+    return Concession.create(params, this.cryptoService);
   }
 
   /**
