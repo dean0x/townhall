@@ -4,7 +4,7 @@
  */
 
 export abstract class DomainError extends Error {
-  public readonly name: string;
+  public override readonly name: string;
   public readonly code: string;
 
   constructor(message: string, code: string) {
@@ -34,7 +34,7 @@ export class ConflictError extends DomainError {
 }
 
 export class InternalError extends DomainError {
-  constructor(message: string, public readonly cause?: Error) {
+  constructor(message: string, public override readonly cause?: Error) {
     super(message, 'INTERNAL_ERROR');
   }
 }
