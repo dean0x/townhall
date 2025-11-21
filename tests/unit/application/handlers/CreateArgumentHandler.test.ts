@@ -10,6 +10,7 @@ import { CreateArgumentCommand } from '../../../../src/application/commands/Crea
 import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
 import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
 import { IAgentRepository } from '../../../../src/core/repositories/IAgentRepository';
+import { ICitationRepository } from '../../../../src/core/repositories/ICitationRepository';
 import { ArgumentValidator } from '../../../../src/core/services/ArgumentValidator';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
@@ -27,6 +28,7 @@ describe('CreateArgumentHandler', () => {
   let mockSimulationRepo: ISimulationRepository;
   let mockArgumentRepo: IArgumentRepository;
   let mockAgentRepo: IAgentRepository;
+  let mockCitationRepo: ICitationRepository;
   let mockValidator: ArgumentValidator;
   let cryptoService: ICryptoService;
 
@@ -65,12 +67,23 @@ describe('CreateArgumentHandler', () => {
       refreshCache: vi.fn(),
     };
 
+    mockCitationRepo = {
+      save: vi.fn(),
+      findById: vi.fn(),
+      findBySimulation: vi.fn(),
+      findByType: vi.fn(),
+      getUsageCount: vi.fn(),
+      getUsageCountsBatch: vi.fn(),
+      resolveShortId: vi.fn(),
+    };
+
     mockValidator = new ArgumentValidator();
 
     handler = new CreateArgumentHandler(
       mockSimulationRepo,
       mockArgumentRepo,
       mockAgentRepo,
+      mockCitationRepo,
       mockValidator,
       cryptoService
     );
