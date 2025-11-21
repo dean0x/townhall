@@ -5,7 +5,8 @@
  */
 
 import { container } from 'tsyringe';
-import { TOKENS } from '../../shared/container';
+import { TOKENS, Tokens } from '../../shared/tokens';
+import { resolve } from '../../shared/injection';
 
 // Core services
 import { ArgumentValidator } from '../../core/services/ArgumentValidator';
@@ -89,15 +90,15 @@ export function configureContainer(): typeof container {
   container.register(TOKENS.CommandBus, {
     useFactory: () => {
       const commandBus = new CommandBus();
-      // Register command handlers
-      commandBus.register('InitializeRepositoryCommand', container.resolve(TOKENS.InitializeRepositoryHandler));
-      commandBus.register('InitializeDebateCommand', container.resolve(TOKENS.InitializeDebateHandler));
-      commandBus.register('CreateArgumentCommand', container.resolve(TOKENS.CreateArgumentHandler));
-      commandBus.register('SubmitRebuttalCommand', container.resolve(TOKENS.SubmitRebuttalHandler));
-      commandBus.register('SubmitConcessionCommand', container.resolve(TOKENS.SubmitConcessionHandler));
-      commandBus.register('VoteToCloseCommand', container.resolve(TOKENS.VoteToCloseHandler));
-      commandBus.register('CheckoutSimulationCommand', container.resolve(TOKENS.CheckoutSimulationHandler));
-      commandBus.register('CreateCitationCommand', container.resolve(TOKENS.CreateCitationHandler));
+      // Register command handlers (using typed resolve for type safety)
+      commandBus.register('InitializeRepositoryCommand', resolve(Tokens.InitializeRepositoryHandler));
+      commandBus.register('InitializeDebateCommand', resolve(Tokens.InitializeDebateHandler));
+      commandBus.register('CreateArgumentCommand', resolve(Tokens.CreateArgumentHandler));
+      commandBus.register('SubmitRebuttalCommand', resolve(Tokens.SubmitRebuttalHandler));
+      commandBus.register('SubmitConcessionCommand', resolve(Tokens.SubmitConcessionHandler));
+      commandBus.register('VoteToCloseCommand', resolve(Tokens.VoteToCloseHandler));
+      commandBus.register('CheckoutSimulationCommand', resolve(Tokens.CheckoutSimulationHandler));
+      commandBus.register('CreateCitationCommand', resolve(Tokens.CreateCitationHandler));
       return commandBus;
     }
   });
@@ -105,12 +106,12 @@ export function configureContainer(): typeof container {
   container.register(TOKENS.QueryBus, {
     useFactory: () => {
       const queryBus = new QueryBus();
-      // Register query handlers
-      queryBus.register('GetDebateHistoryQuery', container.resolve(TOKENS.GetDebateHistoryHandler));
-      queryBus.register('GetArgumentQuery', container.resolve(TOKENS.GetArgumentHandler));
-      queryBus.register('GetArgumentChainQuery', container.resolve(TOKENS.GetArgumentChainHandler));
-      queryBus.register('GetCitationQuery', container.resolve(TOKENS.GetCitationHandler));
-      queryBus.register('GetCitationStatsQuery', container.resolve(TOKENS.GetCitationStatsHandler));
+      // Register query handlers (using typed resolve for type safety)
+      queryBus.register('GetDebateHistoryQuery', resolve(Tokens.GetDebateHistoryHandler));
+      queryBus.register('GetArgumentQuery', resolve(Tokens.GetArgumentHandler));
+      queryBus.register('GetArgumentChainQuery', resolve(Tokens.GetArgumentChainHandler));
+      queryBus.register('GetCitationQuery', resolve(Tokens.GetCitationHandler));
+      queryBus.register('GetCitationStatsQuery', resolve(Tokens.GetCitationStatsHandler));
       return queryBus;
     }
   });
