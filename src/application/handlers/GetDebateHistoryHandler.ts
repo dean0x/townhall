@@ -43,7 +43,7 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
     @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.RelationshipBuilder) private readonly relationshipBuilder: RelationshipBuilder
+    @inject(TOKENS.RelationshipBuilder) _relationshipBuilder: RelationshipBuilder
   ) {}
 
   public async handle(query: GetDebateHistoryQuery): Promise<Result<DebateHistoryResult, Error>> {
@@ -52,7 +52,7 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
     if (query.simulationId) {
       const simResult = await this.simulationRepo.findById(query.simulationId);
       if (simResult.isErr()) {
-        return simResult;
+        return err(simResult.error);
       }
       simulation = simResult.value;
     } else {
@@ -64,7 +64,6 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
           topic: 'No active debate',
           status: 'inactive',
           arguments: [],
-          relationships: undefined,
           participantCount: 0,
           argumentCount: 0,
         });
@@ -75,7 +74,7 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
     // Get arguments for simulation
     const argumentsResult = await this.argumentRepo.findBySimulation(simulation.id);
     if (argumentsResult.isErr()) {
-      return argumentsResult;
+      return err(argumentsResult.error);
     }
 
     let argumentList = argumentsResult.value;
@@ -106,15 +105,17 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
       relationships = this.buildRelationships(argumentList);
     }
 
-    return ok({
+    const result: DebateHistoryResult = {
       simulationId: simulation.id,
       topic: simulation.topic,
       status: simulation.status,
       arguments: argumentSummaries,
-      relationships,
+      ...(relationships !== undefined && { relationships }),
       participantCount: simulation.getParticipantCount(),
       argumentCount: simulation.getArgumentCount(),
-    });
+    };
+
+    return ok(result);
   }
 
   private async buildArgumentSummaries(argumentList: Argument[]): Promise<ArgumentSummary[]> {
@@ -125,7 +126,10 @@ export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQu
 
     const agentMap = new Map<string, string>();
     agentResults.forEach((result, index) => {
-      agentMap.set(agentIds[index], result.isOk() ? result.value.name : 'Unknown Agent');
+      const agentId = agentIds[index];
+      if (agentId !== undefined) {
+        agentMap.set(agentId, result.isOk() ? result.value.name : 'Unknown Agent');
+      }
     });
 
     return argumentList.map(argument => {

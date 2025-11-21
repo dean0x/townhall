@@ -57,7 +57,10 @@ export class GetArgumentHandler implements IQueryHandler<GetArgumentQuery, GetAr
     if (query.includeRelationships) {
       const relationshipsResult = await this.argumentRepo.findRelationships(argumentId);
       if (relationshipsResult.isOk()) {
-        result.relationships = relationshipsResult.value;
+        return ok({
+          argument,
+          relationships: relationshipsResult.value,
+        });
       }
     }
 

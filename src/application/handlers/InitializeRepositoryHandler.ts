@@ -21,7 +21,7 @@ export class InitializeRepositoryHandler implements ICommandHandler<InitializeRe
     @inject(TOKENS.StorageInitializer) private readonly storage: IStorageInitializer
   ) {}
 
-  public async handle(command: InitializeRepositoryCommand): Promise<Result<void, StorageError>> {
+  public async handle(_command: InitializeRepositoryCommand): Promise<Result<void, StorageError>> {
     // For now, we ignore the force flag since ObjectStorage.initialize()
     // doesn't check if repository already exists
     // TODO: Add existence check if force=false behavior is needed
