@@ -17,7 +17,7 @@ import { RelationshipBuilder } from '../../core/services/RelationshipBuilder';
 import { Rebuttal } from '../../core/entities/Rebuttal';
 import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { ICryptoService } from '../ports/ICryptoService';
+import { ICryptoService } from '../../core/services/ICryptoService';
 import { TOKENS } from '../../shared/container';
 import { isDeductiveStructure, isInductiveStructure, isEmpiricalStructure } from '../utils/structure-guards';
 
@@ -138,14 +138,14 @@ export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalComm
     // Save rebuttal
     const saveResult = await this.argumentRepo.save(rebuttal);
     if (saveResult.isErr()) {
-      return saveResult;
+      return err(saveResult.error);
     }
 
     // Add to simulation
-    simulation.addArgument(rebuttal.id);
-    const updateResult = await this.simulationRepo.save(simulation);
+    const updatedSimulation = simulation.addArgument(rebuttal.id);
+    const updateResult = await this.simulationRepo.save(updatedSimulation);
     if (updateResult.isErr()) {
-      return updateResult;
+      return err(updateResult.error);
     }
 
     return ok({

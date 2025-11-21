@@ -12,7 +12,6 @@ import { CitationId } from '../../core/value-objects/CitationId';
 import type { SimulationId } from '../../core/value-objects/SimulationId';
 import { CitationType } from '../../core/value-objects/CitationType';
 import type { Timestamp } from '../../core/value-objects/Timestamp';
-import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ObjectStorage } from './ObjectStorage';
 import { HashResolver } from './HashResolver';
 import { TOKENS } from '../../shared/container';
@@ -43,17 +42,17 @@ export class FileCitationRepository implements ICitationRepository {
       id: CitationId.toString(citation.id),
       source: citation.source,
       type: citation.type,
-      doi: citation.metadata.doi,
-      url: citation.metadata.url,
-      page: citation.metadata.page,
-      quote: citation.metadata.quote,
-      authors: citation.metadata.authors,
-      year: citation.metadata.year,
       createdAt: citation.createdAt,
       simulationId: simulationId as string,
+      ...(citation.metadata.doi !== undefined && { doi: citation.metadata.doi }),
+      ...(citation.metadata.url !== undefined && { url: citation.metadata.url }),
+      ...(citation.metadata.page !== undefined && { page: citation.metadata.page }),
+      ...(citation.metadata.quote !== undefined && { quote: citation.metadata.quote }),
+      ...(citation.metadata.authors !== undefined && { authors: citation.metadata.authors }),
+      ...(citation.metadata.year !== undefined && { year: citation.metadata.year }),
     };
 
-    const result = await this.storage.store('citations', data as Record<string, unknown>);
+    const result = await this.storage.store('citations', data as unknown as Record<string, unknown>);
     if (result.isErr()) {
       return err(new CitationStorageError(result.error.message, 'save'));
     }
@@ -238,18 +237,19 @@ export class FileCitationRepository implements ICitationRepository {
   }
 
   private deserialize(data: CitationData): Citation {
+    const metadata = {
+      ...(data.doi !== undefined && { doi: data.doi }),
+      ...(data.url !== undefined && { url: data.url }),
+      ...(data.page !== undefined && { page: data.page }),
+      ...(data.quote !== undefined && { quote: data.quote }),
+      ...(data.authors !== undefined && { authors: data.authors }),
+      ...(data.year !== undefined && { year: data.year }),
+    };
     return Citation.reconstitute(
       CitationId.fromString(data.id),
       data.source,
       data.type,
-      {
-        doi: data.doi,
-        url: data.url,
-        page: data.page,
-        quote: data.quote,
-        authors: data.authors,
-        year: data.year,
-      },
+      metadata,
       data.createdAt as Timestamp
     );
   }

@@ -13,7 +13,7 @@ export interface ICommandHandler<TCommand, TResult> {
 }
 
 export interface ICommandBus {
-  execute<TCommand, TResult>(command: TCommand): Promise<Result<TResult, Error>>;
+  execute<TCommand, TResult>(command: TCommand, commandName?: string): Promise<Result<TResult, Error>>;
 }
 
 @injectable()

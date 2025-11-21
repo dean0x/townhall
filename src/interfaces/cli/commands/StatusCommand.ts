@@ -18,7 +18,7 @@ export class StatusCommand extends BaseCommand {
     super('status', 'Show current simulation context', context);
   }
 
-  protected setupOptions(command: Command): void {
+  protected setupOptions(_command: Command): void {
     // No options needed for status command
   }
 

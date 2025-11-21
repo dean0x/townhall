@@ -6,7 +6,7 @@
 
 import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
-import { ValidationError, ConflictError } from '../../shared/errors';
+import { ValidationError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { InitializeDebateCommand } from '../commands/InitializeDebateCommand';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
@@ -34,7 +34,7 @@ export class InitializeDebateHandler implements ICommandHandler<InitializeDebate
     // Validate command
     const validationResult = this.validateCommand(command);
     if (validationResult.isErr()) {
-      return validationResult;
+      return err(validationResult.error);
     }
 
     // Create new simulation
@@ -54,13 +54,13 @@ export class InitializeDebateHandler implements ICommandHandler<InitializeDebate
     // Save simulation
     const saveResult = await this.simulationRepo.save(simulation);
     if (saveResult.isErr()) {
-      return saveResult;
+      return err(saveResult.error);
     }
 
     // Auto-checkout the new simulation (overwrites any existing active simulation)
     const switchActiveResult = await this.simulationRepo.switchActive(simulation.id);
     if (switchActiveResult.isErr()) {
-      return switchActiveResult;
+      return err(switchActiveResult.error);
     }
 
     return ok({

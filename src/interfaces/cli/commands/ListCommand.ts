@@ -6,7 +6,7 @@
 
 import { Command } from 'commander';
 import { BaseCommand, CommandContext } from '../base/BaseCommand';
-import { Result, ok } from '../../../shared/result';
+import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ISimulationRepository } from '../../../core/repositories/ISimulationRepository';
 
@@ -18,7 +18,7 @@ export class ListCommand extends BaseCommand {
     super('list', 'List all simulations', context);
   }
 
-  protected setupOptions(command: Command): void {
+  protected setupOptions(_command: Command): void {
     // No options needed for basic list command
   }
 
@@ -37,7 +37,7 @@ export class ListCommand extends BaseCommand {
     // Get all simulations
     const listResult = await this.simulationRepo.listAll();
     if (listResult.isErr()) {
-      return listResult;
+      return err(listResult.error as DomainError);
     }
 
     const simulations = listResult.value;

@@ -1,57 +1,18 @@
 /**
- * Dependency Injection container configuration
- * Uses TSyringe for managing application dependencies
+ * ARCHITECTURE: Dependency Injection container configuration
+ * Pattern: Re-exports from tokens.ts for backward compatibility
+ * Rationale: Single source of truth for DI tokens with typed alternatives
+ *
+ * DEPRECATED: Prefer importing from './tokens' for new code.
+ * Use Tokens (typed) for new code, TOKENS (symbols) for legacy compatibility.
  */
 
 import 'reflect-metadata';
 import { container } from 'tsyringe';
 
-// Tokens for dependency injection
-export const TOKENS = {
-  // Repositories
-  ArgumentRepository: Symbol.for('ArgumentRepository'),
-  SimulationRepository: Symbol.for('SimulationRepository'),
-  AgentRepository: Symbol.for('AgentRepository'),
-  CitationRepository: Symbol.for('CitationRepository'),
-
-  // Services
-  ArgumentValidator: Symbol.for('ArgumentValidator'),
-  RelationshipBuilder: Symbol.for('RelationshipBuilder'),
-  VoteCalculator: Symbol.for('VoteCalculator'),
-  TimestampService: Symbol.for('TimestampService'),
-
-  // Infrastructure
-  ObjectStorage: Symbol.for('ObjectStorage'),
-  IndexManager: Symbol.for('IndexManager'),
-  EventBus: Symbol.for('EventBus'),
-  Logger: Symbol.for('Logger'),
-  HashResolver: Symbol.for('HashResolver'),
-
-  // Application ports
-  CommandBus: Symbol.for('CommandBus'),
-  QueryBus: Symbol.for('QueryBus'),
-  CryptoService: Symbol.for('CryptoService'),
-  StorageInitializer: Symbol.for('StorageInitializer'),
-
-  // Command Handlers
-  InitializeRepositoryHandler: Symbol.for('InitializeRepositoryHandler'),
-  InitializeDebateHandler: Symbol.for('InitializeDebateHandler'),
-  CreateArgumentHandler: Symbol.for('CreateArgumentHandler'),
-  SubmitRebuttalHandler: Symbol.for('SubmitRebuttalHandler'),
-  SubmitConcessionHandler: Symbol.for('SubmitConcessionHandler'),
-  VoteToCloseHandler: Symbol.for('VoteToCloseHandler'),
-  CheckoutSimulationHandler: Symbol.for('CheckoutSimulationHandler'),
-  CreateCitationHandler: Symbol.for('CreateCitationHandler'),
-
-  // Query Handlers
-  GetDebateHistoryHandler: Symbol.for('GetDebateHistoryHandler'),
-  GetArgumentHandler: Symbol.for('GetArgumentHandler'),
-  GetArgumentChainHandler: Symbol.for('GetArgumentChainHandler'),
-  GetCitationHandler: Symbol.for('GetCitationHandler'),
-  GetCitationStatsHandler: Symbol.for('GetCitationStatsHandler'),
-} as const;
-
-export type TokenType = typeof TOKENS[keyof typeof TOKENS];
+// Re-export TOKENS from tokens.ts (single source of truth)
+export { TOKENS, Tokens } from './tokens';
+export type { TokenType } from './tokens';
 
 // Container instance for global access
 export { container };

@@ -11,7 +11,8 @@ import { ICommandHandler } from './CommandBus';
 import { VoteToCloseCommand } from '../commands/VoteToCloseCommand';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
-import { IVoteCalculator } from '../../core/services/VoteCalculator';
+import { VoteCalculator } from '../../core/services/VoteCalculator';
+import { DebateStatus } from '../../core/value-objects/DebateStatus';
 import { ITimestampService } from '../../core/services/ITimestampService';
 import { Vote } from '../../core/value-objects/Vote';
 import { TOKENS } from '../../shared/container';
@@ -29,7 +30,7 @@ export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, V
   constructor(
     @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.VoteCalculator) private readonly voteCalculator: IVoteCalculator,
+    @inject(TOKENS.VoteCalculator) private readonly voteCalculator: VoteCalculator,
     @inject(TOKENS.TimestampService) private readonly timestampService: ITimestampService
   ) {}
 
@@ -49,7 +50,7 @@ export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, V
     }
 
     // SECURITY: Authorization check - only active or voting debates can accept votes
-    if (simulation.status !== 'active' && simulation.status !== 'voting') {
+    if (simulation.status !== DebateStatus.ACTIVE && simulation.status !== DebateStatus.VOTING) {
       return err(new ConflictError(
         `Cannot vote on ${simulation.status} debate. Debate must be active or in voting phase.`
       ));
@@ -61,19 +62,19 @@ export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, V
       return err(new ConflictError(voteValidation.error.message));
     }
 
-    // Create vote
-    const vote = Vote.create({
+    // Create vote (unused but validates structure)
+    Vote.create({
       agentId: command.agentId,
-      reason: command.reason,
+      ...(command.reason !== undefined && { reason: command.reason }),
     });
 
     // Add vote to simulation
-    const timestamp = this.timestampService.now();
+    const timestamp = this.timestampService.now() as import('../../core/value-objects/Timestamp').Timestamp;
     simulation = simulation.recordCloseVote(command.agentId, command.vote, command.reason, timestamp);
 
     // Transition to voting if not already voting
-    if (simulation.status === 'active') {
-      simulation = simulation.transitionTo('voting');
+    if (simulation.status === DebateStatus.ACTIVE) {
+      simulation = simulation.transitionTo(DebateStatus.VOTING);
     }
 
     // Calculate if threshold is met
@@ -81,27 +82,29 @@ export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, V
 
     // Update simulation status if threshold met
     if (voteStatus.canClose) {
-      simulation = simulation.transitionTo('closed');
+      simulation = simulation.transitionTo(DebateStatus.CLOSED);
 
       // Clear active simulation
       const clearResult = await this.simulationRepo.clearActive();
       if (clearResult.isErr()) {
-        return clearResult;
+        return err(clearResult.error);
       }
     }
 
     // Save updated simulation
     const saveResult = await this.simulationRepo.save(simulation);
     if (saveResult.isErr()) {
-      return saveResult;
+      return err(saveResult.error);
     }
 
-    return ok({
+    const result: VoteToCloseResult = {
       voteAccepted: true,
       totalVotes: voteStatus.total,
       votesNeeded: voteStatus.required,
       debateClosed: voteStatus.canClose,
-      reason: voteStatus.canClose ? `Debate closed with consensus (${voteStatus.yesVotes}/${voteStatus.required} votes)` : undefined,
-    });
+      ...(voteStatus.canClose && { reason: `Debate closed with consensus (${voteStatus.yesVotes}/${voteStatus.required} votes)` }),
+    };
+
+    return ok(result);
   }
 }

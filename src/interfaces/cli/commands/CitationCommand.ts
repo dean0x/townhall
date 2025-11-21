@@ -11,9 +11,10 @@ import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { CreateCitationCommand } from '../../../application/commands/CreateCitationCommand';
-import { GetCitationStatsQuery } from '../../../application/queries/GetCitationStatsQuery';
+import { GetCitationStatsQuery, CitationStats } from '../../../application/queries/GetCitationStatsQuery';
+import { CitationId } from '../../../core/value-objects/CitationId';
 import { CitationType } from '../../../core/value-objects/CitationType';
-import { SimulationId } from '../../../core/value-objects/SimulationId';
+import type { SimulationId as _SimulationId } from '../../../core/value-objects/SimulationId';
 import { ISimulationRepository } from '../../../core/repositories/ISimulationRepository';
 
 interface CitationOptions {
@@ -115,16 +116,18 @@ export class CitationCommand extends BaseCommand {
       ? options.authors.split(',').map(a => a.trim()).filter(a => a.length > 0)
       : undefined;
 
-    return ok({
+    const validated: ValidatedCitationOptions = {
       source: options.source.trim(),
       type: options.type,
-      doi: options.doi,
-      url: options.url,
-      page: options.page,
-      quote: options.quote,
-      authors,
-      year: options.year,
-    });
+    };
+    if (options.doi) validated.doi = options.doi;
+    if (options.url) validated.url = options.url;
+    if (options.page !== undefined) validated.page = options.page;
+    if (options.quote) validated.quote = options.quote;
+    if (authors) validated.authors = authors;
+    if (options.year !== undefined) validated.year = options.year;
+
+    return ok(validated);
   }
 
   protected async execute(validatedOptions: ValidatedCitationOptions): Promise<Result<void, DomainError>> {
@@ -151,18 +154,18 @@ export class CitationCommand extends BaseCommand {
     const command: CreateCitationCommand = {
       source: options.source,
       type: options.type,
-      doi: options.doi,
-      url: options.url,
-      page: options.page,
-      quote: options.quote,
-      authors: options.authors,
-      year: options.year,
+      ...(options.doi && { doi: options.doi }),
+      ...(options.url && { url: options.url }),
+      ...(options.page !== undefined && { page: options.page }),
+      ...(options.quote && { quote: options.quote }),
+      ...(options.authors && { authors: options.authors }),
+      ...(options.year !== undefined && { year: options.year }),
     };
 
-    const result = await this.commandBus.execute(command, 'CreateCitationCommand');
+    const result = await this.commandBus.execute<CreateCitationCommand, CitationId>(command, 'CreateCitationCommand');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const citationId = result.value;
@@ -193,11 +196,11 @@ export class CitationCommand extends BaseCommand {
     }
 
     // Query for all citations
-    const query = { simulationId };
-    const result = await this.queryBus.execute(query, 'GetCitationStatsQuery');
+    const query: GetCitationStatsQuery = { simulationId };
+    const result = await this.queryBus.execute<GetCitationStatsQuery, CitationStats>(query, 'GetCitationStatsQuery');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const stats = result.value;
@@ -227,11 +230,11 @@ export class CitationCommand extends BaseCommand {
       return err(new ValidationError('No active simulation. Use "townhall simulate" first.'));
     }
 
-    const query = { simulationId };
-    const result = await this.queryBus.execute(query, 'GetCitationStatsQuery');
+    const query: GetCitationStatsQuery = { simulationId };
+    const result = await this.queryBus.execute<GetCitationStatsQuery, CitationStats>(query, 'GetCitationStatsQuery');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const stats = result.value;

@@ -12,7 +12,7 @@ import { Citation } from '../../core/entities/Citation';
 import { CitationId } from '../../core/value-objects/CitationId';
 import { ICitationRepository } from '../../core/repositories/ICitationRepository';
 import { IQueryHandler } from './QueryBus';
-import { NotFoundError } from '../../shared/errors';
+import { NotFoundError, ValidationError } from '../../shared/errors';
 import { TOKENS } from '../../shared/container';
 
 @injectable()
@@ -33,17 +33,20 @@ export class GetCitationHandler implements IQueryHandler<GetCitationQuery, Citat
       // Short hash - needs resolution
       const resolveResult = await this.citationRepo.resolveShortId(citationId);
       if (resolveResult.isErr()) {
-        return err(new NotFoundError(`Citation ${citationId} not found or ambiguous`));
+        return err(new NotFoundError('Citation', citationId));
       }
       fullId = resolveResult.value;
     } else {
-      return err(new NotFoundError(`Citation ID must be at least 7 characters`));
+      // ID too short - provide clear feedback
+      return err(new ValidationError(
+        `Citation ID '${citationId}' is too short. Short IDs require at least 7 characters.`
+      ));
     }
 
     // Retrieve citation
     const citationResult = await this.citationRepo.findById(fullId);
     if (citationResult.isErr()) {
-      return err(new NotFoundError(`Citation ${citationId} not found`));
+      return err(new NotFoundError('Citation', citationId));
     }
 
     return ok(citationResult.value);

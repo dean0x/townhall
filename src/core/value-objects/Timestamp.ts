@@ -41,12 +41,12 @@ export class TimestampGenerator {
   public static compare(a: Timestamp, b: Timestamp): Result<number, ValidationError> {
     const dateAResult = this.toDate(a);
     if (!dateAResult.isOk()) {
-      return dateAResult;
+      return err(dateAResult.error);
     }
 
     const dateBResult = this.toDate(b);
     if (!dateBResult.isOk()) {
-      return dateBResult;
+      return err(dateBResult.error);
     }
 
     return ok(dateAResult.value.getTime() - dateBResult.value.getTime());

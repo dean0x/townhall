@@ -10,11 +10,8 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { CheckoutSimulationCommand } from '../../../application/commands/CheckoutSimulationCommand';
+import { CheckoutSimulationResult } from '../../../application/handlers/CheckoutSimulationHandler';
 import { SimulationId } from '../../../core/value-objects/SimulationId';
-
-interface CheckoutOptions {
-  simulationId: string;
-}
 
 interface ValidatedCheckoutOptions {
   simulationId: SimulationId;
@@ -72,10 +69,10 @@ export class CheckoutCommand extends BaseCommand {
       simulationId: validatedOptions.simulationId,
     };
 
-    const result = await this.commandBus.execute(command, 'CheckoutSimulationCommand');
+    const result = await this.commandBus.execute<CheckoutSimulationCommand, CheckoutSimulationResult>(command, 'CheckoutSimulationCommand');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const checkoutResult = result.value;

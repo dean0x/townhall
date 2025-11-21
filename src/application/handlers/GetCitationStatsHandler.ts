@@ -13,7 +13,7 @@ import { Result, ok, err } from '../../shared/result';
 import { GetCitationStatsQuery, CitationStats } from '../queries/GetCitationStatsQuery';
 import { ICitationRepository } from '../../core/repositories/ICitationRepository';
 import type { SimulationId } from '../../core/value-objects/SimulationId';
-import { CitationType, isPeerReviewed } from '../../core/value-objects/CitationType';
+import { isPeerReviewed } from '../../core/value-objects/CitationType';
 import { IQueryHandler } from './QueryBus';
 import { ValidationError } from '../../shared/errors';
 import { TOKENS } from '../../shared/container';

@@ -7,6 +7,7 @@
 import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, ConflictError, ValidationError } from '../../shared/errors';
+import { ArgumentType } from '../../core/value-objects/ArgumentType';
 import { ICommandHandler } from './CommandBus';
 import { SubmitConcessionCommand } from '../commands/SubmitConcessionCommand';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
@@ -15,7 +16,7 @@ import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { Concession } from '../../core/entities/Concession';
 import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { ICryptoService } from '../ports/ICryptoService';
+import { ICryptoService } from '../../core/services/ICryptoService';
 import { TOKENS } from '../../shared/container';
 
 export interface SubmitConcessionResult {
@@ -77,7 +78,7 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
     // Create concession
     const concessionResult = Concession.create({
       agentId: command.agentId,
-      type: 'deductive', // Default type for concessions
+      type: ArgumentType.DEDUCTIVE, // Default type for concessions
       content: {
         text: command.explanation || `Concession (${command.concessionType})`,
         structure: {
@@ -92,8 +93,8 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
       timestamp: TimestampGenerator.now(),
       targetArgumentId: command.targetArgumentId,
       concessionType: command.concessionType,
-      explanation: command.explanation,
-      conditions: command.conditions,
+      ...(command.explanation !== undefined && { explanation: command.explanation }),
+      ...(command.conditions !== undefined && { conditions: command.conditions }),
       sequenceNumber,
     }, this.cryptoService);
 
@@ -106,14 +107,14 @@ export class SubmitConcessionHandler implements ICommandHandler<SubmitConcession
     // Save concession
     const saveResult = await this.argumentRepo.save(concession);
     if (saveResult.isErr()) {
-      return saveResult;
+      return err(saveResult.error);
     }
 
     // Add to simulation (pass true to indicate this is a concession)
     const updatedSimulation = simulation.addArgument(concession.id, true);
     const updateResult = await this.simulationRepo.save(updatedSimulation);
     if (updateResult.isErr()) {
-      return updateResult;
+      return err(updateResult.error);
     }
 
     return ok({

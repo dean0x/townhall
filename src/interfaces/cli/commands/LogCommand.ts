@@ -10,6 +10,7 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { GetDebateHistoryQuery } from '../../../application/queries/GetDebateHistoryQuery';
+import { DebateHistoryResult } from '../../../application/handlers/GetDebateHistoryHandler';
 import { ArgumentType } from '../../../core/value-objects/ArgumentType';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
 
@@ -67,13 +68,15 @@ export class LogCommand extends BaseCommand {
       limit = limitResult.value;
     }
 
-    return ok({
-      agentFilter,
-      typeFilter: options.type,
-      limit,
+    const validated: ValidatedLogOptions = {
       includeRelationships: options.graph || false,
       jsonOutput: options.json || false,
-    });
+    };
+    if (agentFilter) validated.agentFilter = agentFilter;
+    if (options.type) validated.typeFilter = options.type;
+    if (limit !== undefined) validated.limit = limit;
+
+    return ok(validated);
   }
 
   protected async execute(validatedOptions: ValidatedLogOptions): Promise<Result<void, DomainError>> {
@@ -83,16 +86,16 @@ export class LogCommand extends BaseCommand {
 
     // Build query
     const query: GetDebateHistoryQuery = {
-      agentFilter: validatedOptions.agentFilter,
-      typeFilter: validatedOptions.typeFilter,
-      limit: validatedOptions.limit,
       includeRelationships: validatedOptions.includeRelationships,
     };
+    if (validatedOptions.agentFilter) (query as Record<string, unknown>).agentFilter = validatedOptions.agentFilter;
+    if (validatedOptions.typeFilter) (query as Record<string, unknown>).typeFilter = validatedOptions.typeFilter;
+    if (validatedOptions.limit !== undefined) (query as Record<string, unknown>).limit = validatedOptions.limit;
 
-    const result = await this.queryBus.execute(query, 'GetDebateHistoryQuery');
+    const result = await this.queryBus.execute<GetDebateHistoryQuery, DebateHistoryResult>(query, 'GetDebateHistoryQuery');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const history = result.value;

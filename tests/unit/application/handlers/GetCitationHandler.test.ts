@@ -12,7 +12,7 @@ import { Citation } from '../../../../src/core/entities/Citation';
 import { CitationId } from '../../../../src/core/value-objects/CitationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 import { ok, err } from '../../../../src/shared/result';
-import { NotFoundError } from '../../../../src/shared/errors';
+import { NotFoundError, ValidationError } from '../../../../src/shared/errors';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('GetCitationHandler', () => {
@@ -165,7 +165,7 @@ describe('GetCitationHandler', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(NotFoundError);
+        expect(result.error).toBeInstanceOf(ValidationError);
         expect(result.error.message).toContain('at least 7 characters');
       }
       expect(mockCitationRepo.resolveShortId).not.toHaveBeenCalled();
@@ -246,7 +246,8 @@ describe('GetCitationHandler', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(NotFoundError);
+        // Empty string is an invalid input, not a "not found" case
+        expect(result.error).toBeInstanceOf(ValidationError);
       }
     });
 

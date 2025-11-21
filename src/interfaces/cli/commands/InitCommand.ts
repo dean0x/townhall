@@ -11,6 +11,7 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { InitializeRepositoryCommand } from '../../../application/commands/InitializeRepositoryCommand';
+// InitializeRepositoryHandler returns void
 
 interface InitOptions {
   force?: boolean;
@@ -48,10 +49,10 @@ export class InitCommand extends BaseCommand {
       force: validatedOptions.force,
     };
 
-    const result = await this.commandBus.execute(command, 'InitializeRepositoryCommand');
+    const result = await this.commandBus.execute<InitializeRepositoryCommand, void>(command, 'InitializeRepositoryCommand');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     this.displayRepositoryStructure();

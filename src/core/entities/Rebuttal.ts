@@ -6,7 +6,8 @@
 
 import { Result, ok, err } from '../../shared/result';
 import { ValidationError } from '../../shared/errors';
-import { Argument, CreateArgumentParams, ArgumentType, ArgumentContent, ArgumentMetadata } from './Argument';
+import { Argument, CreateArgumentParams, ArgumentContent, ArgumentMetadata } from './Argument';
+import { ArgumentType } from '../value-objects/ArgumentType';
 import { ArgumentId, ArgumentIdGenerator } from '../value-objects/ArgumentId';
 import { AgentId } from '../value-objects/AgentId';
 import { SimulationId } from '../value-objects/SimulationId';
@@ -43,7 +44,7 @@ export class Rebuttal extends Argument {
     this.rebuttalType = rebuttalType;
   }
 
-  public static create(params: CreateRebuttalParams, cryptoService: ICryptoService): Result<Rebuttal, ValidationError> {
+  public static override create(params: CreateRebuttalParams, cryptoService: ICryptoService): Result<Rebuttal, ValidationError> {
     const rebuttalTypeValidation = this.validateRebuttalType(params.rebuttalType);
     if (rebuttalTypeValidation.isErr()) {
       return err(rebuttalTypeValidation.error);
@@ -101,7 +102,7 @@ export class Rebuttal extends Argument {
     return ok(undefined);
   }
 
-  private static validateTargetArgument(targetArgumentId: ArgumentId, agentId: string): Result<void, ValidationError> {
+  private static validateTargetArgument(targetArgumentId: ArgumentId, _agentId: string): Result<void, ValidationError> {
     // Note: In a real implementation, we would check if the target argument exists
     // and belongs to the same simulation. This would require repository access,
     // which violates the "zero dependencies" rule for core entities.

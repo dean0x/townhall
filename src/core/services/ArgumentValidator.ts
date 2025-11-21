@@ -180,7 +180,7 @@ export class ArgumentValidator {
   private hasBasicLogicalFlow(structure: DeductiveStructure): boolean {
     // Very basic logical flow detection for common patterns
     const premises = structure.premises.map(p => p.toLowerCase());
-    const conclusion = structure.conclusion.toLowerCase();
+    // Note: conclusion is validated elsewhere; this function focuses on premise patterns
 
     // Modus ponens pattern: "If A then B" + "A" → "B"
     for (const premise of premises) {

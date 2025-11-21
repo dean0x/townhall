@@ -10,6 +10,7 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { InitializeDebateCommand } from '../../../application/commands/InitializeDebateCommand';
+import { InitializeDebateResult } from '../../../application/handlers/InitializeDebateHandler';
 
 interface SimulateOptions {
   topic: string;
@@ -46,7 +47,7 @@ export class SimulateCommand extends BaseCommand {
   }
 
   // Override build to handle subcommand structure
-  public build(): Command {
+  public override build(): Command {
     this.setupOptions(this.command);
     return this.command;
   }
@@ -98,13 +99,12 @@ export class SimulateCommand extends BaseCommand {
 
     const command: InitializeDebateCommand = {
       topic: validatedOptions.topic,
-      maxRounds: validatedOptions.maxRounds,
     };
 
-    const result = await this.commandBus.execute(command, 'InitializeDebateCommand');
+    const result = await this.commandBus.execute<InitializeDebateCommand, InitializeDebateResult>(command, 'InitializeDebateCommand');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const debate = result.value;

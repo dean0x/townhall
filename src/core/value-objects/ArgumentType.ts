@@ -12,7 +12,7 @@ export enum ArgumentType {
   EMPIRICAL = 'empirical',
 }
 
-export const ARGUMENT_TYPES = Object.values(ArgumentType) as const;
+export const ARGUMENT_TYPES: readonly ArgumentType[] = Object.values(ArgumentType);
 
 export function isValidArgumentType(value: string): value is ArgumentType {
   return ARGUMENT_TYPES.includes(value as ArgumentType);

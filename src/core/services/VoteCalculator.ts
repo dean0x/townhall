@@ -103,7 +103,7 @@ export class VoteCalculator {
     }
 
     const remainingVotesNeeded = status.required - status.yesVotes;
-    const remainingParticipants = status.required - status.total;
+    // Note: remainingParticipants = status.required - status.total (available for future use)
 
     // If more no votes than remaining participants, consensus impossible
     if (rules.requireUnanimity && status.noVotes > 0) {
@@ -163,7 +163,7 @@ export class VoteCalculator {
     );
 
     const voteTimes: number[] = [];
-    const firstVoteTime = new Date(sortedVotes[0]!.timestamp).getTime();
+    // Note: firstVoteTime available via sortedVotes[0].timestamp if needed for absolute timing
 
     for (let i = 1; i < sortedVotes.length; i++) {
       const currentTime = new Date(sortedVotes[i]!.timestamp).getTime();
