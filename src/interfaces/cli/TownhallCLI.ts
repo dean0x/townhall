@@ -13,7 +13,7 @@ import { IQueryBus } from '../../application/handlers/QueryBus';
 import { ILogger } from '../../application/ports/ILogger';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
-import { ObjectStorage } from '../../infrastructure/storage/ObjectStorage';
+import type { ObjectStorage as _ObjectStorage } from '../../infrastructure/storage/ObjectStorage';
 import { TOKENS } from '../../shared/container';
 import { CommandContext } from './base/BaseCommand';
 
@@ -41,7 +41,7 @@ export class TownhallCLI {
     @inject(TOKENS.CommandBus) private readonly commandBus: ICommandBus,
     @inject(TOKENS.QueryBus) private readonly queryBus: IQueryBus,
     @inject(TOKENS.Logger) private readonly logger: ILogger,
-    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage,
+    @inject(TOKENS.ObjectStorage) _storage: _ObjectStorage,
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepository: IArgumentRepository,
     @inject(TOKENS.SimulationRepository) private readonly simulationRepository: ISimulationRepository
   ) {
@@ -84,16 +84,16 @@ export class TownhallCLI {
    * Run the CLI without exiting on error (useful for testing)
    */
   public async runWithoutExit(argv: string[]): Promise<Result<void, DomainError>> {
-    const originalExitOnError = this.context.exitOnError;
+    const originalExitOnError = this.context.exitOnError ?? true;
     this.context.exitOnError = false;
 
     try {
       const result = await this.run(argv);
-      this.context.exitOnError = originalExitOnError;
       return result;
     } catch (error) {
-      this.context.exitOnError = originalExitOnError;
       return err(this.convertToDomainError(error));
+    } finally {
+      this.context.exitOnError = originalExitOnError;
     }
   }
 
@@ -209,7 +209,9 @@ export function createCLI(
   commandBus: ICommandBus,
   queryBus: IQueryBus,
   logger: ILogger,
-  storage: ObjectStorage
+  storage: _ObjectStorage,
+  argumentRepository: IArgumentRepository,
+  simulationRepository: ISimulationRepository
 ): TownhallCLI {
-  return new TownhallCLI(commandBus, queryBus, logger, storage);
+  return new TownhallCLI(commandBus, queryBus, logger, storage, argumentRepository, simulationRepository);
 }
