@@ -11,6 +11,7 @@ import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { IArgumentRepository } from '../../../core/repositories/IArgumentRepository';
 import { SubmitConcessionCommand } from '../../../application/commands/SubmitConcessionCommand';
+import { SubmitConcessionResult } from '../../../application/handlers/SubmitConcessionHandler';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
 import { ArgumentId, ArgumentIdGenerator } from '../../../core/value-objects/ArgumentId';
 
@@ -71,13 +72,15 @@ export class ConcedeCommand extends BaseCommand {
       conditions = options.acknowledgement || 'I concede this point under current conditions';
     }
 
-    return ok({
+    const validated: ValidatedConcedeOptions = {
       targetArgumentId: targetIdResult.value,
       agentId: agentIdResult.value,
       concessionType: concessionTypeResult.value,
-      conditions,
-      explanation: options.acknowledgement,
-    });
+    };
+    if (conditions) validated.conditions = conditions;
+    if (options.acknowledgement) validated.explanation = options.acknowledgement;
+
+    return ok(validated);
   }
 
   protected async execute(validatedOptions: ValidatedConcedeOptions): Promise<Result<void, DomainError>> {
@@ -91,14 +94,14 @@ export class ConcedeCommand extends BaseCommand {
       agentId: validatedOptions.agentId,
       targetArgumentId: validatedOptions.targetArgumentId,
       concessionType: validatedOptions.concessionType,
-      conditions: validatedOptions.conditions,
-      explanation: validatedOptions.explanation,
+      ...(validatedOptions.conditions && { conditions: validatedOptions.conditions }),
+      ...(validatedOptions.explanation && { explanation: validatedOptions.explanation }),
     };
 
-    const result = await this.commandBus.execute(command, 'SubmitConcessionCommand');
+    const result = await this.commandBus.execute<SubmitConcessionCommand, SubmitConcessionResult>(command, 'SubmitConcessionCommand');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const concession = result.value;
@@ -123,17 +126,18 @@ export class ConcedeCommand extends BaseCommand {
   }
 
   private async validateTargetId(targetId: string): Promise<Result<ArgumentId, ValidationError>> {
-    try {
-      // Try as full UUID/hash first
-      return ok(ArgumentIdGenerator.fromString(targetId));
-    } catch {
-      // Try short hash resolution via repository
-      const expandResult = await this.argumentRepository.expandShortHash(targetId);
-      if (expandResult.isErr()) {
-        return err(new ValidationError(`Invalid argument ID: ${targetId}. Must be a valid UUID or unambiguous short hash.`));
-      }
-      return ok(expandResult.value);
+    // Try as full hash first
+    const hashResult = ArgumentIdGenerator.fromHash(targetId);
+    if (hashResult.isOk()) {
+      return ok(hashResult.value);
     }
+
+    // Try short hash resolution via repository
+    const expandResult = await this.argumentRepository.expandShortHash(targetId);
+    if (expandResult.isErr()) {
+      return err(new ValidationError(`Invalid argument ID: ${targetId}. Must be a valid UUID or unambiguous short hash.`));
+    }
+    return ok(expandResult.value);
   }
 
   private validateAndMapReason(reason: string): Result<'full' | 'partial' | 'conditional', ValidationError> {
@@ -153,6 +157,7 @@ export class ConcedeCommand extends BaseCommand {
       'logic-superior': 'conditional',
     };
 
-    return ok(mapping[reason]);
+    // mapping[reason] is guaranteed to exist since we validated reason above
+    return ok(mapping[reason]!);
   }
 }

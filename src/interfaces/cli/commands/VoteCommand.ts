@@ -10,6 +10,7 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { VoteToCloseCommand } from '../../../application/commands/VoteToCloseCommand';
+import { VoteToCloseResult } from '../../../application/handlers/VoteToCloseHandler';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
 
 interface VoteOptions {
@@ -58,11 +59,13 @@ export class VoteCommand extends BaseCommand {
       return err(agentIdResult.error);
     }
 
-    return ok({
+    const validated: ValidatedVoteOptions = {
       agentId: agentIdResult.value,
       vote,
-      reason: options.reason,
-    });
+    };
+    if (options.reason) validated.reason = options.reason;
+
+    return ok(validated);
   }
 
   protected async execute(validatedOptions: ValidatedVoteOptions): Promise<Result<void, DomainError>> {
@@ -75,13 +78,13 @@ export class VoteCommand extends BaseCommand {
     const command: VoteToCloseCommand = {
       agentId: validatedOptions.agentId,
       vote: validatedOptions.vote,
-      reason: validatedOptions.reason,
+      ...(validatedOptions.reason && { reason: validatedOptions.reason }),
     };
 
-    const result = await this.commandBus.execute(command, 'VoteToCloseCommand');
+    const result = await this.commandBus.execute<VoteToCloseCommand, VoteToCloseResult>(command, 'VoteToCloseCommand');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const voteResult = result.value;

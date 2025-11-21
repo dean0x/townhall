@@ -11,8 +11,10 @@ import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { IArgumentRepository } from '../../../core/repositories/IArgumentRepository';
 import { SubmitRebuttalCommand } from '../../../application/commands/SubmitRebuttalCommand';
+import { SubmitRebuttalResult } from '../../../application/handlers/SubmitRebuttalHandler';
 import { RebuttalType } from '../../../core/entities/Rebuttal';
-import { ArgumentContent, ArgumentType } from '../../../core/entities/Argument';
+import { ArgumentContent } from '../../../core/entities/Argument';
+import { ArgumentType } from '../../../core/value-objects/ArgumentType';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
 import { ArgumentId, ArgumentIdGenerator } from '../../../core/value-objects/ArgumentId';
 
@@ -120,8 +122,8 @@ export class RebuttalCommand extends BaseCommand {
 
   protected async execute(validatedOptions: ValidatedRebuttalOptions): Promise<Result<void, DomainError>> {
     this.context.logger.info('Submitting rebuttal', {
-      target: validatedOptions.targetArgumentId.value,
-      agent: validatedOptions.agentId.value,
+      target: validatedOptions.targetArgumentId,
+      agent: validatedOptions.agentId,
       type: validatedOptions.rebuttalType,
     });
 
@@ -131,13 +133,12 @@ export class RebuttalCommand extends BaseCommand {
       rebuttalType: validatedOptions.rebuttalType,
       type: validatedOptions.argumentType,
       content: validatedOptions.content,
-      confidence: validatedOptions.confidence,
     };
 
-    const result = await this.commandBus.execute(command, 'SubmitRebuttalCommand');
+    const result = await this.commandBus.execute<SubmitRebuttalCommand, SubmitRebuttalResult>(command, 'SubmitRebuttalCommand');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const rebuttal = result.value;
@@ -169,14 +170,16 @@ export class RebuttalCommand extends BaseCommand {
   }
 
   private validateArgumentType(type: string): Result<ArgumentType, ValidationError> {
-    const validTypes: ArgumentType[] = ['deductive', 'inductive', 'empirical'];
-    if (!validTypes.includes(type as ArgumentType)) {
+    const validTypes: ArgumentType[] = [ArgumentType.DEDUCTIVE, ArgumentType.INDUCTIVE, ArgumentType.EMPIRICAL];
+    const typeValue = type.toLowerCase();
+    const matchedType = validTypes.find(t => t === typeValue);
+    if (!matchedType) {
       return err(new ValidationError(
         `Invalid argument type. Must be one of: ${validTypes.join(', ')}`,
         'argumentType'
       ));
     }
-    return ok(type as ArgumentType);
+    return ok(matchedType);
   }
 
   private validateAgentId(agentId: string): Result<AgentId, ValidationError> {
@@ -184,17 +187,18 @@ export class RebuttalCommand extends BaseCommand {
   }
 
   private async validateTargetId(targetId: string): Promise<Result<ArgumentId, ValidationError>> {
-    try {
-      // Try as full UUID/hash first
-      return ok(ArgumentIdGenerator.fromString(targetId));
-    } catch {
-      // Try short hash resolution via repository
-      const expandResult = await this.argumentRepository.expandShortHash(targetId);
-      if (expandResult.isErr()) {
-        return err(new ValidationError(`Invalid argument ID: ${targetId}. Must be a valid UUID or unambiguous short hash.`));
-      }
-      return ok(expandResult.value);
+    // Try as full hash first
+    const hashResult = ArgumentIdGenerator.fromHash(targetId);
+    if (hashResult.isOk()) {
+      return ok(hashResult.value);
     }
+
+    // Try short hash resolution via repository
+    const expandResult = await this.argumentRepository.expandShortHash(targetId);
+    if (expandResult.isErr()) {
+      return err(new ValidationError(`Invalid argument ID: ${targetId}. Must be a valid UUID or unambiguous short hash.`));
+    }
+    return ok(expandResult.value);
   }
 
   private buildArgumentContent(

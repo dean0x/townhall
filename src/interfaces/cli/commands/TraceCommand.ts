@@ -10,12 +10,8 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { GetArgumentChainQuery } from '../../../application/queries/GetArgumentChainQuery';
+import { GetArgumentChainResult } from '../../../application/handlers/GetArgumentChainHandler';
 import { ArgumentId } from '../../../core/value-objects/ArgumentId';
-
-interface TraceOptions {
-  argumentId: string;
-  depth?: string;
-}
 
 interface ValidatedTraceOptions {
   argumentId: ArgumentId;
@@ -87,10 +83,10 @@ export class TraceCommand extends BaseCommand {
       includeMetadata: true,
     };
 
-    const result = await this.queryBus.execute(query, 'GetArgumentChainQuery');
+    const result = await this.queryBus.execute<GetArgumentChainQuery, GetArgumentChainResult>(query, 'GetArgumentChainQuery');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const { root, totalArguments, maxDepthReached } = result.value;

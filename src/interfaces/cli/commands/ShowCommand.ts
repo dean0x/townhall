@@ -10,12 +10,9 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { GetArgumentQuery } from '../../../application/queries/GetArgumentQuery';
+import { GetArgumentResult } from '../../../application/handlers/GetArgumentHandler';
 import { ArgumentId } from '../../../core/value-objects/ArgumentId';
 import { DeductiveStructure, InductiveStructure, EmpiricalStructure } from '../../../core/entities/Argument';
-
-interface ShowOptions {
-  argumentId: string;
-}
 
 interface ValidatedShowOptions {
   argumentId: ArgumentId;
@@ -69,10 +66,10 @@ export class ShowCommand extends BaseCommand {
       includeRelationships: true,
     };
 
-    const result = await this.queryBus.execute(query, 'GetArgumentQuery');
+    const result = await this.queryBus.execute<GetArgumentQuery, GetArgumentResult>(query, 'GetArgumentQuery');
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const { argument, relationships } = result.value;

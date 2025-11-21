@@ -10,6 +10,7 @@ import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { CreateArgumentCommand } from '../../../application/commands/CreateArgumentCommand';
+import { CreateArgumentResult } from '../../../application/handlers/CreateArgumentHandler';
 import { ArgumentType } from '../../../core/value-objects/ArgumentType';
 import { AgentIdGenerator } from '../../../core/value-objects/AgentId';
 import { ArgumentContent } from '../../../core/entities/Argument';
@@ -84,11 +85,12 @@ export class ArgumentCommand extends BaseCommand {
       return err(contentResult.error);
     }
 
+    const citationIds = options.cites?.map(id => CitationId.fromString(id));
     return ok({
       agentId: agentIdResult.value,
       type: options.type,
       content: contentResult.value,
-      citationIds: options.cites?.map(id => CitationId.fromString(id)),
+      ...(citationIds && { citationIds }),
     });
   }
 
@@ -107,13 +109,16 @@ export class ArgumentCommand extends BaseCommand {
       agentId: agentIdResult.value,
       type: validatedOptions.type,
       content: validatedOptions.content,
-      citationIds: validatedOptions.citationIds,
+      ...(validatedOptions.citationIds && { citationIds: validatedOptions.citationIds }),
     };
 
-    const result = await this.commandBus.execute(command, 'CreateArgumentCommand');
+    const result = await this.commandBus.execute<CreateArgumentCommand, CreateArgumentResult>(
+      command,
+      'CreateArgumentCommand'
+    );
 
     if (result.isErr()) {
-      return err(result.error);
+      return err(result.error as DomainError);
     }
 
     const argument = result.value;
@@ -242,11 +247,17 @@ export class ArgumentCommand extends BaseCommand {
       ));
     }
 
-    const evidence = options.evidence.map((source, index) => ({
-      source,
-      relevance: options.relevance![index],
-      citation: options.citation?.[index],
-    }));
+    const evidence = options.evidence.map((source, index) => {
+      const ev: { source: string; relevance: string; citation?: string } = {
+        source,
+        relevance: options.relevance![index]!,
+      };
+      const citation = options.citation?.[index];
+      if (citation) {
+        ev.citation = citation;
+      }
+      return ev;
+    });
 
     return ok({
       text: options.claim,
