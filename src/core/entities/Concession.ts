@@ -42,7 +42,7 @@ export class Concession extends Argument {
     Object.freeze(this);
   }
 
-  public static create(params: CreateConcessionParams, cryptoService: ICryptoService): Result<Concession, ValidationError> {
+  public static override create(params: CreateConcessionParams, cryptoService: ICryptoService): Result<Concession, ValidationError> {
     const concessionTypeValidation = this.validateConcessionType(params.concessionType);
     if (concessionTypeValidation.isErr()) {
       return err(concessionTypeValidation.error);

@@ -4,10 +4,10 @@
  * Rationale: Complex relationship logic separated from entities
  */
 
-import { Result, ok, err } from '../../shared/result';
+import { Result, ok, err, propagateError } from '../../shared/result';
 import { BusinessRuleError } from '../../shared/errors';
 import { ArgumentId } from '../value-objects/ArgumentId';
-import { AgentId } from '../value-objects/AgentId';
+import type { AgentId as _AgentId } from '../value-objects/AgentId';
 import { Argument } from '../entities/Argument';
 import { Rebuttal } from '../entities/Rebuttal';
 import { Concession } from '../entities/Concession';
@@ -35,7 +35,7 @@ export class RelationshipBuilder {
     // Validate business rules
     const validationResult = this.validateRebuttalRules(rebuttal, targetArgument);
     if (validationResult.isErr()) {
-      return validationResult;
+      return propagateError(validationResult);
     }
 
     return ok({
@@ -53,7 +53,7 @@ export class RelationshipBuilder {
     // Validate business rules
     const validationResult = this.validateConcessionRules(concession, targetArgument);
     if (validationResult.isErr()) {
-      return validationResult;
+      return propagateError(validationResult);
     }
 
     return ok({
@@ -66,7 +66,7 @@ export class RelationshipBuilder {
 
   public buildChain(
     rootArgument: Argument,
-    allArguments: Argument[],
+    _allArguments: Argument[],
     relationships: ArgumentRelationship[]
   ): RelationshipChain {
     const chainRelationships = this.findRelationshipChain(rootArgument.id, relationships);

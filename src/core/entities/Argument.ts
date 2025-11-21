@@ -61,7 +61,7 @@ export interface CreateArgumentParams {
 }
 
 export class Argument {
-  private constructor(
+  protected constructor(
     public readonly id: ArgumentId,
     public readonly agentId: AgentId,
     public readonly type: ArgumentType,

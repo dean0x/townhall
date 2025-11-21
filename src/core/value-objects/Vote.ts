@@ -17,10 +17,12 @@ export class Vote {
   public readonly reason?: string;
   public readonly timestamp: string;
 
-  private constructor(agentId: AgentId, timestamp: string, reason?: string) {
+  private constructor(agentId: AgentId, timestamp: string, reason: string | undefined) {
     this.agentId = agentId;
     this.timestamp = timestamp;
-    this.reason = reason;
+    if (reason !== undefined) {
+      this.reason = reason;
+    }
     Object.freeze(this);
   }
 

@@ -108,10 +108,13 @@ export class Citation {
 
     // Add authors if present
     if (this.metadata.authors && this.metadata.authors.length > 0) {
-      if (this.metadata.authors.length === 1) {
-        parts.push(this.metadata.authors[0]);
-      } else {
-        parts.push(`${this.metadata.authors[0]} et al.`);
+      const firstAuthor = this.metadata.authors[0];
+      if (firstAuthor !== undefined) {
+        if (this.metadata.authors.length === 1) {
+          parts.push(firstAuthor);
+        } else {
+          parts.push(`${firstAuthor} et al.`);
+        }
       }
     }
 

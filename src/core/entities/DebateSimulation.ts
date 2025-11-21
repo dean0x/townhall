@@ -8,7 +8,7 @@ import { Result, ok, err } from '../../shared/result';
 import { ValidationError } from '../../shared/errors';
 import { SimulationId, SimulationIdGenerator } from '../value-objects/SimulationId';
 import { Timestamp } from '../value-objects/Timestamp';
-import { DebateStatus, canTransitionTo } from '../value-objects/DebateStatus';
+import { DebateStatus } from '../value-objects/DebateStatus';
 import { AgentId } from '../value-objects/AgentId';
 import { ArgumentId } from '../value-objects/ArgumentId';
 import type { ICryptoService } from '../services/ICryptoService';
@@ -51,8 +51,8 @@ export class DebateSimulation {
       params.cryptoService
     );
 
-    if (!idResult.isOk()) {
-      return idResult;
+    if (idResult.isErr()) {
+      return err(idResult.error);
     }
 
     const simulation = new DebateSimulation(
@@ -116,7 +116,7 @@ export class DebateSimulation {
     );
   }
 
-  public addArgument(argumentId: ArgumentId, isConcession: boolean = false): DebateSimulation {
+  public addArgument(argumentId: ArgumentId, _isConcession: boolean = false): DebateSimulation {
     // ARCHITECTURE: Validation moved to application layer (handlers)
     // Rationale: Domain entities should be pure data transformations without business logic validation
     // The handlers will ensure:
@@ -155,7 +155,7 @@ export class DebateSimulation {
     const newVote: CloseVote = {
       agentId,
       vote,
-      reason,
+      ...(reason !== undefined && { reason }),
       timestamp,
     };
 

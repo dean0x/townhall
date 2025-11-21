@@ -12,7 +12,7 @@ export enum DebateStatus {
   CLOSED = 'closed',
 }
 
-export const DEBATE_STATUSES = Object.values(DebateStatus) as const;
+export const DEBATE_STATUSES: readonly DebateStatus[] = Object.values(DebateStatus);
 
 export function isValidDebateStatus(value: string): value is DebateStatus {
   return DEBATE_STATUSES.includes(value as DebateStatus);
