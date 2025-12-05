@@ -15,20 +15,7 @@ import type { Timestamp } from '../../core/value-objects/Timestamp';
 import { ObjectStorage } from './ObjectStorage';
 import { HashResolver } from './HashResolver';
 import { TOKENS } from '../../shared/container';
-
-interface CitationData {
-  readonly id: string;
-  readonly source: string;
-  readonly type: CitationType;
-  readonly doi?: string;
-  readonly url?: string;
-  readonly page?: number;
-  readonly quote?: string;
-  readonly authors?: string[];
-  readonly year?: number;
-  readonly createdAt: string;
-  readonly simulationId: string;
-}
+import { CitationDataSchema, type CitationData, parseStorageData } from './schemas';
 
 @injectable()
 export class FileCitationRepository implements ICitationRepository {
@@ -68,8 +55,7 @@ export class FileCitationRepository implements ICitationRepository {
       return err(new CitationNotFoundError(idString));
     }
 
-    const data = result.value.data as unknown as CitationData;
-    const citation = this.deserialize(data);
+    const citation = this.deserialize(result.value.data);
     return ok(citation);
   }
 
@@ -94,7 +80,7 @@ export class FileCitationRepository implements ICitationRepository {
     // Filter by simulation ID and deserialize
     const citations: Citation[] = retrieveResults
       .filter(result => result.isOk())
-      .map(result => result.value.data as unknown as CitationData)
+      .map(result => result.value.data as Record<string, unknown>)
       .filter(data => data.simulationId === simIdString)
       .map(data => this.deserialize(data));
 
@@ -236,7 +222,20 @@ export class FileCitationRepository implements ICitationRepository {
     return ok(CitationId.fromString(fullId));
   }
 
-  private deserialize(data: CitationData): Citation {
+  /**
+   * Deserializes citation data from storage
+   * ARCHITECTURE: Uses Zod for schema validation at storage boundary
+   * Pattern: Parse, don't validate - validates shape before domain logic
+   */
+  private deserialize(rawData: unknown): Citation {
+    // STEP 1: Schema validation with Zod (parse, don't validate)
+    const parseResult = parseStorageData(CitationDataSchema, rawData, 'citation');
+    if (parseResult.isErr()) {
+      throw new Error(`Data corruption: ${parseResult.error.message}`);
+    }
+    const data = parseResult.value;
+
+    // STEP 2: Construct metadata from optional fields
     const metadata = {
       ...(data.doi !== undefined && { doi: data.doi }),
       ...(data.url !== undefined && { url: data.url }),
@@ -245,10 +244,12 @@ export class FileCitationRepository implements ICitationRepository {
       ...(data.authors !== undefined && { authors: data.authors }),
       ...(data.year !== undefined && { year: data.year }),
     };
+
+    // SAFETY: Cast is safe because Zod enum values match CitationType enum values
     return Citation.reconstitute(
       CitationId.fromString(data.id),
       data.source,
-      data.type,
+      data.type as CitationType,
       metadata,
       data.createdAt as Timestamp
     );

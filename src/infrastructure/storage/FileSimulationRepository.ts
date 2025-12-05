@@ -19,16 +19,7 @@ import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
 import { hasErrorCode } from './NodeSystemError';
-
-interface SimulationData {
-  readonly id: string;
-  readonly topic: string;
-  readonly createdAt: string;
-  readonly status: string;
-  readonly participantIds: string[];
-  readonly argumentIds: string[];
-  readonly votesToClose: CloseVote[];
-}
+import { SimulationDataSchema, type SimulationData, parseStorageData } from './schemas';
 
 @injectable()
 export class FileSimulationRepository implements ISimulationRepository {
@@ -66,7 +57,7 @@ export class FileSimulationRepository implements ISimulationRepository {
       return err(new NotFoundError('Simulation', id));
     }
 
-    return ok(this.deserializeSimulation(result.value.data as unknown as SimulationData));
+    return ok(this.deserializeSimulation(result.value.data));
   }
 
   public async getActive(): Promise<Result<DebateSimulation, NotFoundError>> {
@@ -201,7 +192,7 @@ export class FileSimulationRepository implements ISimulationRepository {
     const simulations: DebateSimulation[] = [];
     for (const simResult of results) {
       if (simResult.isOk()) {
-        simulations.push(this.deserializeSimulation(simResult.value.data as unknown as SimulationData));
+        simulations.push(this.deserializeSimulation(simResult.value.data));
       }
     }
 
@@ -225,39 +216,39 @@ export class FileSimulationRepository implements ISimulationRepository {
     return this.storage.delete('simulations', id);
   }
 
-  private deserializeSimulation(data: SimulationData): DebateSimulation {
-    // ARCHITECTURE: Runtime validation before type assertions
-    // Rationale: Ensure storage data is valid before reconstituting domain entities
+  /**
+   * Deserializes simulation data from storage
+   * ARCHITECTURE: Uses Zod for schema validation at storage boundary
+   * Pattern: Parse, don't validate - validates shape before domain logic
+   */
+  private deserializeSimulation(rawData: unknown): DebateSimulation {
+    // STEP 1: Schema validation with Zod (parse, don't validate)
+    const parseResult = parseStorageData(SimulationDataSchema, rawData, 'simulation');
+    if (parseResult.isErr()) {
+      throw new Error(`Data corruption: ${parseResult.error.message}`);
+    }
+    const data = parseResult.value;
 
-    // Validate SimulationId
+    // STEP 2: Domain validation - Validate SimulationId format
     const idResult = SimulationIdGenerator.fromHash(data.id);
     if (idResult.isErr()) {
       throw new Error(`Data corruption: Invalid simulation ID '${data.id}' - ${idResult.error.message}`);
     }
 
-    // Validate Timestamp
+    // Domain validation: Validate Timestamp format
     const timestampResult = TimestampGenerator.fromString(data.createdAt);
     if (timestampResult.isErr()) {
       throw new Error(`Data corruption: Invalid timestamp '${data.createdAt}' - ${timestampResult.error.message}`);
     }
 
-    // Validate DebateStatus
+    // Domain validation: Validate DebateStatus
     const statusResult = parseDebateStatus(data.status);
     if (statusResult.isErr()) {
       throw new Error(`Data corruption: Invalid status '${data.status}' - ${statusResult.error.message}`);
     }
 
-    // Validate participantIds array
-    if (!Array.isArray(data.participantIds) || !data.participantIds.every(id => typeof id === 'string')) {
-      throw new Error('Data corruption: participantIds must be an array of strings');
-    }
-
-    // Validate argumentIds array
-    if (!Array.isArray(data.argumentIds) || !data.argumentIds.every(id => typeof id === 'string')) {
-      throw new Error('Data corruption: argumentIds must be an array of strings');
-    }
-
     // Reconstitute with validated data
+    // SAFETY: Cast is safe because Zod validated the structure at runtime
     const result = DebateSimulation.reconstitute(
       idResult.value,
       data.topic,
@@ -265,11 +256,11 @@ export class FileSimulationRepository implements ISimulationRepository {
       statusResult.value,
       data.participantIds as AgentId[],
       data.argumentIds as ArgumentId[],
-      data.votesToClose
+      data.votesToClose as CloseVote[]
     );
 
-    // SAFETY: Deserialization with validated data should always succeed
-    // If it still fails, it indicates data corruption - throw to surface the issue
+    // SAFETY: Deserialization from validated data should always succeed
+    // If it fails, it indicates domain invariant violation - throw to surface the issue
     if (result.isErr()) {
       throw new Error(`Data corruption: Failed to deserialize simulation - ${result.error.message}`);
     }

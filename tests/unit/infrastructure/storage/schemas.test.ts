@@ -255,15 +255,13 @@ describe('Storage Schemas', () => {
   });
 
   describe('CitationDataSchema', () => {
+    // Schema matches FileCitationRepository save format with CitationType enum values
     const validCitationData = {
       id: 'citation-123',
       source: 'Smith et al. (2023)',
-      type: 'academic' as const,
-      metadata: {
-        hash: 'abc123',
-        shortHash: 'abc123d',
-        createdAt: '2024-01-15T10:00:00Z',
-      },
+      type: 'paper' as const,  // Matches CitationType.PAPER
+      createdAt: '2024-01-15T10:00:00Z',
+      simulationId: 'sim-123',
     };
 
     it('should accept valid citation data', () => {
@@ -274,22 +272,19 @@ describe('Storage Schemas', () => {
       const full = {
         ...validCitationData,
         quote: 'The results clearly show...',
-        context: 'In discussing climate change',
-        accessedAt: '2024-01-15T10:00:00Z',
-        author: 'John Smith',
-        title: 'Research Paper Title',
-        publication: 'Nature',
-        url: 'https://example.com/paper',
         doi: '10.1234/example',
-        date: '2023-06-15',
+        url: 'https://example.com/paper',
+        page: 42,
+        authors: ['John Smith', 'Jane Doe'],
+        year: 2023,
       };
       expect(CitationDataSchema.safeParse(full).success).toBe(true);
     });
 
-    it('should reject invalid URL', () => {
+    it('should reject negative page number', () => {
       const invalid = {
         ...validCitationData,
-        url: 'not-a-valid-url',
+        page: -1,
       };
       expect(CitationDataSchema.safeParse(invalid).success).toBe(false);
     });
