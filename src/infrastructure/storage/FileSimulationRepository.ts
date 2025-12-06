@@ -14,8 +14,8 @@ import { DebateSimulation, CloseVote } from '../../core/entities/DebateSimulatio
 import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { parseDebateStatus } from '../../core/value-objects/DebateStatus';
-import { AgentId } from '../../core/value-objects/AgentId';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { AgentId, AgentIdGenerator } from '../../core/value-objects/AgentId';
+import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
 import { hasErrorCode } from './NodeSystemError';
@@ -261,26 +261,51 @@ export class FileSimulationRepository implements ISimulationRepository {
       ));
     }
 
+    // Domain validation: Validate participant IDs (UUID format)
+    const validatedParticipantIds: AgentId[] = [];
+    for (const participantId of data.participantIds) {
+      const result = AgentIdGenerator.fromString(participantId);
+      if (result.isErr()) {
+        return err(new StorageError(
+          `Invalid participant ID '${participantId}': ${result.error.message}`,
+          'deserialize'
+        ));
+      }
+      validatedParticipantIds.push(result.value);
+    }
+
+    // Domain validation: Validate argument IDs (SHA-256 hash format)
+    const validatedArgumentIds: ArgumentId[] = [];
+    for (const argumentId of data.argumentIds) {
+      const result = ArgumentIdGenerator.fromHash(argumentId);
+      if (result.isErr()) {
+        return err(new StorageError(
+          `Invalid argument ID '${argumentId}': ${result.error.message}`,
+          'deserialize'
+        ));
+      }
+      validatedArgumentIds.push(result.value);
+    }
+
     // Reconstitute with validated data
-    // SAFETY: Cast is safe because Zod validated the structure at runtime
-    const result = DebateSimulation.reconstitute(
+    const reconstituteResult = DebateSimulation.reconstitute(
       idResult.value,
       data.topic,
       timestampResult.value,
       statusResult.value,
-      data.participantIds as AgentId[],
-      data.argumentIds as ArgumentId[],
+      validatedParticipantIds,
+      validatedArgumentIds,
       data.votesToClose as CloseVote[]
     );
 
     // Map domain validation errors to StorageError
-    if (result.isErr()) {
+    if (reconstituteResult.isErr()) {
       return err(new StorageError(
-        `Failed to deserialize simulation: ${result.error.message}`,
+        `Failed to deserialize simulation: ${reconstituteResult.error.message}`,
         'deserialize'
       ));
     }
 
-    return ok(result.value);
+    return ok(reconstituteResult.value);
   }
 }

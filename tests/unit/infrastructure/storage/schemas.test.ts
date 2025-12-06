@@ -204,6 +204,29 @@ describe('Storage Schemas', () => {
       };
       expect(ArgumentDataSchema.safeParse(invalid).success).toBe(false);
     });
+
+    it('should accept all ArgumentType enum values', () => {
+      // ARCHITECTURE: This test ensures Zod schema stays in sync with domain ArgumentType enum
+      // If you add a new ArgumentType, add it here too
+      const argumentTypes = ['deductive', 'inductive', 'empirical'] as const;
+
+      for (const type of argumentTypes) {
+        // Create appropriate structure for each type
+        const structure = type === 'deductive'
+          ? { premises: ['P1', 'P2'], conclusion: 'C' }
+          : type === 'inductive'
+            ? { observations: ['O1', 'O2'], generalization: 'G' }
+            : { evidence: [{ source: 'S', relevance: 'R' }], claim: 'C' };
+
+        const data = {
+          ...validArgumentData,
+          type,
+          content: { text: 'Test', structure },
+        };
+        const result = ArgumentDataSchema.safeParse(data);
+        expect(result.success, `ArgumentType '${type}' should be valid`).toBe(true);
+      }
+    });
   });
 
   describe('SimulationDataSchema', () => {
@@ -295,6 +318,18 @@ describe('Storage Schemas', () => {
         type: 'invalid-type',
       };
       expect(CitationDataSchema.safeParse(invalid).success).toBe(false);
+    });
+
+    it('should accept all CitationType enum values', () => {
+      // ARCHITECTURE: This test ensures Zod schema stays in sync with domain CitationType enum
+      // If you add a new CitationType, add it here too
+      const citationTypes = ['paper', 'report', 'book', 'website', 'study'] as const;
+
+      for (const type of citationTypes) {
+        const data = { ...validCitationData, type };
+        const result = CitationDataSchema.safeParse(data);
+        expect(result.success, `CitationType '${type}' should be valid`).toBe(true);
+      }
     });
   });
 

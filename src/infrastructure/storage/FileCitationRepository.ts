@@ -11,7 +11,7 @@ import { Citation } from '../../core/entities/Citation';
 import { CitationId } from '../../core/value-objects/CitationId';
 import type { SimulationId } from '../../core/value-objects/SimulationId';
 import { CitationType } from '../../core/value-objects/CitationType';
-import type { Timestamp } from '../../core/value-objects/Timestamp';
+import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ObjectStorage } from './ObjectStorage';
 import { HashResolver } from './HashResolver';
 import { TOKENS } from '../../shared/container';
@@ -243,7 +243,16 @@ export class FileCitationRepository implements ICitationRepository {
     }
     const data = parseResult.value;
 
-    // STEP 2: Construct metadata from optional fields
+    // STEP 2: Domain validation - Validate Timestamp format
+    const timestampResult = TimestampGenerator.fromString(data.createdAt);
+    if (timestampResult.isErr()) {
+      return err(new CitationStorageError(
+        `Invalid timestamp '${data.createdAt}': ${timestampResult.error.message}`,
+        'deserialize'
+      ));
+    }
+
+    // STEP 3: Construct metadata from optional fields
     const metadata = {
       ...(data.doi !== undefined && { doi: data.doi }),
       ...(data.url !== undefined && { url: data.url }),
@@ -259,7 +268,7 @@ export class FileCitationRepository implements ICitationRepository {
       data.source,
       data.type as CitationType,
       metadata,
-      data.createdAt as Timestamp
+      timestampResult.value
     ));
   }
 }

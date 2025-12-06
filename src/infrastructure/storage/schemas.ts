@@ -142,9 +142,9 @@ export const SimulationDataSchema = z.object({
   topic: z.string().min(1).max(500),
   createdAt: TimestampSchema,
   status: z.enum(['active', 'voting', 'closed']),
-  participantIds: z.array(AgentIdSchema),
-  argumentIds: z.array(ArgumentIdSchema),
-  votesToClose: z.array(CloseVoteDataSchema),
+  participantIds: z.array(AgentIdSchema).readonly(),
+  argumentIds: z.array(ArgumentIdSchema).readonly(),
+  votesToClose: z.array(CloseVoteDataSchema).readonly(),
 });
 
 export type SimulationData = z.infer<typeof SimulationDataSchema>;
@@ -169,7 +169,7 @@ export const CitationDataSchema = z.object({
   url: z.string().url().optional(),
   page: z.number().int().positive().optional(),
   quote: z.string().optional(),
-  authors: z.array(z.string()).optional(),
+  authors: z.array(z.string()).readonly().optional(),
   year: z.number().int().positive().optional(),
 });
 
@@ -187,7 +187,7 @@ export const AgentDataSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['llm', 'human', 'hybrid']),
   description: z.string().optional(),
-  capabilities: z.array(z.string()),
+  capabilities: z.array(z.string()).readonly(),
   model: z.string().optional(),
   instructions: z.string().optional(),
   filePath: z.string().optional(),
