@@ -204,6 +204,29 @@ describe('Storage Schemas', () => {
       };
       expect(ArgumentDataSchema.safeParse(invalid).success).toBe(false);
     });
+
+    it('should accept all ArgumentType enum values', () => {
+      // ARCHITECTURE: This test ensures Zod schema stays in sync with domain ArgumentType enum
+      // If you add a new ArgumentType, add it here too
+      const argumentTypes = ['deductive', 'inductive', 'empirical'] as const;
+
+      for (const type of argumentTypes) {
+        // Create appropriate structure for each type
+        const structure = type === 'deductive'
+          ? { premises: ['P1', 'P2'], conclusion: 'C' }
+          : type === 'inductive'
+            ? { observations: ['O1', 'O2'], generalization: 'G' }
+            : { evidence: [{ source: 'S', relevance: 'R' }], claim: 'C' };
+
+        const data = {
+          ...validArgumentData,
+          type,
+          content: { text: 'Test', structure },
+        };
+        const result = ArgumentDataSchema.safeParse(data);
+        expect(result.success, `ArgumentType '${type}' should be valid`).toBe(true);
+      }
+    });
   });
 
   describe('SimulationDataSchema', () => {
@@ -255,15 +278,13 @@ describe('Storage Schemas', () => {
   });
 
   describe('CitationDataSchema', () => {
+    // Schema matches FileCitationRepository save format with CitationType enum values
     const validCitationData = {
       id: 'citation-123',
       source: 'Smith et al. (2023)',
-      type: 'academic' as const,
-      metadata: {
-        hash: 'abc123',
-        shortHash: 'abc123d',
-        createdAt: '2024-01-15T10:00:00Z',
-      },
+      type: 'paper' as const,  // Matches CitationType.PAPER
+      createdAt: '2024-01-15T10:00:00Z',
+      simulationId: 'sim-123',
     };
 
     it('should accept valid citation data', () => {
@@ -274,22 +295,19 @@ describe('Storage Schemas', () => {
       const full = {
         ...validCitationData,
         quote: 'The results clearly show...',
-        context: 'In discussing climate change',
-        accessedAt: '2024-01-15T10:00:00Z',
-        author: 'John Smith',
-        title: 'Research Paper Title',
-        publication: 'Nature',
-        url: 'https://example.com/paper',
         doi: '10.1234/example',
-        date: '2023-06-15',
+        url: 'https://example.com/paper',
+        page: 42,
+        authors: ['John Smith', 'Jane Doe'],
+        year: 2023,
       };
       expect(CitationDataSchema.safeParse(full).success).toBe(true);
     });
 
-    it('should reject invalid URL', () => {
+    it('should reject negative page number', () => {
       const invalid = {
         ...validCitationData,
-        url: 'not-a-valid-url',
+        page: -1,
       };
       expect(CitationDataSchema.safeParse(invalid).success).toBe(false);
     });
@@ -300,6 +318,18 @@ describe('Storage Schemas', () => {
         type: 'invalid-type',
       };
       expect(CitationDataSchema.safeParse(invalid).success).toBe(false);
+    });
+
+    it('should accept all CitationType enum values', () => {
+      // ARCHITECTURE: This test ensures Zod schema stays in sync with domain CitationType enum
+      // If you add a new CitationType, add it here too
+      const citationTypes = ['paper', 'report', 'book', 'website', 'study'] as const;
+
+      for (const type of citationTypes) {
+        const data = { ...validCitationData, type };
+        const result = CitationDataSchema.safeParse(data);
+        expect(result.success, `CitationType '${type}' should be valid`).toBe(true);
+      }
     });
   });
 

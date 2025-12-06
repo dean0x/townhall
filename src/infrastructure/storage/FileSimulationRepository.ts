@@ -14,21 +14,12 @@ import { DebateSimulation, CloseVote } from '../../core/entities/DebateSimulatio
 import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { parseDebateStatus } from '../../core/value-objects/DebateStatus';
-import { AgentId } from '../../core/value-objects/AgentId';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { AgentId, AgentIdGenerator } from '../../core/value-objects/AgentId';
+import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
 import { hasErrorCode } from './NodeSystemError';
-
-interface SimulationData {
-  readonly id: string;
-  readonly topic: string;
-  readonly createdAt: string;
-  readonly status: string;
-  readonly participantIds: string[];
-  readonly argumentIds: string[];
-  readonly votesToClose: CloseVote[];
-}
+import { SimulationDataSchema, type SimulationData, parseStorageData } from './schemas';
 
 @injectable()
 export class FileSimulationRepository implements ISimulationRepository {
@@ -60,16 +51,16 @@ export class FileSimulationRepository implements ISimulationRepository {
     return ok(simulation.id);
   }
 
-  public async findById(id: SimulationId): Promise<Result<DebateSimulation, NotFoundError>> {
+  public async findById(id: SimulationId): Promise<Result<DebateSimulation, NotFoundError | StorageError>> {
     const result = await this.storage.retrieve('simulations', id);
     if (result.isErr()) {
       return err(new NotFoundError('Simulation', id));
     }
 
-    return ok(this.deserializeSimulation(result.value.data as unknown as SimulationData));
+    return this.deserializeSimulation(result.value.data);
   }
 
-  public async getActive(): Promise<Result<DebateSimulation, NotFoundError>> {
+  public async getActive(): Promise<Result<DebateSimulation, NotFoundError | StorageError>> {
     try {
       const headPath = join(this.basePath, 'refs', 'HEAD');
       const activeId = await fs.readFile(headPath, 'utf8');
@@ -201,7 +192,11 @@ export class FileSimulationRepository implements ISimulationRepository {
     const simulations: DebateSimulation[] = [];
     for (const simResult of results) {
       if (simResult.isOk()) {
-        simulations.push(this.deserializeSimulation(simResult.value.data as unknown as SimulationData));
+        const deserializeResult = this.deserializeSimulation(simResult.value.data);
+        if (deserializeResult.isErr()) {
+          return propagateError(deserializeResult);
+        }
+        simulations.push(deserializeResult.value);
       }
     }
 
@@ -225,55 +220,92 @@ export class FileSimulationRepository implements ISimulationRepository {
     return this.storage.delete('simulations', id);
   }
 
-  private deserializeSimulation(data: SimulationData): DebateSimulation {
-    // ARCHITECTURE: Runtime validation before type assertions
-    // Rationale: Ensure storage data is valid before reconstituting domain entities
+  /**
+   * Deserializes simulation data from storage
+   * ARCHITECTURE: Uses Zod for schema validation at storage boundary
+   * Pattern: Parse, don't validate - validates shape before domain logic
+   * Returns Result to allow callers to handle corruption gracefully
+   */
+  private deserializeSimulation(rawData: unknown): Result<DebateSimulation, StorageError> {
+    // STEP 1: Schema validation with Zod (parse, don't validate)
+    const parseResult = parseStorageData(SimulationDataSchema, rawData, 'simulation');
+    if (parseResult.isErr()) {
+      return propagateError(parseResult);
+    }
+    const data = parseResult.value;
 
-    // Validate SimulationId
+    // STEP 2: Domain validation - Validate SimulationId format
     const idResult = SimulationIdGenerator.fromHash(data.id);
     if (idResult.isErr()) {
-      throw new Error(`Data corruption: Invalid simulation ID '${data.id}' - ${idResult.error.message}`);
+      return err(new StorageError(
+        `Invalid simulation ID '${data.id}': ${idResult.error.message}`,
+        'deserialize'
+      ));
     }
 
-    // Validate Timestamp
+    // Domain validation: Validate Timestamp format
     const timestampResult = TimestampGenerator.fromString(data.createdAt);
     if (timestampResult.isErr()) {
-      throw new Error(`Data corruption: Invalid timestamp '${data.createdAt}' - ${timestampResult.error.message}`);
+      return err(new StorageError(
+        `Invalid timestamp '${data.createdAt}': ${timestampResult.error.message}`,
+        'deserialize'
+      ));
     }
 
-    // Validate DebateStatus
+    // Domain validation: Validate DebateStatus
     const statusResult = parseDebateStatus(data.status);
     if (statusResult.isErr()) {
-      throw new Error(`Data corruption: Invalid status '${data.status}' - ${statusResult.error.message}`);
+      return err(new StorageError(
+        `Invalid status '${data.status}': ${statusResult.error.message}`,
+        'deserialize'
+      ));
     }
 
-    // Validate participantIds array
-    if (!Array.isArray(data.participantIds) || !data.participantIds.every(id => typeof id === 'string')) {
-      throw new Error('Data corruption: participantIds must be an array of strings');
+    // Domain validation: Validate participant IDs (UUID format)
+    const validatedParticipantIds: AgentId[] = [];
+    for (const participantId of data.participantIds) {
+      const result = AgentIdGenerator.fromString(participantId);
+      if (result.isErr()) {
+        return err(new StorageError(
+          `Invalid participant ID '${participantId}': ${result.error.message}`,
+          'deserialize'
+        ));
+      }
+      validatedParticipantIds.push(result.value);
     }
 
-    // Validate argumentIds array
-    if (!Array.isArray(data.argumentIds) || !data.argumentIds.every(id => typeof id === 'string')) {
-      throw new Error('Data corruption: argumentIds must be an array of strings');
+    // Domain validation: Validate argument IDs (SHA-256 hash format)
+    const validatedArgumentIds: ArgumentId[] = [];
+    for (const argumentId of data.argumentIds) {
+      const result = ArgumentIdGenerator.fromHash(argumentId);
+      if (result.isErr()) {
+        return err(new StorageError(
+          `Invalid argument ID '${argumentId}': ${result.error.message}`,
+          'deserialize'
+        ));
+      }
+      validatedArgumentIds.push(result.value);
     }
 
     // Reconstitute with validated data
-    const result = DebateSimulation.reconstitute(
+    const reconstituteResult = DebateSimulation.reconstitute(
       idResult.value,
       data.topic,
       timestampResult.value,
       statusResult.value,
-      data.participantIds as AgentId[],
-      data.argumentIds as ArgumentId[],
-      data.votesToClose
+      validatedParticipantIds,
+      validatedArgumentIds,
+      data.votesToClose as CloseVote[]
     );
 
-    // SAFETY: Deserialization with validated data should always succeed
-    // If it still fails, it indicates data corruption - throw to surface the issue
-    if (result.isErr()) {
-      throw new Error(`Data corruption: Failed to deserialize simulation - ${result.error.message}`);
+    // Map domain validation errors to StorageError
+    if (reconstituteResult.isErr()) {
+      return err(new StorageError(
+        `Failed to deserialize simulation: ${reconstituteResult.error.message}`,
+        'deserialize'
+      ));
     }
 
-    return result.value;
+    return ok(reconstituteResult.value);
   }
 }

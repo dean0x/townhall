@@ -17,13 +17,15 @@ export interface ISimulationRepository {
 
   /**
    * Find simulation by ID
+   * Returns StorageError if data exists but is corrupted
    */
-  findById(id: SimulationId): Promise<Result<DebateSimulation, NotFoundError>>;
+  findById(id: SimulationId): Promise<Result<DebateSimulation, NotFoundError | StorageError>>;
 
   /**
    * Get the currently active simulation (enforces single active constraint)
+   * Returns StorageError if data exists but is corrupted
    */
-  getActive(): Promise<Result<DebateSimulation, NotFoundError>>;
+  getActive(): Promise<Result<DebateSimulation, NotFoundError | StorageError>>;
 
   /**
    * Set a simulation as the active one (fails if another is already active)

@@ -8,7 +8,7 @@ import { injectable, inject } from 'tsyringe';
 import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError } from '../../shared/errors';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { Argument, ArgumentContent, ArgumentMetadata } from '../../core/entities/Argument';
+import { Argument, ArgumentContent } from '../../core/entities/Argument';
 import { Rebuttal, VALID_REBUTTAL_TYPES } from '../../core/entities/Rebuttal';
 import { Concession, VALID_CONCESSION_TYPES } from '../../core/entities/Concession';
 import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
@@ -19,22 +19,7 @@ import { parseArgumentType } from '../../core/value-objects/ArgumentType';
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
-
-interface ArgumentData {
-  readonly id: string;
-  readonly agentId: string;
-  readonly type: string;
-  readonly content: ArgumentContent;
-  readonly timestamp: string;
-  readonly simulationId: string;
-  readonly metadata: ArgumentMetadata;
-  readonly citationIds?: string[]; // Referenced citations
-  readonly targetArgumentId?: string; // For rebuttals/concessions
-  readonly rebuttalType?: string;
-  readonly concessionType?: string;
-  readonly conditions?: string;
-  readonly explanation?: string;
-}
+import { ArgumentDataSchema, type ArgumentData, parseStorageData } from './schemas';
 
 @injectable()
 export class FileArgumentRepository implements IArgumentRepository {
@@ -109,7 +94,7 @@ export class FileArgumentRepository implements IArgumentRepository {
     return ok(concession.id);
   }
 
-  public async findById(id: ArgumentId | string): Promise<Result<Argument, NotFoundError>> {
+  public async findById(id: ArgumentId | string): Promise<Result<Argument, NotFoundError | StorageError>> {
     let argumentId: string;
 
     if (typeof id === 'string') {
@@ -132,7 +117,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       return err(new NotFoundError('Argument', argumentId));
     }
 
-    return ok(this.deserializeArgument(result.value.data as unknown as ArgumentData));
+    return this.deserializeArgument(result.value.data);
   }
 
   public async findBySimulation(simulationId: SimulationId): Promise<Result<Argument[], StorageError>> {
@@ -150,9 +135,13 @@ export class FileArgumentRepository implements IArgumentRepository {
     const argumentList: Argument[] = [];
     for (const argResult of results) {
       if (argResult.isOk()) {
-        const data = argResult.value.data as unknown as ArgumentData;
+        const data = argResult.value.data as Record<string, unknown>;
         if (data.simulationId === simulationId) {
-          argumentList.push(this.deserializeArgument(data));
+          const deserializeResult = this.deserializeArgument(data);
+          if (deserializeResult.isErr()) {
+            return propagateError(deserializeResult);
+          }
+          argumentList.push(deserializeResult.value);
         }
       }
     }
@@ -175,9 +164,13 @@ export class FileArgumentRepository implements IArgumentRepository {
     const argumentList: Argument[] = [];
     for (const argResult of results) {
       if (argResult.isOk()) {
-        const data = argResult.value.data as unknown as ArgumentData;
+        const data = argResult.value.data as Record<string, unknown>;
         if (data.agentId === agentId) {
-          argumentList.push(this.deserializeArgument(data));
+          const deserializeResult = this.deserializeArgument(data);
+          if (deserializeResult.isErr()) {
+            return propagateError(deserializeResult);
+          }
+          argumentList.push(deserializeResult.value);
         }
       }
     }
@@ -200,9 +193,13 @@ export class FileArgumentRepository implements IArgumentRepository {
     const argumentList: Argument[] = [];
     for (const argResult of results) {
       if (argResult.isOk()) {
-        const data = argResult.value.data as unknown as ArgumentData;
+        const data = argResult.value.data as Record<string, unknown>;
         if (data.targetArgumentId === targetId) {
-          argumentList.push(this.deserializeArgument(data));
+          const deserializeResult = this.deserializeArgument(data);
+          if (deserializeResult.isErr()) {
+            return propagateError(deserializeResult);
+          }
+          argumentList.push(deserializeResult.value);
         }
       }
     }
@@ -280,38 +277,35 @@ export class FileArgumentRepository implements IArgumentRepository {
   }
 
   /**
-   * Creates an Argument from stored data
-   * ARCHITECTURE: Runtime validation before type assertions
-   * Rationale: Ensure storage data is valid before reconstituting domain entities
+   * Creates an Argument from Zod-validated storage data
+   * ARCHITECTURE: Domain validation after Zod schema validation
+   * Rationale: Zod validates shape, domain validators ensure semantic correctness
    */
   private deserializeBaseArgument(data: ArgumentData): Result<Argument, Error> {
-    // Validate AgentId (simple string validation)
-    if (typeof data.agentId !== 'string' || data.agentId.length === 0) {
-      throw new Error(`Data corruption: Invalid agentId '${data.agentId}'`);
-    }
-
-    // Validate ArgumentType
+    // Domain validation: Validate ArgumentType matches domain enum
     const typeResult = parseArgumentType(data.type);
     if (typeResult.isErr()) {
-      throw new Error(`Data corruption: Invalid argument type '${data.type}' - ${typeResult.error.message}`);
+      return err(new Error(`Invalid argument type '${data.type}' - ${typeResult.error.message}`));
     }
 
-    // Validate SimulationId
+    // Domain validation: Validate SimulationId format
     const simIdResult = SimulationIdGenerator.fromHash(data.simulationId);
     if (simIdResult.isErr()) {
-      throw new Error(`Data corruption: Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`);
+      return err(new Error(`Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`));
     }
 
-    // Validate Timestamp
+    // Domain validation: Validate Timestamp format
     const timestampResult = TimestampGenerator.fromString(data.timestamp);
     if (timestampResult.isErr()) {
-      throw new Error(`Data corruption: Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`);
+      return err(new Error(`Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`));
     }
 
+    // SAFETY: Cast is safe because Zod validated the structure at runtime
+    // exactOptionalPropertyTypes causes inference mismatch but runtime shape is correct
     return Argument.create({
       agentId: data.agentId as AgentId,
       type: typeResult.value,
-      content: data.content,
+      content: data.content as unknown as ArgumentContent,
       simulationId: simIdResult.value,
       timestamp: timestampResult.value,
       sequenceNumber: data.metadata.sequenceNumber,
@@ -320,107 +314,99 @@ export class FileArgumentRepository implements IArgumentRepository {
   }
 
   /**
-   * Creates a Rebuttal from stored data
-   * ARCHITECTURE: Runtime validation before type assertions
-   * Rationale: Ensure storage data is valid before reconstituting domain entities
+   * Creates a Rebuttal from Zod-validated storage data
+   * ARCHITECTURE: Domain validation after Zod schema validation
+   * Rationale: Zod validates shape, domain validators ensure semantic correctness
    */
   private deserializeRebuttal(data: ArgumentData): Result<Rebuttal, Error> {
-    // Validate AgentId (simple string validation)
-    if (typeof data.agentId !== 'string' || data.agentId.length === 0) {
-      throw new Error(`Data corruption: Invalid agentId '${data.agentId}'`);
-    }
-
-    // Validate ArgumentType
+    // Domain validation: Validate ArgumentType matches domain enum
     const typeResult = parseArgumentType(data.type);
     if (typeResult.isErr()) {
-      throw new Error(`Data corruption: Invalid argument type '${data.type}' - ${typeResult.error.message}`);
+      return err(new Error(`Invalid argument type '${data.type}' - ${typeResult.error.message}`));
     }
 
-    // Validate SimulationId
+    // Domain validation: Validate SimulationId format
     const simIdResult = SimulationIdGenerator.fromHash(data.simulationId);
     if (simIdResult.isErr()) {
-      throw new Error(`Data corruption: Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`);
+      return err(new Error(`Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`));
     }
 
-    // Validate Timestamp
+    // Domain validation: Validate Timestamp format
     const timestampResult = TimestampGenerator.fromString(data.timestamp);
     if (timestampResult.isErr()) {
-      throw new Error(`Data corruption: Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`);
+      return err(new Error(`Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`));
     }
 
-    // Validate targetArgumentId
+    // Domain validation: Validate targetArgumentId (required for rebuttals)
     if (!data.targetArgumentId) {
-      throw new Error('Data corruption: Rebuttal missing targetArgumentId');
+      return err(new Error('Rebuttal missing targetArgumentId'));
     }
     const targetIdResult = ArgumentIdGenerator.fromHash(data.targetArgumentId);
     if (targetIdResult.isErr()) {
-      throw new Error(`Data corruption: Invalid targetArgumentId '${data.targetArgumentId}' - ${targetIdResult.error.message}`);
+      return err(new Error(`Invalid targetArgumentId '${data.targetArgumentId}' - ${targetIdResult.error.message}`));
     }
 
-    // Validate rebuttalType
-    if (!data.rebuttalType || !VALID_REBUTTAL_TYPES.includes(data.rebuttalType as any)) {
-      throw new Error(`Data corruption: Invalid rebuttalType '${data.rebuttalType}'. Must be one of: ${VALID_REBUTTAL_TYPES.join(', ')}`);
+    // Domain validation: Validate rebuttalType (required for rebuttals)
+    if (!data.rebuttalType || !VALID_REBUTTAL_TYPES.includes(data.rebuttalType as typeof VALID_REBUTTAL_TYPES[number])) {
+      return err(new Error(`Invalid rebuttalType '${data.rebuttalType}'. Must be one of: ${VALID_REBUTTAL_TYPES.join(', ')}`));
     }
 
+    // SAFETY: Cast is safe because Zod validated the structure at runtime
     return Rebuttal.create({
       agentId: data.agentId as AgentId,
       type: typeResult.value,
-      content: data.content,
+      content: data.content as unknown as ArgumentContent,
       simulationId: simIdResult.value,
       timestamp: timestampResult.value,
       targetArgumentId: targetIdResult.value,
-      rebuttalType: data.rebuttalType as any,
+      rebuttalType: data.rebuttalType as typeof VALID_REBUTTAL_TYPES[number],
       citationIds: data.citationIds || [],
     }, this.cryptoService);
   }
 
   /**
-   * Creates a Concession from stored data
-   * ARCHITECTURE: Runtime validation before type assertions
-   * Rationale: Ensure storage data is valid before reconstituting domain entities
+   * Creates a Concession from Zod-validated storage data
+   * ARCHITECTURE: Domain validation after Zod schema validation
+   * Rationale: Zod validates shape, domain validators ensure semantic correctness
    */
   private deserializeConcession(data: ArgumentData): Result<Concession, Error> {
-    // Validate AgentId (simple string validation)
-    if (typeof data.agentId !== 'string' || data.agentId.length === 0) {
-      throw new Error(`Data corruption: Invalid agentId '${data.agentId}'`);
-    }
-
-    // Validate ArgumentType
+    // Domain validation: Validate ArgumentType matches domain enum
     const typeResult = parseArgumentType(data.type);
     if (typeResult.isErr()) {
-      throw new Error(`Data corruption: Invalid argument type '${data.type}' - ${typeResult.error.message}`);
+      return err(new Error(`Invalid argument type '${data.type}' - ${typeResult.error.message}`));
     }
 
-    // Validate SimulationId
+    // Domain validation: Validate SimulationId format
     const simIdResult = SimulationIdGenerator.fromHash(data.simulationId);
     if (simIdResult.isErr()) {
-      throw new Error(`Data corruption: Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`);
+      return err(new Error(`Invalid simulationId '${data.simulationId}' - ${simIdResult.error.message}`));
     }
 
-    // Validate Timestamp
+    // Domain validation: Validate Timestamp format
     const timestampResult = TimestampGenerator.fromString(data.timestamp);
     if (timestampResult.isErr()) {
-      throw new Error(`Data corruption: Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`);
+      return err(new Error(`Invalid timestamp '${data.timestamp}' - ${timestampResult.error.message}`));
     }
 
-    // Validate targetArgumentId
+    // Domain validation: Validate targetArgumentId (required for concessions)
     if (!data.targetArgumentId) {
-      throw new Error('Data corruption: Concession missing targetArgumentId');
+      return err(new Error('Concession missing targetArgumentId'));
     }
     const targetIdResult = ArgumentIdGenerator.fromHash(data.targetArgumentId);
     if (targetIdResult.isErr()) {
-      throw new Error(`Data corruption: Invalid targetArgumentId '${data.targetArgumentId}' - ${targetIdResult.error.message}`);
+      return err(new Error(`Invalid targetArgumentId '${data.targetArgumentId}' - ${targetIdResult.error.message}`));
     }
 
-    // Validate concessionType
-    if (!data.concessionType || !VALID_CONCESSION_TYPES.includes(data.concessionType as any)) {
-      throw new Error(`Data corruption: Invalid concessionType '${data.concessionType}'. Must be one of: ${VALID_CONCESSION_TYPES.join(', ')}`);
+    // Domain validation: Validate concessionType (required for concessions)
+    if (!data.concessionType || !VALID_CONCESSION_TYPES.includes(data.concessionType as typeof VALID_CONCESSION_TYPES[number])) {
+      return err(new Error(`Invalid concessionType '${data.concessionType}'. Must be one of: ${VALID_CONCESSION_TYPES.join(', ')}`));
     }
 
+    // SAFETY: Cast is safe because Zod validated the structure at runtime
     const params = {
       agentId: data.agentId as AgentId,
       type: typeResult.value,
-      content: data.content,
+      content: data.content as unknown as ArgumentContent,
       simulationId: simIdResult.value,
       timestamp: timestampResult.value,
       targetArgumentId: targetIdResult.value,
@@ -434,11 +420,19 @@ export class FileArgumentRepository implements IArgumentRepository {
 
   /**
    * Deserializes argument data from storage
-   * REFACTORED: Reduced complexity from 9 to 3 using strategy pattern
-   * Complexity: 3 (type detection + error check + return)
+   * ARCHITECTURE: Uses Zod for schema validation at storage boundary
+   * Pattern: Parse, don't validate - validates shape before domain logic
+   * Returns Result to allow callers to handle corruption gracefully
    */
-  private deserializeArgument(data: ArgumentData): Argument {
-    // Strategy pattern: Use lookup table instead of nested conditionals
+  private deserializeArgument(rawData: unknown): Result<Argument, StorageError> {
+    // STEP 1: Schema validation with Zod (parse, don't validate)
+    const parseResult = parseStorageData(ArgumentDataSchema, rawData, 'argument');
+    if (parseResult.isErr()) {
+      return propagateError(parseResult);
+    }
+    const data = parseResult.value;
+
+    // STEP 2: Strategy pattern for domain deserialization
     const deserializers = {
       argument: (d: ArgumentData) => this.deserializeBaseArgument(d),
       rebuttal: (d: ArgumentData) => this.deserializeRebuttal(d),
@@ -448,12 +442,14 @@ export class FileArgumentRepository implements IArgumentRepository {
     const type = this.detectArgumentType(data);
     const result = deserializers[type](data);
 
-    // SAFETY: Deserialization from trusted storage should always succeed
-    // If it fails, it indicates data corruption - throw to surface the issue
+    // Map domain validation errors to StorageError
     if (result.isErr()) {
-      throw new Error(`Data corruption: Failed to deserialize ${type} - ${result.error.message}`);
+      return err(new StorageError(
+        `Failed to deserialize ${type}: ${result.error.message}`,
+        'deserialize'
+      ));
     }
 
-    return result.value;
+    return ok(result.value);
   }
 }

@@ -36,34 +36,37 @@ export const EvidenceSchema = z.object({
   source: z.string().min(1),
   citation: z.string().optional(),
   relevance: z.string().min(1),
-});
+}).readonly();
 
 /**
  * Deductive argument structure
+ * Uses readonly arrays to match domain types
  */
 export const DeductiveStructureSchema = z.object({
-  premises: z.array(z.string()).min(2),
+  premises: z.array(z.string()).min(2).readonly(),
   conclusion: z.string().min(1),
   form: z.string().optional(),
-});
+}).readonly();
 
 /**
  * Inductive argument structure
+ * Uses readonly arrays to match domain types
  */
 export const InductiveStructureSchema = z.object({
-  observations: z.array(z.string()).min(2),
+  observations: z.array(z.string()).min(2).readonly(),
   generalization: z.string().min(1),
   confidence: z.number().min(0).max(1).optional(),
-});
+}).readonly();
 
 /**
  * Empirical argument structure
+ * Uses readonly arrays to match domain types
  */
 export const EmpiricalStructureSchema = z.object({
-  evidence: z.array(EvidenceSchema).min(1),
+  evidence: z.array(EvidenceSchema).min(1).readonly(),
   claim: z.string().min(1),
   methodology: z.string().optional(),
-});
+}).readonly();
 
 /**
  * Union of all argument structures
@@ -76,23 +79,26 @@ export const ArgumentStructureSchema = z.union([
 
 /**
  * Argument content schema
+ * Marked readonly to match domain types
  */
 export const ArgumentContentSchema = z.object({
   text: z.string().min(1),
   structure: ArgumentStructureSchema,
-});
+}).readonly();
 
 /**
  * Argument metadata schema
+ * Marked readonly to match domain types
  */
 export const ArgumentMetadataSchema = z.object({
   hash: z.string().min(1),
   shortHash: z.string().min(1),
   sequenceNumber: z.number().int().min(0),
-});
+}).readonly();
 
 /**
  * Base argument data schema (stored in object storage)
+ * Uses readonly arrays and objects to match domain types
  */
 export const ArgumentDataSchema = z.object({
   id: ArgumentIdSchema,
@@ -102,7 +108,7 @@ export const ArgumentDataSchema = z.object({
   timestamp: TimestampSchema,
   simulationId: SimulationIdSchema,
   metadata: ArgumentMetadataSchema,
-  citationIds: z.array(z.string()).optional(),
+  citationIds: z.array(z.string()).readonly().optional(),
   // Rebuttal fields
   targetArgumentId: ArgumentIdSchema.optional(),
   rebuttalType: z.enum(['logical', 'empirical', 'methodological']).optional(),
@@ -136,9 +142,9 @@ export const SimulationDataSchema = z.object({
   topic: z.string().min(1).max(500),
   createdAt: TimestampSchema,
   status: z.enum(['active', 'voting', 'closed']),
-  participantIds: z.array(AgentIdSchema),
-  argumentIds: z.array(ArgumentIdSchema),
-  votesToClose: z.array(CloseVoteDataSchema),
+  participantIds: z.array(AgentIdSchema).readonly(),
+  argumentIds: z.array(ArgumentIdSchema).readonly(),
+  votesToClose: z.array(CloseVoteDataSchema).readonly(),
 });
 
 export type SimulationData = z.infer<typeof SimulationDataSchema>;
@@ -149,25 +155,22 @@ export type SimulationData = z.infer<typeof SimulationDataSchema>;
 
 /**
  * Citation data schema (stored in object storage)
+ * ARCHITECTURE: Matches FileCitationRepository save format exactly
+ * Type enum values match CitationType domain enum
  */
 export const CitationDataSchema = z.object({
   id: CitationIdSchema,
   source: z.string().min(1),
-  type: z.enum(['academic', 'news', 'official', 'web', 'book', 'other']),
-  quote: z.string().optional(),
-  context: z.string().optional(),
-  metadata: z.object({
-    hash: z.string().min(1),
-    shortHash: z.string().min(1),
-    createdAt: TimestampSchema,
-  }),
-  accessedAt: TimestampSchema.optional(),
-  author: z.string().optional(),
-  title: z.string().optional(),
-  publication: z.string().optional(),
-  url: z.string().url().optional(),
+  type: z.enum(['paper', 'report', 'book', 'website', 'study']),
+  createdAt: TimestampSchema,
+  simulationId: SimulationIdSchema,
+  // Optional citation metadata fields
   doi: z.string().optional(),
-  date: z.string().optional(),
+  url: z.string().url().optional(),
+  page: z.number().int().positive().optional(),
+  quote: z.string().optional(),
+  authors: z.array(z.string()).readonly().optional(),
+  year: z.number().int().positive().optional(),
 });
 
 export type CitationData = z.infer<typeof CitationDataSchema>;
@@ -184,7 +187,7 @@ export const AgentDataSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['llm', 'human', 'hybrid']),
   description: z.string().optional(),
-  capabilities: z.array(z.string()),
+  capabilities: z.array(z.string()).readonly(),
   model: z.string().optional(),
   instructions: z.string().optional(),
   filePath: z.string().optional(),

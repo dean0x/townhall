@@ -11,24 +11,11 @@ import { Citation } from '../../core/entities/Citation';
 import { CitationId } from '../../core/value-objects/CitationId';
 import type { SimulationId } from '../../core/value-objects/SimulationId';
 import { CitationType } from '../../core/value-objects/CitationType';
-import type { Timestamp } from '../../core/value-objects/Timestamp';
+import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ObjectStorage } from './ObjectStorage';
 import { HashResolver } from './HashResolver';
 import { TOKENS } from '../../shared/container';
-
-interface CitationData {
-  readonly id: string;
-  readonly source: string;
-  readonly type: CitationType;
-  readonly doi?: string;
-  readonly url?: string;
-  readonly page?: number;
-  readonly quote?: string;
-  readonly authors?: string[];
-  readonly year?: number;
-  readonly createdAt: string;
-  readonly simulationId: string;
-}
+import { CitationDataSchema, type CitationData, parseStorageData } from './schemas';
 
 @injectable()
 export class FileCitationRepository implements ICitationRepository {
@@ -60,7 +47,7 @@ export class FileCitationRepository implements ICitationRepository {
     return ok(citation.id);
   }
 
-  public async findById(id: CitationId): Promise<Result<Citation, CitationNotFoundError>> {
+  public async findById(id: CitationId): Promise<Result<Citation, CitationNotFoundError | CitationStorageError>> {
     const idString = CitationId.toString(id);
     const result = await this.storage.retrieve('citations', idString);
 
@@ -68,9 +55,7 @@ export class FileCitationRepository implements ICitationRepository {
       return err(new CitationNotFoundError(idString));
     }
 
-    const data = result.value.data as unknown as CitationData;
-    const citation = this.deserialize(data);
-    return ok(citation);
+    return this.deserialize(result.value.data);
   }
 
   public async findBySimulation(simulationId: SimulationId): Promise<Result<Citation[], CitationStorageError>> {
@@ -92,11 +77,19 @@ export class FileCitationRepository implements ICitationRepository {
     const retrieveResults = await Promise.all(retrievePromises);
 
     // Filter by simulation ID and deserialize
-    const citations: Citation[] = retrieveResults
-      .filter(result => result.isOk())
-      .map(result => result.value.data as unknown as CitationData)
-      .filter(data => data.simulationId === simIdString)
-      .map(data => this.deserialize(data));
+    const citations: Citation[] = [];
+    for (const result of retrieveResults) {
+      if (result.isOk()) {
+        const data = result.value.data as Record<string, unknown>;
+        if (data.simulationId === simIdString) {
+          const deserializeResult = this.deserialize(data);
+          if (deserializeResult.isErr()) {
+            return deserializeResult;
+          }
+          citations.push(deserializeResult.value);
+        }
+      }
+    }
 
     return ok(citations);
   }
@@ -236,7 +229,30 @@ export class FileCitationRepository implements ICitationRepository {
     return ok(CitationId.fromString(fullId));
   }
 
-  private deserialize(data: CitationData): Citation {
+  /**
+   * Deserializes citation data from storage
+   * ARCHITECTURE: Uses Zod for schema validation at storage boundary
+   * Pattern: Parse, don't validate - validates shape before domain logic
+   * Returns Result to allow callers to handle corruption gracefully
+   */
+  private deserialize(rawData: unknown): Result<Citation, CitationStorageError> {
+    // STEP 1: Schema validation with Zod (parse, don't validate)
+    const parseResult = parseStorageData(CitationDataSchema, rawData, 'citation');
+    if (parseResult.isErr()) {
+      return err(new CitationStorageError(parseResult.error.message, 'deserialize'));
+    }
+    const data = parseResult.value;
+
+    // STEP 2: Domain validation - Validate Timestamp format
+    const timestampResult = TimestampGenerator.fromString(data.createdAt);
+    if (timestampResult.isErr()) {
+      return err(new CitationStorageError(
+        `Invalid timestamp '${data.createdAt}': ${timestampResult.error.message}`,
+        'deserialize'
+      ));
+    }
+
+    // STEP 3: Construct metadata from optional fields
     const metadata = {
       ...(data.doi !== undefined && { doi: data.doi }),
       ...(data.url !== undefined && { url: data.url }),
@@ -245,12 +261,14 @@ export class FileCitationRepository implements ICitationRepository {
       ...(data.authors !== undefined && { authors: data.authors }),
       ...(data.year !== undefined && { year: data.year }),
     };
-    return Citation.reconstitute(
+
+    // SAFETY: Cast is safe because Zod enum values match CitationType enum values
+    return ok(Citation.reconstitute(
       CitationId.fromString(data.id),
       data.source,
-      data.type,
+      data.type as CitationType,
       metadata,
-      data.createdAt as Timestamp
-    );
+      timestampResult.value
+    ));
   }
 }

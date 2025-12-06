@@ -401,11 +401,9 @@ describe('FileSimulationRepository Security Tests', () => {
 
       await fs.writeFile(filePath, JSON.stringify(parsed), 'utf8');
 
-      // Should throw when deserializing corrupted data
-      // The actual error might be from entity validation rather than explicit "Data corruption" message
-      await expect(async () => {
-        await repository.findById(simulation.id);
-      }).rejects.toThrow();
+      // Should return error Result when deserializing corrupted data
+      const result = await repository.findById(simulation.id);
+      expectErr(result, 'StorageError');
     });
   });
 
