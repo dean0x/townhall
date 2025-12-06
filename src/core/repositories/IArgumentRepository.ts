@@ -31,8 +31,9 @@ export interface IArgumentRepository {
 
   /**
    * Find argument by its ID (full or short hash)
+   * Returns StorageError if data exists but is corrupted
    */
-  findById(id: ArgumentId | string): Promise<Result<Argument, NotFoundError>>;
+  findById(id: ArgumentId | string): Promise<Result<Argument, NotFoundError | StorageError>>;
 
   /**
    * Find all arguments in a simulation

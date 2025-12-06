@@ -51,16 +51,16 @@ export class FileSimulationRepository implements ISimulationRepository {
     return ok(simulation.id);
   }
 
-  public async findById(id: SimulationId): Promise<Result<DebateSimulation, NotFoundError>> {
+  public async findById(id: SimulationId): Promise<Result<DebateSimulation, NotFoundError | StorageError>> {
     const result = await this.storage.retrieve('simulations', id);
     if (result.isErr()) {
       return err(new NotFoundError('Simulation', id));
     }
 
-    return ok(this.deserializeSimulation(result.value.data));
+    return this.deserializeSimulation(result.value.data);
   }
 
-  public async getActive(): Promise<Result<DebateSimulation, NotFoundError>> {
+  public async getActive(): Promise<Result<DebateSimulation, NotFoundError | StorageError>> {
     try {
       const headPath = join(this.basePath, 'refs', 'HEAD');
       const activeId = await fs.readFile(headPath, 'utf8');
@@ -192,7 +192,11 @@ export class FileSimulationRepository implements ISimulationRepository {
     const simulations: DebateSimulation[] = [];
     for (const simResult of results) {
       if (simResult.isOk()) {
-        simulations.push(this.deserializeSimulation(simResult.value.data));
+        const deserializeResult = this.deserializeSimulation(simResult.value.data);
+        if (deserializeResult.isErr()) {
+          return propagateError(deserializeResult);
+        }
+        simulations.push(deserializeResult.value);
       }
     }
 
@@ -220,31 +224,41 @@ export class FileSimulationRepository implements ISimulationRepository {
    * Deserializes simulation data from storage
    * ARCHITECTURE: Uses Zod for schema validation at storage boundary
    * Pattern: Parse, don't validate - validates shape before domain logic
+   * Returns Result to allow callers to handle corruption gracefully
    */
-  private deserializeSimulation(rawData: unknown): DebateSimulation {
+  private deserializeSimulation(rawData: unknown): Result<DebateSimulation, StorageError> {
     // STEP 1: Schema validation with Zod (parse, don't validate)
     const parseResult = parseStorageData(SimulationDataSchema, rawData, 'simulation');
     if (parseResult.isErr()) {
-      throw new Error(`Data corruption: ${parseResult.error.message}`);
+      return propagateError(parseResult);
     }
     const data = parseResult.value;
 
     // STEP 2: Domain validation - Validate SimulationId format
     const idResult = SimulationIdGenerator.fromHash(data.id);
     if (idResult.isErr()) {
-      throw new Error(`Data corruption: Invalid simulation ID '${data.id}' - ${idResult.error.message}`);
+      return err(new StorageError(
+        `Invalid simulation ID '${data.id}': ${idResult.error.message}`,
+        'deserialize'
+      ));
     }
 
     // Domain validation: Validate Timestamp format
     const timestampResult = TimestampGenerator.fromString(data.createdAt);
     if (timestampResult.isErr()) {
-      throw new Error(`Data corruption: Invalid timestamp '${data.createdAt}' - ${timestampResult.error.message}`);
+      return err(new StorageError(
+        `Invalid timestamp '${data.createdAt}': ${timestampResult.error.message}`,
+        'deserialize'
+      ));
     }
 
     // Domain validation: Validate DebateStatus
     const statusResult = parseDebateStatus(data.status);
     if (statusResult.isErr()) {
-      throw new Error(`Data corruption: Invalid status '${data.status}' - ${statusResult.error.message}`);
+      return err(new StorageError(
+        `Invalid status '${data.status}': ${statusResult.error.message}`,
+        'deserialize'
+      ));
     }
 
     // Reconstitute with validated data
@@ -259,12 +273,14 @@ export class FileSimulationRepository implements ISimulationRepository {
       data.votesToClose as CloseVote[]
     );
 
-    // SAFETY: Deserialization from validated data should always succeed
-    // If it fails, it indicates domain invariant violation - throw to surface the issue
+    // Map domain validation errors to StorageError
     if (result.isErr()) {
-      throw new Error(`Data corruption: Failed to deserialize simulation - ${result.error.message}`);
+      return err(new StorageError(
+        `Failed to deserialize simulation: ${result.error.message}`,
+        'deserialize'
+      ));
     }
 
-    return result.value;
+    return ok(result.value);
   }
 }

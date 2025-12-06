@@ -47,7 +47,7 @@ export class FileCitationRepository implements ICitationRepository {
     return ok(citation.id);
   }
 
-  public async findById(id: CitationId): Promise<Result<Citation, CitationNotFoundError>> {
+  public async findById(id: CitationId): Promise<Result<Citation, CitationNotFoundError | CitationStorageError>> {
     const idString = CitationId.toString(id);
     const result = await this.storage.retrieve('citations', idString);
 
@@ -55,8 +55,7 @@ export class FileCitationRepository implements ICitationRepository {
       return err(new CitationNotFoundError(idString));
     }
 
-    const citation = this.deserialize(result.value.data);
-    return ok(citation);
+    return this.deserialize(result.value.data);
   }
 
   public async findBySimulation(simulationId: SimulationId): Promise<Result<Citation[], CitationStorageError>> {
@@ -78,11 +77,19 @@ export class FileCitationRepository implements ICitationRepository {
     const retrieveResults = await Promise.all(retrievePromises);
 
     // Filter by simulation ID and deserialize
-    const citations: Citation[] = retrieveResults
-      .filter(result => result.isOk())
-      .map(result => result.value.data as Record<string, unknown>)
-      .filter(data => data.simulationId === simIdString)
-      .map(data => this.deserialize(data));
+    const citations: Citation[] = [];
+    for (const result of retrieveResults) {
+      if (result.isOk()) {
+        const data = result.value.data as Record<string, unknown>;
+        if (data.simulationId === simIdString) {
+          const deserializeResult = this.deserialize(data);
+          if (deserializeResult.isErr()) {
+            return deserializeResult;
+          }
+          citations.push(deserializeResult.value);
+        }
+      }
+    }
 
     return ok(citations);
   }
@@ -226,12 +233,13 @@ export class FileCitationRepository implements ICitationRepository {
    * Deserializes citation data from storage
    * ARCHITECTURE: Uses Zod for schema validation at storage boundary
    * Pattern: Parse, don't validate - validates shape before domain logic
+   * Returns Result to allow callers to handle corruption gracefully
    */
-  private deserialize(rawData: unknown): Citation {
+  private deserialize(rawData: unknown): Result<Citation, CitationStorageError> {
     // STEP 1: Schema validation with Zod (parse, don't validate)
     const parseResult = parseStorageData(CitationDataSchema, rawData, 'citation');
     if (parseResult.isErr()) {
-      throw new Error(`Data corruption: ${parseResult.error.message}`);
+      return err(new CitationStorageError(parseResult.error.message, 'deserialize'));
     }
     const data = parseResult.value;
 
@@ -246,12 +254,12 @@ export class FileCitationRepository implements ICitationRepository {
     };
 
     // SAFETY: Cast is safe because Zod enum values match CitationType enum values
-    return Citation.reconstitute(
+    return ok(Citation.reconstitute(
       CitationId.fromString(data.id),
       data.source,
       data.type as CitationType,
       metadata,
       data.createdAt as Timestamp
-    );
+    ));
   }
 }

@@ -166,7 +166,7 @@ export const CitationDataSchema = z.object({
   simulationId: SimulationIdSchema,
   // Optional citation metadata fields
   doi: z.string().optional(),
-  url: z.string().optional(),
+  url: z.string().url().optional(),
   page: z.number().int().positive().optional(),
   quote: z.string().optional(),
   authors: z.array(z.string()).optional(),

@@ -94,7 +94,7 @@ export class FileArgumentRepository implements IArgumentRepository {
     return ok(concession.id);
   }
 
-  public async findById(id: ArgumentId | string): Promise<Result<Argument, NotFoundError>> {
+  public async findById(id: ArgumentId | string): Promise<Result<Argument, NotFoundError | StorageError>> {
     let argumentId: string;
 
     if (typeof id === 'string') {
@@ -117,7 +117,7 @@ export class FileArgumentRepository implements IArgumentRepository {
       return err(new NotFoundError('Argument', argumentId));
     }
 
-    return ok(this.deserializeArgument(result.value.data));
+    return this.deserializeArgument(result.value.data);
   }
 
   public async findBySimulation(simulationId: SimulationId): Promise<Result<Argument[], StorageError>> {
@@ -137,7 +137,11 @@ export class FileArgumentRepository implements IArgumentRepository {
       if (argResult.isOk()) {
         const data = argResult.value.data as Record<string, unknown>;
         if (data.simulationId === simulationId) {
-          argumentList.push(this.deserializeArgument(data));
+          const deserializeResult = this.deserializeArgument(data);
+          if (deserializeResult.isErr()) {
+            return propagateError(deserializeResult);
+          }
+          argumentList.push(deserializeResult.value);
         }
       }
     }
@@ -162,7 +166,11 @@ export class FileArgumentRepository implements IArgumentRepository {
       if (argResult.isOk()) {
         const data = argResult.value.data as Record<string, unknown>;
         if (data.agentId === agentId) {
-          argumentList.push(this.deserializeArgument(data));
+          const deserializeResult = this.deserializeArgument(data);
+          if (deserializeResult.isErr()) {
+            return propagateError(deserializeResult);
+          }
+          argumentList.push(deserializeResult.value);
         }
       }
     }
@@ -187,7 +195,11 @@ export class FileArgumentRepository implements IArgumentRepository {
       if (argResult.isOk()) {
         const data = argResult.value.data as Record<string, unknown>;
         if (data.targetArgumentId === targetId) {
-          argumentList.push(this.deserializeArgument(data));
+          const deserializeResult = this.deserializeArgument(data);
+          if (deserializeResult.isErr()) {
+            return propagateError(deserializeResult);
+          }
+          argumentList.push(deserializeResult.value);
         }
       }
     }
@@ -410,13 +422,13 @@ export class FileArgumentRepository implements IArgumentRepository {
    * Deserializes argument data from storage
    * ARCHITECTURE: Uses Zod for schema validation at storage boundary
    * Pattern: Parse, don't validate - validates shape before domain logic
-   * Complexity: 4 (parse + type detection + error check + return)
+   * Returns Result to allow callers to handle corruption gracefully
    */
-  private deserializeArgument(rawData: unknown): Argument {
+  private deserializeArgument(rawData: unknown): Result<Argument, StorageError> {
     // STEP 1: Schema validation with Zod (parse, don't validate)
     const parseResult = parseStorageData(ArgumentDataSchema, rawData, 'argument');
     if (parseResult.isErr()) {
-      throw new Error(`Data corruption: ${parseResult.error.message}`);
+      return propagateError(parseResult);
     }
     const data = parseResult.value;
 
@@ -430,12 +442,14 @@ export class FileArgumentRepository implements IArgumentRepository {
     const type = this.detectArgumentType(data);
     const result = deserializers[type](data);
 
-    // SAFETY: Deserialization from validated data should always succeed
-    // If it fails, it indicates domain invariant violation - throw to surface the issue
+    // Map domain validation errors to StorageError
     if (result.isErr()) {
-      throw new Error(`Data corruption: Failed to deserialize ${type} - ${result.error.message}`);
+      return err(new StorageError(
+        `Failed to deserialize ${type}: ${result.error.message}`,
+        'deserialize'
+      ));
     }
 
-    return result.value;
+    return ok(result.value);
   }
 }

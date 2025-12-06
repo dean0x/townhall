@@ -28,9 +28,9 @@ export interface ICitationRepository {
    * Find a citation by its ID
    *
    * @param id - The citation ID to find
-   * @returns Result containing the citation or not found error
+   * @returns Result containing the citation, not found error, or storage error if data is corrupted
    */
-  findById(id: CitationId): Promise<Result<Citation, CitationNotFoundError>>;
+  findById(id: CitationId): Promise<Result<Citation, CitationNotFoundError | CitationStorageError>>;
 
   /**
    * Find all citations in a simulation
