@@ -240,6 +240,40 @@ export class FileArgumentRepository implements IArgumentRepository {
     return ok(ids);
   }
 
+  /**
+   * Batch load multiple arguments by ID
+   * PERFORMANCE: Parallel fetch with single Promise.all, O(1) map lookups
+   */
+  public async findByIds(ids: ArgumentId[]): Promise<Result<Map<ArgumentId, Argument>, StorageError>> {
+    if (ids.length === 0) {
+      return ok(new Map());
+    }
+
+    // Deduplicate IDs to avoid redundant fetches
+    const uniqueIds = [...new Set(ids)];
+
+    // Parallel fetch all arguments
+    const retrievePromises = uniqueIds.map(id =>
+      this.storage.retrieve('arguments', id).then(result => ({ id, result }))
+    );
+    const results = await Promise.all(retrievePromises);
+
+    const argumentMap = new Map<ArgumentId, Argument>();
+
+    for (const { id, result } of results) {
+      if (result.isOk()) {
+        const deserializeResult = this.deserializeArgument(result.value.data);
+        if (deserializeResult.isErr()) {
+          return propagateError(deserializeResult);
+        }
+        argumentMap.set(id, deserializeResult.value);
+      }
+      // Note: Missing IDs are silently skipped (not found is not an error for batch)
+    }
+
+    return ok(argumentMap);
+  }
+
   public async findRelationships(argumentId: ArgumentId): Promise<Result<{
     rebuttals: ArgumentId[];
     concessions: ArgumentId[];

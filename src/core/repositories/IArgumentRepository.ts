@@ -66,6 +66,12 @@ export interface IArgumentRepository {
   getAllIds(simulationId: SimulationId): Promise<Result<ArgumentId[], StorageError>>;
 
   /**
+   * Batch load multiple arguments by ID
+   * PERFORMANCE: Single operation to load multiple arguments, avoiding N+1 patterns
+   */
+  findByIds(ids: ArgumentId[]): Promise<Result<Map<ArgumentId, Argument>, StorageError>>;
+
+  /**
    * Find relationships for an argument (rebuttals, concessions, supports)
    */
   findRelationships(argumentId: ArgumentId): Promise<Result<{

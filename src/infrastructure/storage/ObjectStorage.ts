@@ -5,12 +5,20 @@
  */
 
 import { createHash } from 'crypto';
-import { promises as fs } from 'fs';
+import { promises as fs, constants as fsConstants } from 'fs';
 import { join, resolve, relative } from 'path';
 import { injectable } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
 import { StorageError } from '../../shared/errors';
 import { hasErrorCode } from './NodeSystemError';
+
+export interface StoreOptions {
+  /**
+   * If true, fail if the object already exists (TOCTOU-safe)
+   * Uses atomic O_CREAT | O_EXCL file flags
+   */
+  exclusive?: boolean;
+}
 
 export interface StorageObject {
   readonly id: string;
@@ -134,7 +142,7 @@ export class ObjectStorage {
     return ok(undefined);
   }
 
-  public async store(type: string, data: Record<string, unknown>): Promise<Result<string, StorageError>> {
+  public async store(type: string, data: Record<string, unknown>, options?: StoreOptions): Promise<Result<string, StorageError>> {
     try {
       // SECURITY: Validate type parameter to prevent path traversal
       const typeValidation = this.validateType(type);
@@ -198,7 +206,27 @@ export class ObjectStorage {
       if (pathValidation.isErr()) {
         return err(pathValidation.error);
       }
-      await fs.writeFile(filePath, finalContent, { encoding: 'utf8', mode: 0o600 });
+
+      // SECURITY: Use atomic file operations when exclusive mode requested
+      // O_CREAT | O_EXCL ensures atomic create-if-not-exists (prevents TOCTOU)
+      if (options?.exclusive) {
+        try {
+          const fileHandle = await fs.open(filePath, fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL, 0o600);
+          try {
+            await fileHandle.writeFile(finalContent, { encoding: 'utf8' });
+          } finally {
+            await fileHandle.close();
+          }
+        } catch (error) {
+          if (hasErrorCode(error, 'EEXIST')) {
+            return err(new StorageError('Object already exists', 'conflict'));
+          }
+          throw error;
+        }
+      } else {
+        // Default: overwrite existing (safe for content-addressed storage)
+        await fs.writeFile(filePath, finalContent, { encoding: 'utf8', mode: 0o600 });
+      }
 
       return ok(id);
     } catch (error) {

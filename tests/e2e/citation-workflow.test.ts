@@ -8,7 +8,8 @@ import { execSync } from 'child_process';
 import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 
-describe('Citation Management E2E Workflow', () => {
+// E2E tests require longer timeouts due to CLI execution and file I/O
+describe('Citation Management E2E Workflow', { timeout: 30000 }, () => {
   const townhallDir = join(process.cwd(), '.townhall');
   const cliPath = join(process.cwd(), 'dist/index.js');
   const testAgentId = 'f05482e4-324d-4b50-8be3-a49f870cd968';
