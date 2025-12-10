@@ -281,6 +281,106 @@ describe('FileArgumentRepository - Deserialization Refactoring', () => {
     });
   });
 
+  describe('Batch operations - findByIds', () => {
+    it('should batch load multiple arguments by ID', async () => {
+      // Create multiple arguments
+      const arg1 = expectOk(Argument.create({
+        agentId: mockAgentId,
+        type: ArgumentType.DEDUCTIVE,
+        content: { text: 'Argument 1', structure: { premises: ['P1', 'P2'], conclusion: 'C1' } },
+        simulationId: mockSimulationId,
+        timestamp: mockTimestamp,
+      }, cryptoService));
+
+      const arg2 = expectOk(Argument.create({
+        agentId: mockAgentId,
+        type: ArgumentType.INDUCTIVE,
+        content: { text: 'Argument 2', structure: { observations: ['O1', 'O2'], generalization: 'G', confidence: 0.8 } },
+        simulationId: mockSimulationId,
+        timestamp: mockTimestamp,
+      }, cryptoService));
+
+      const arg3 = expectOk(Argument.create({
+        agentId: mockAgentId,
+        type: ArgumentType.DEDUCTIVE,
+        content: { text: 'Argument 3', structure: { premises: ['P3', 'P4'], conclusion: 'C3' } },
+        simulationId: mockSimulationId,
+        timestamp: mockTimestamp,
+      }, cryptoService));
+
+      await repository.save(arg1);
+      await repository.save(arg2);
+      await repository.save(arg3);
+
+      // Batch load
+      const result = await repository.findByIds([arg1.id, arg2.id, arg3.id]);
+      expect(result.isOk()).toBe(true);
+
+      if (result.isOk()) {
+        const argumentMap = result.value;
+        expect(argumentMap.size).toBe(3);
+        expect(argumentMap.get(arg1.id)?.content.text).toBe('Argument 1');
+        expect(argumentMap.get(arg2.id)?.content.text).toBe('Argument 2');
+        expect(argumentMap.get(arg3.id)?.content.text).toBe('Argument 3');
+      }
+    });
+
+    it('should handle empty ID array', async () => {
+      const result = await repository.findByIds([]);
+      expect(result.isOk()).toBe(true);
+
+      if (result.isOk()) {
+        expect(result.value.size).toBe(0);
+      }
+    });
+
+    it('should handle missing IDs gracefully', async () => {
+      const arg1 = expectOk(Argument.create({
+        agentId: mockAgentId,
+        type: ArgumentType.DEDUCTIVE,
+        content: { text: 'Argument 1', structure: { premises: ['P1', 'P2'], conclusion: 'C1' } },
+        simulationId: mockSimulationId,
+        timestamp: mockTimestamp,
+      }, cryptoService));
+
+      await repository.save(arg1);
+
+      // Request arg1 and a non-existent ID
+      const nonExistentId = 'a'.repeat(64) as typeof arg1.id;
+      const result = await repository.findByIds([arg1.id, nonExistentId]);
+      expect(result.isOk()).toBe(true);
+
+      if (result.isOk()) {
+        // Should only have arg1, missing IDs are skipped
+        expect(result.value.size).toBe(1);
+        expect(result.value.has(arg1.id)).toBe(true);
+        expect(result.value.has(nonExistentId)).toBe(false);
+      }
+    });
+
+    it('should deduplicate duplicate IDs', async () => {
+      const arg1 = expectOk(Argument.create({
+        agentId: mockAgentId,
+        type: ArgumentType.DEDUCTIVE,
+        content: { text: 'Argument 1', structure: { premises: ['P1', 'P2'], conclusion: 'C1' } },
+        simulationId: mockSimulationId,
+        timestamp: mockTimestamp,
+      }, cryptoService));
+
+      await repository.save(arg1);
+
+      // Request same ID multiple times
+      const result = await repository.findByIds([arg1.id, arg1.id, arg1.id]);
+      expect(result.isOk()).toBe(true);
+
+      if (result.isOk()) {
+        // Should only fetch once
+        expect(result.value.size).toBe(1);
+        expect(result.value.get(arg1.id)?.content.text).toBe('Argument 1');
+      }
+    });
+  });
+
   describe('Mixed argument types in same simulation', () => {
     it('should correctly deserialize multiple argument types', async () => {
       // Create base argument

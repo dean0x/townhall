@@ -42,12 +42,23 @@ export const createISOTimestamp = (date: Date = new Date()): ISOTimestamp => {
 };
 
 // Validation helpers
+// SECURITY: Length checks before regex to prevent ReDoS (Regular Expression Denial of Service)
+// Rationale: Early length rejection provides O(1) rejection of invalid input, preventing
+// catastrophic backtracking in the regex engine when processing malicious oversized strings
 export const isValidUUID = (value: string): value is UUID => {
+  // UUID format: 8-4-4-4-12 = 36 characters total
+  if (value.length !== 36) {
+    return false;
+  }
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value);
 };
 
 export const isValidSHA256 = (value: string): value is SHA256Hash => {
+  // SHA-256 hash: 64 hexadecimal characters
+  if (value.length !== 64) {
+    return false;
+  }
   const sha256Regex = /^[a-f0-9]{64}$/i;
   return sha256Regex.test(value);
 };

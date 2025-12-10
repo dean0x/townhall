@@ -464,6 +464,39 @@ describe('ObjectStorage Security Tests', () => {
       expect(retrieveResult.isOk()).toBe(true);
     });
 
+    describe('ReDoS Protection', () => {
+      it('should quickly reject oversized IDs without regex processing', async () => {
+        // This would cause catastrophic backtracking without length check
+        const oversizedId = 'a'.repeat(10000);
+
+        const startTime = performance.now();
+        const result = await storage.retrieve('arguments', oversizedId);
+        const duration = performance.now() - startTime;
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.message).toContain('exceeds maximum length');
+        }
+        // Should complete quickly (500ms threshold allows for CI variability while still proving O(1) rejection)
+        expect(duration).toBeLessThan(500);
+      });
+
+      it('should quickly reject oversized types without regex processing', async () => {
+        const oversizedType = 'a'.repeat(10000);
+
+        const startTime = performance.now();
+        const result = await storage.store(oversizedType, { id: 'test', data: 'value' });
+        const duration = performance.now() - startTime;
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.message).toContain('exceeds maximum length');
+        }
+        // Should complete quickly (500ms threshold allows for CI variability while still proving O(1) rejection)
+        expect(duration).toBeLessThan(500);
+      });
+    });
+
     it('should handle valid IDs with maximum hyphens', async () => {
       const hyphenatedId = 'a-b-c-d-e-f-0-1-2-3-4-5-6-7-8-9';
 
@@ -537,6 +570,81 @@ describe('ObjectStorage Security Tests', () => {
       // Check directory permissions (should be 0o700 - owner full access only)
       const mode = stats.mode & 0o777;
       expect(mode).toBe(0o700);
+    });
+  });
+
+  describe('TOCTOU Protection - Exclusive Mode', () => {
+    it('should successfully create new object in exclusive mode', async () => {
+      const result = await storage.store('arguments', { id: 'abc123def456', data: 'test' }, { exclusive: true });
+      expect(result.isOk()).toBe(true);
+
+      // Verify the file was created
+      const retrieveResult = await storage.retrieve('arguments', 'abc123def456');
+      expect(retrieveResult.isOk()).toBe(true);
+    });
+
+    it('should fail to overwrite existing object in exclusive mode', async () => {
+      // First write succeeds
+      const firstResult = await storage.store('arguments', { id: 'fedcba987654', data: 'first' }, { exclusive: true });
+      expect(firstResult.isOk()).toBe(true);
+
+      // Second write with same ID should fail
+      const secondResult = await storage.store('arguments', { id: 'fedcba987654', data: 'second' }, { exclusive: true });
+      expect(secondResult.isErr()).toBe(true);
+      if (secondResult.isErr()) {
+        expect(secondResult.error.message).toContain('already exists');
+        expect(secondResult.error.operation).toBe('conflict');
+      }
+
+      // Verify original data is preserved
+      const retrieveResult = await storage.retrieve('arguments', 'fedcba987654');
+      expect(retrieveResult.isOk()).toBe(true);
+      if (retrieveResult.isOk()) {
+        expect(retrieveResult.value.data.data).toBe('first');
+      }
+    });
+
+    it('should allow overwrite without exclusive mode', async () => {
+      // First write
+      const firstResult = await storage.store('arguments', { id: 'a1b2c3d4e5f6', data: 'first' });
+      expect(firstResult.isOk()).toBe(true);
+
+      // Second write without exclusive mode should succeed
+      const secondResult = await storage.store('arguments', { id: 'a1b2c3d4e5f6', data: 'second' });
+      expect(secondResult.isOk()).toBe(true);
+
+      // Verify data was overwritten
+      const retrieveResult = await storage.retrieve('arguments', 'a1b2c3d4e5f6');
+      expect(retrieveResult.isOk()).toBe(true);
+      if (retrieveResult.isOk()) {
+        expect(retrieveResult.value.data.data).toBe('second');
+      }
+    });
+
+    it('should handle concurrent writes atomically in exclusive mode', async () => {
+      // First, ensure the type directory exists by doing a non-exclusive write (valid hex IDs)
+      await storage.store('arguments', { id: '0'.repeat(64), data: 'setup' });
+
+      // All concurrent writes target the same valid hex ID
+      const concurrentWrites = Array(10).fill(null).map((_, i) =>
+        storage.store('arguments', { id: '1'.repeat(64), data: `write-${i}` }, { exclusive: true })
+      );
+
+      const results = await Promise.all(concurrentWrites);
+
+      // Exactly one should succeed
+      const successful = results.filter(r => r.isOk());
+      const failed = results.filter(r => r.isErr());
+
+      expect(successful.length).toBe(1);
+      expect(failed.length).toBe(9);
+
+      // All failures should be conflict errors
+      for (const failedResult of failed) {
+        if (failedResult.isErr()) {
+          expect(failedResult.error.message).toContain('already exists');
+        }
+      }
     });
   });
 
