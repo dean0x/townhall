@@ -42,7 +42,9 @@ export const createISOTimestamp = (date: Date = new Date()): ISOTimestamp => {
 };
 
 // Validation helpers
-// SECURITY: Length checks before regex to prevent ReDoS attacks
+// SECURITY: Length checks before regex to prevent ReDoS (Regular Expression Denial of Service)
+// Rationale: Early length rejection provides O(1) rejection of invalid input, preventing
+// catastrophic backtracking in the regex engine when processing malicious oversized strings
 export const isValidUUID = (value: string): value is UUID => {
   // UUID format: 8-4-4-4-12 = 36 characters total
   if (value.length !== 36) {

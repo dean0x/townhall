@@ -67,7 +67,13 @@ export interface IArgumentRepository {
 
   /**
    * Batch load multiple arguments by ID
+   *
    * PERFORMANCE: Single operation to load multiple arguments, avoiding N+1 patterns
+   *
+   * @param ids - Array of argument IDs to retrieve (duplicates are deduplicated internally)
+   * @returns Map of found arguments keyed by ArgumentId. Missing IDs are omitted from
+   *          the map (not treated as errors for batch operations).
+   * @throws StorageError if deserialization fails for any found argument
    */
   findByIds(ids: ArgumentId[]): Promise<Result<Map<ArgumentId, Argument>, StorageError>>;
 

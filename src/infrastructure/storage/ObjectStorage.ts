@@ -16,6 +16,11 @@ export interface StoreOptions {
   /**
    * If true, fail if the object already exists (TOCTOU-safe)
    * Uses atomic O_CREAT | O_EXCL file flags
+   *
+   * When exclusive=true:
+   * - Returns StorageError with operation='conflict' if the object already exists
+   * - Uses atomic O_CREAT | O_EXCL flags to prevent TOCTOU race conditions
+   * - Ensures exactly one writer succeeds in concurrent scenarios
    */
   exclusive?: boolean;
 }
@@ -225,6 +230,7 @@ export class ObjectStorage {
         }
       } else {
         // Default: overwrite existing (safe for content-addressed storage)
+        // Rationale: Filename is derived from content hash, so identical content = identical file (idempotent)
         await fs.writeFile(filePath, finalContent, { encoding: 'utf8', mode: 0o600 });
       }
 
