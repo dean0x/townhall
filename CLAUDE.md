@@ -144,10 +144,22 @@ export class FileArgumentRepository implements IArgumentRepository {
 ```
 src/
 ├── core/                 # Business logic ONLY
-│   ├── entities/        # Domain entities (Argument, Agent, etc.)
+│   ├── entities/        # Domain entities (Agent - simulation-agnostic)
 │   ├── value-objects/   # Immutable values (ArgumentId, Timestamp)
 │   ├── repositories/    # Interface definitions ONLY
-│   └── services/        # Domain services (pure logic)
+│   ├── services/        # Domain services (pure logic)
+│   ├── simulation/      # Generic simulation interfaces (ISimulation, IAction)
+│   ├── voting/          # SHARED: Generic voting mechanics
+│   └── relationships/   # SHARED: Generic relationship graph
+│
+├── simulations/          # SIMULATION TYPES (self-contained)
+│   ├── debate/          # Debate simulation
+│   │   ├── entities/   # Argument, Rebuttal, Concession
+│   │   ├── DebateSimulation.ts
+│   │   ├── DebateConfig.ts
+│   │   └── index.ts
+│   └── decision/        # Future: Decision simulation
+│       └── ...
 │
 ├── application/         # Use case orchestration
 │   ├── commands/       # Command definitions
@@ -163,6 +175,9 @@ src/
 │
 ├── interfaces/          # User-facing adapters
 │   ├── cli/           # CLI commands
+│   │   └── commands/
+│   │       ├── base/  # Shared commands (init, status, log)
+│   │       └── debate/ # Debate-specific commands
 │   ├── api/           # REST routes
 │   ├── mcp/           # MCP tools
 │   └── sdk/           # Public SDK
@@ -174,6 +189,123 @@ src/
 - No storage code outside `infrastructure/`
 - No business logic outside `core/`
 - No HTTP/CLI code outside `interfaces/`
+- No simulation-specific code outside `simulations/<type>/`
+
+## Simulation Type Architecture (ADR-001)
+
+> **Reference**: See `docs/adr/ADR-001-simulation-type-registration.md` for full context
+
+### Decision: Static Registry with Composition
+
+Simulation types (debate, decision, brainstorm) are **self-contained modules** that:
+1. Live in `simulations/<type>/`
+2. Register explicitly in `SimulationTypeRegistry`
+3. **Compose** shared utilities from `core/` (not inherit)
+
+### Boundary Rules (CRITICAL)
+
+#### Rule 1: No Cross-Simulation Imports
+
+Simulation types MUST NOT import from each other:
+
+```typescript
+// ❌ NEVER: debate/ importing from decision/
+import { Proposal } from '../decision/entities/Proposal';
+
+// ❌ NEVER: decision/ importing from debate/
+import { Argument } from '../debate/entities/Argument';
+
+// ✅ OK: Both import from core/
+import { IAction } from '../../core/simulation/IAction';
+import { IVotingMechanism } from '../../core/voting/IVotingMechanism';
+```
+
+#### Rule 2: Core Knows Nothing About Specific Simulations
+
+```typescript
+// ❌ NEVER: core/ importing from simulations/
+import { Argument } from '../../simulations/debate/entities/Argument';
+import { DebateSimulation } from '../../simulations/debate/DebateSimulation';
+
+// ✅ OK: core/ defines interfaces that simulations implement
+export interface ISimulation<TConfig, TStatus> { ... }
+export interface IAction { ... }
+```
+
+#### Rule 3: Registry is the Only Cross-Boundary Point
+
+`SimulationTypeRegistry` is the **ONLY** place that imports multiple simulation configs:
+
+```typescript
+// src/core/simulation/SimulationTypeRegistry.ts
+// This is the ONLY file that knows about all simulation types
+import { DebateConfig } from '../../simulations/debate';
+import { DecisionConfig } from '../../simulations/decision';
+
+registry.register(DebateConfig);
+registry.register(DecisionConfig);
+```
+
+#### Rule 4: Shared Utilities Use Generics
+
+Shared code in `core/voting/` and `core/relationships/` works via interfaces:
+
+```typescript
+// ✅ CORRECT: Generic over ballot type
+interface IVotingMechanism<TBallot extends BaseBallot> {
+  recordVote(ballot: TBallot): Result<void, VotingError>;
+  hasConsensus(rules: VotingRules): boolean;
+}
+
+// Debate composes with CloseVote
+class DebateSimulation {
+  private voting: IVotingMechanism<CloseVote>;
+}
+
+// Decision composes with ApprovalVote
+class DecisionSimulation {
+  private voting: IVotingMechanism<ApprovalVote>;
+}
+```
+
+### What's Shared vs Simulation-Specific
+
+| Component | Location | Shared? |
+|-----------|----------|---------|
+| Voting mechanics | `core/voting/` | Yes - generic over ballot type |
+| Relationship graph | `core/relationships/` | Yes - generic over relationship type |
+| Agent entity | `core/entities/` | Yes - agents are simulation-agnostic |
+| Phases/Rounds | `simulations/<type>/` | No - semantics vary too much |
+| Domain entities | `simulations/<type>/entities/` | No - Argument, Proposal, Idea are type-specific |
+| Validation rules | `simulations/<type>/` | No - each type has own rules |
+
+### Adding a New Simulation Type
+
+1. Create `src/simulations/<type>/` directory
+2. Implement `ISimulation` interface
+3. Create config implementing `ISimulationConfig`
+4. Define type-specific entities in `entities/`
+5. Register in `SimulationTypeRegistry.ts`
+6. Add CLI commands in `interfaces/cli/commands/<type>/`
+
+### Violations That Will Be Rejected
+
+```typescript
+// ❌ Importing between simulation types
+import { Rebuttal } from '../debate/entities/Rebuttal';
+
+// ❌ Core depending on simulation
+import { DebatePhase } from '../../simulations/debate/DebatePhase';
+
+// ❌ Shared utility knowing about specific types
+class VoteCalculator {
+  calculateDebateConsensus(...) // NO! Must be generic
+}
+
+// ❌ Simulation-specific code in core/
+// File: src/core/entities/Argument.ts  // WRONG LOCATION
+// Should be: src/simulations/debate/entities/Argument.ts
+```
 
 ## Implementation Checklist
 
@@ -358,12 +490,15 @@ fix(infra): handle concurrent file writes
 
 For ANY architectural change:
 
-1. Create ADR file: `.docs/adr/YYYY-MM-DD-title.md`
+1. Create ADR file: `docs/adr/ADR-NNN-title.md`
 2. Include:
    - Context: Why considering change
    - Decision: What we're doing
    - Consequences: Trade-offs
    - Alternatives: What we considered
+
+**Existing ADRs:**
+- `docs/adr/ADR-001-simulation-type-registration.md` - Multi-simulation architecture
 
 ## Performance Guidelines
 
@@ -443,8 +578,9 @@ Before requesting review:
 ## Questions?
 
 If architectural decision unclear:
-1. Check `.docs/townhall-product/architecture-decision-multi-interface.md`
-2. Check existing code patterns
-3. Ask before implementing if still unclear
+1. Check `docs/adr/` for Architecture Decision Records
+2. Check `docs/architecture.md` for hexagonal architecture overview
+3. Check existing code patterns in the relevant layer
+4. Ask before implementing if still unclear
 
 **Remember: Bad architecture is technical debt. Get it right the first time.**
