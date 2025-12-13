@@ -29,4 +29,6 @@ export {
   RelationshipGraph,
   RelationshipChain,
   GraphStats,
+  AdjacencyIndex,
+  MAX_GRAPH_DEPTH,
 } from './RelationshipGraph';
