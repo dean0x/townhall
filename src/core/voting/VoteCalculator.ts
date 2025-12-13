@@ -46,9 +46,16 @@ export class GenericVoteCalculator {
     rules: VotingRules = DEFAULT_VOTING_RULES
   ): VoteStatus {
     const totalParticipants = participantIds.length;
-    const yesVotes = ballots.filter(b => b.vote).length;
-    const noVotes = ballots.filter(b => !b.vote).length;
     const totalVotes = ballots.length;
+
+    // Single-pass vote counting: O(n) instead of O(3n)
+    let yesVotes = 0;
+    for (const ballot of ballots) {
+      if (ballot.vote) {
+        yesVotes++;
+      }
+    }
+    const noVotes = totalVotes - yesVotes;
 
     const participationRate = totalParticipants > 0
       ? totalVotes / totalParticipants
@@ -93,20 +100,15 @@ export class GenericVoteCalculator {
     ballots: readonly TBallot[],
     participantIds: readonly AgentId[]
   ): VotingSummary {
-    const participants = participantIds.length;
-    const voted = ballots.length;
-    const yesVotes = ballots.filter(b => b.vote).length;
-    const noVotes = ballots.filter(b => !b.vote).length;
-
-    // Check consensus with default rules
+    // Reuse calculateStatus which already counts votes in O(n)
     const status = this.calculateStatus(ballots, participantIds);
 
     return {
-      participants,
-      voted,
-      pending: participants - voted,
-      yesVotes,
-      noVotes,
+      participants: participantIds.length,
+      voted: status.total,
+      pending: status.required - status.total,
+      yesVotes: status.yesVotes,
+      noVotes: status.noVotes,
       consensusReached: status.hasConsensus,
     };
   }
@@ -188,13 +190,21 @@ export class GenericVoteCalculator {
       ? voteTimes.reduce((sum, t) => sum + t, 0) / voteTimes.length
       : 0;
 
+    // Single-pass vote distribution counting
+    let yesCount = 0;
+    for (const ballot of ballots) {
+      if (ballot.vote) {
+        yesCount++;
+      }
+    }
+
     return {
       averageVoteTime,
       quickestVote: voteTimes.length > 0 ? Math.min(...voteTimes) : 0,
       slowestVote: voteTimes.length > 0 ? Math.max(...voteTimes) : 0,
       voteDistribution: {
-        yes: ballots.filter(b => b.vote).length,
-        no: ballots.filter(b => !b.vote).length,
+        yes: yesCount,
+        no: ballots.length - yesCount,
         abstain: 0,
       },
     };
