@@ -6,7 +6,7 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RelationshipGraph } from '../../../../src/core/relationships/RelationshipGraph';
+import { RelationshipGraph, MAX_GRAPH_DEPTH } from '../../../../src/core/relationships/RelationshipGraph';
 import { IRelationship, toRelationship, isRelationship } from '../../../../src/core/relationships/IRelationship';
 import type { ActionId } from '../../../../src/core/simulation/IAction';
 
@@ -373,6 +373,135 @@ describe('RelationshipGraph', () => {
       expect(leaves).toContain(createActionId(4));
     });
   });
+
+  describe('buildIndex', () => {
+    it('should build empty index for empty relationships', () => {
+      const index = graph.buildIndex([]);
+
+      expect(index.outgoing.size).toBe(0);
+      expect(index.incoming.size).toBe(0);
+      expect(index.allNodes.size).toBe(0);
+    });
+
+    it('should track all nodes in the graph', () => {
+      const relationships: IRelationship<TestRelationType>[] = [
+        createRelationship(1, [2, 3], 'supports'),
+        createRelationship(2, [4], 'rebuts'),
+      ];
+
+      const index = graph.buildIndex(relationships);
+
+      expect(index.allNodes.size).toBe(4);
+      expect(index.allNodes.has(createActionId(1))).toBe(true);
+      expect(index.allNodes.has(createActionId(2))).toBe(true);
+      expect(index.allNodes.has(createActionId(3))).toBe(true);
+      expect(index.allNodes.has(createActionId(4))).toBe(true);
+    });
+
+    it('should build correct outgoing index', () => {
+      const relationships: IRelationship<TestRelationType>[] = [
+        createRelationship(1, [2], 'supports'),
+        createRelationship(1, [3], 'rebuts'),
+        createRelationship(2, [4], 'builds_on'),
+      ];
+
+      const index = graph.buildIndex(relationships);
+
+      // Node 1 has two outgoing relationships
+      expect(index.outgoing.get(createActionId(1))).toHaveLength(2);
+      // Node 2 has one outgoing relationship
+      expect(index.outgoing.get(createActionId(2))).toHaveLength(1);
+      // Node 3 has no outgoing relationships
+      expect(index.outgoing.has(createActionId(3))).toBe(false);
+    });
+
+    it('should build correct incoming index', () => {
+      const relationships: IRelationship<TestRelationType>[] = [
+        createRelationship(1, [3], 'supports'),
+        createRelationship(2, [3], 'rebuts'),
+      ];
+
+      const index = graph.buildIndex(relationships);
+
+      // Node 3 has two incoming relationships
+      expect(index.incoming.get(createActionId(3))).toHaveLength(2);
+      // Node 1 has no incoming relationships
+      expect(index.incoming.has(createActionId(1))).toBe(false);
+    });
+  });
+
+  describe('depth limiting', () => {
+    it('should detect cycle within depth limit', () => {
+      const relationships: IRelationship<TestRelationType>[] = [
+        createRelationship(1, [2], 'rebuts'),
+        createRelationship(2, [1], 'rebuts'),
+      ];
+
+      const result = graph.detectCycles(relationships, 10);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Circular reference');
+      }
+    });
+
+    it('should return error when depth limit exceeded', () => {
+      // Create a very deep linear chain: 1 -> 2 -> 3 -> ... -> 15
+      const relationships: IRelationship<TestRelationType>[] = [];
+      for (let i = 1; i <= 14; i++) {
+        relationships.push(createRelationship(i, [i + 1], 'supports'));
+      }
+
+      // With depth limit of 10, traversal should fail
+      const result = graph.detectCycles(relationships, 10);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('exceeded maximum depth');
+      }
+    });
+
+    it('should allow deep graphs within default depth limit', () => {
+      // Create a chain within MAX_GRAPH_DEPTH
+      const relationships: IRelationship<TestRelationType>[] = [];
+      for (let i = 1; i <= 100; i++) {
+        relationships.push(createRelationship(i, [i + 1], 'supports'));
+      }
+
+      const result = graph.detectCycles(relationships);
+
+      expect(result.isOk()).toBe(true);
+    });
+
+    it('should respect custom depth limit in buildChain', () => {
+      // Create chain: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+      const relationships: IRelationship<TestRelationType>[] = [
+        createRelationship(1, [2], 'supports'),
+        createRelationship(2, [3], 'supports'),
+        createRelationship(3, [4], 'supports'),
+        createRelationship(4, [5], 'supports'),
+        createRelationship(5, [6], 'supports'),
+        createRelationship(6, [7], 'supports'),
+      ];
+
+      // Full chain should have all 6 relationships
+      const fullChain = graph.buildChain(createActionId(1), relationships);
+      expect(fullChain.relationships).toHaveLength(6);
+
+      // With depth limit of 2, traversal starts at depth 0 and stops when > 2
+      // So we traverse: depth 0 (node 1), depth 1 (node 2), depth 2 (node 3)
+      // and stop before depth 3, meaning 2 relationships collected
+      const limitedChain = graph.buildChain(createActionId(1), relationships, 2);
+
+      // With limit 2, should have fewer relationships than full chain
+      expect(limitedChain.relationships.length).toBeLessThan(fullChain.relationships.length);
+    });
+
+    it('should use MAX_GRAPH_DEPTH as default limit', () => {
+      // Verify the constant is exported and reasonable
+      expect(MAX_GRAPH_DEPTH).toBe(1000);
+    });
+  });
 });
 
 describe('IRelationship utilities', () => {
@@ -405,6 +534,17 @@ describe('IRelationship utilities', () => {
       expect(isRelationship(rel)).toBe(true);
     });
 
+    it('should return true for relationship with valid strength', () => {
+      const rel = {
+        fromId: 'action-1',
+        toIds: ['action-2'],
+        type: 'rebuts',
+        strength: 0.5,
+      };
+
+      expect(isRelationship(rel)).toBe(true);
+    });
+
     it('should return false for null', () => {
       expect(isRelationship(null)).toBe(false);
     });
@@ -413,16 +553,49 @@ describe('IRelationship utilities', () => {
       expect(isRelationship({ toIds: ['a'], type: 'x' })).toBe(false);
     });
 
+    it('should return false for empty fromId', () => {
+      expect(isRelationship({ fromId: '', toIds: ['a'], type: 'x' })).toBe(false);
+    });
+
     it('should return false for missing toIds', () => {
       expect(isRelationship({ fromId: 'a', type: 'x' })).toBe(false);
+    });
+
+    it('should return false for empty toIds array', () => {
+      expect(isRelationship({ fromId: 'a', toIds: [], type: 'x' })).toBe(false);
     });
 
     it('should return false for non-array toIds', () => {
       expect(isRelationship({ fromId: 'a', toIds: 'b', type: 'x' })).toBe(false);
     });
 
+    it('should return false for toIds containing non-strings', () => {
+      expect(isRelationship({ fromId: 'a', toIds: [123], type: 'x' })).toBe(false);
+    });
+
+    it('should return false for toIds containing empty strings', () => {
+      expect(isRelationship({ fromId: 'a', toIds: ['b', ''], type: 'x' })).toBe(false);
+    });
+
     it('should return false for missing type', () => {
       expect(isRelationship({ fromId: 'a', toIds: ['b'] })).toBe(false);
+    });
+
+    it('should return false for empty type', () => {
+      expect(isRelationship({ fromId: 'a', toIds: ['b'], type: '' })).toBe(false);
+    });
+
+    it('should return false for strength below 0', () => {
+      expect(isRelationship({ fromId: 'a', toIds: ['b'], type: 'x', strength: -0.1 })).toBe(false);
+    });
+
+    it('should return false for strength above 1', () => {
+      expect(isRelationship({ fromId: 'a', toIds: ['b'], type: 'x', strength: 1.1 })).toBe(false);
+    });
+
+    it('should return true for strength at boundaries (0 and 1)', () => {
+      expect(isRelationship({ fromId: 'a', toIds: ['b'], type: 'x', strength: 0 })).toBe(true);
+      expect(isRelationship({ fromId: 'a', toIds: ['b'], type: 'x', strength: 1 })).toBe(true);
     });
   });
 });

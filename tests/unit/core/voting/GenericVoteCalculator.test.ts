@@ -134,6 +134,7 @@ describe('GenericVoteCalculator', () => {
       const customRules: VotingRules = {
         requireUnanimity: false,
         minimumParticipation: 0.8,
+        allowAbstention: false,
       };
 
       const status = calculator.calculateStatus(ballots, participants, customRules);
@@ -336,5 +337,162 @@ describe('GenericVoteCalculator', () => {
       expect(pattern.quickestVote).toBe(5000);
       expect(pattern.slowestVote).toBe(10000);
     });
+  });
+});
+
+// Import validateVotingRules for testing
+import { validateVotingRules } from '../../../../src/core/voting/VotingRules';
+
+describe('validateVotingRules', () => {
+  it('should return null for valid default rules', () => {
+    const error = validateVotingRules(DEFAULT_VOTING_RULES);
+    expect(error).toBeNull();
+  });
+
+  it('should return null for valid majority rules', () => {
+    const error = validateVotingRules(MAJORITY_VOTING_RULES);
+    expect(error).toBeNull();
+  });
+
+  it('should return null for minimumParticipation at 0', () => {
+    const rules: VotingRules = {
+      requireUnanimity: false,
+      minimumParticipation: 0,
+      allowAbstention: false,
+    };
+    expect(validateVotingRules(rules)).toBeNull();
+  });
+
+  it('should return null for minimumParticipation at 1', () => {
+    const rules: VotingRules = {
+      requireUnanimity: true,
+      minimumParticipation: 1,
+      allowAbstention: false,
+    };
+    expect(validateVotingRules(rules)).toBeNull();
+  });
+
+  it('should return null for minimumParticipation at 0.5', () => {
+    const rules: VotingRules = {
+      requireUnanimity: false,
+      minimumParticipation: 0.5,
+      allowAbstention: true,
+    };
+    expect(validateVotingRules(rules)).toBeNull();
+  });
+
+  it('should return error for minimumParticipation below 0', () => {
+    const rules: VotingRules = {
+      requireUnanimity: false,
+      minimumParticipation: -0.1,
+      allowAbstention: false,
+    };
+    const error = validateVotingRules(rules);
+    expect(error).not.toBeNull();
+    expect(error).toContain('minimumParticipation');
+  });
+
+  it('should return error for minimumParticipation above 1', () => {
+    const rules: VotingRules = {
+      requireUnanimity: false,
+      minimumParticipation: 1.1,
+      allowAbstention: false,
+    };
+    const error = validateVotingRules(rules);
+    expect(error).not.toBeNull();
+    expect(error).toContain('minimumParticipation');
+  });
+
+  it('should return error for minimumParticipation significantly above 1', () => {
+    const rules: VotingRules = {
+      requireUnanimity: false,
+      minimumParticipation: 2.0,
+      allowAbstention: false,
+    };
+    const error = validateVotingRules(rules);
+    expect(error).not.toBeNull();
+  });
+
+  it('should return error for negative minimumParticipation', () => {
+    const rules: VotingRules = {
+      requireUnanimity: false,
+      minimumParticipation: -1,
+      allowAbstention: false,
+    };
+    const error = validateVotingRules(rules);
+    expect(error).not.toBeNull();
+  });
+});
+
+// Import isBinaryBallot for testing
+import { isBinaryBallot, BaseBallot } from '../../../../src/core/voting/BaseBallot';
+
+describe('isBinaryBallot', () => {
+  const createBaseBallot = (): BaseBallot => ({
+    agentId: 'agent-1' as AgentId,
+    timestamp: '2025-01-01T10:00:00Z' as unknown as Timestamp,
+  });
+
+  it('should return true for ballot with boolean vote=true', () => {
+    const ballot = {
+      ...createBaseBallot(),
+      vote: true,
+    };
+    expect(isBinaryBallot(ballot)).toBe(true);
+  });
+
+  it('should return true for ballot with boolean vote=false', () => {
+    const ballot = {
+      ...createBaseBallot(),
+      vote: false,
+    };
+    expect(isBinaryBallot(ballot)).toBe(true);
+  });
+
+  it('should return false for ballot without vote property', () => {
+    const ballot = createBaseBallot();
+    expect(isBinaryBallot(ballot)).toBe(false);
+  });
+
+  it('should return false for ballot with non-boolean vote', () => {
+    const ballot = {
+      ...createBaseBallot(),
+      vote: 'yes', // string, not boolean
+    };
+    expect(isBinaryBallot(ballot as unknown as BaseBallot)).toBe(false);
+  });
+
+  it('should return false for ballot with numeric vote', () => {
+    const ballot = {
+      ...createBaseBallot(),
+      vote: 1, // number, not boolean
+    };
+    expect(isBinaryBallot(ballot as unknown as BaseBallot)).toBe(false);
+  });
+
+  it('should return false for ballot with null vote', () => {
+    const ballot = {
+      ...createBaseBallot(),
+      vote: null,
+    };
+    expect(isBinaryBallot(ballot as unknown as BaseBallot)).toBe(false);
+  });
+
+  it('should return false for ballot with undefined vote', () => {
+    const ballot = {
+      ...createBaseBallot(),
+      vote: undefined,
+    };
+    expect(isBinaryBallot(ballot as unknown as BaseBallot)).toBe(false);
+  });
+
+  it('should return true for ballot with extra properties', () => {
+    const ballot = {
+      ...createBaseBallot(),
+      vote: true,
+      reason: 'I agree with the proposal',
+      confidence: 0.9,
+    };
+    expect(isBinaryBallot(ballot)).toBe(true);
   });
 });

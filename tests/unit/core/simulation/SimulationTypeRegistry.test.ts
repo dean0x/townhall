@@ -219,3 +219,93 @@ describe('SimulationType', () => {
     });
   });
 });
+
+// Import isAction for testing
+import { isAction } from '../../../../src/core/simulation/IAction';
+
+describe('isAction', () => {
+  const validAction = {
+    id: 'action-123',
+    simulationId: 'sim-456',
+    agentId: 'agent-789',
+    timestamp: '2025-01-01T10:00:00.000Z',
+    actionType: 'argument',
+    content: 'This is a test argument',
+  };
+
+  it('should return true for valid action', () => {
+    expect(isAction(validAction)).toBe(true);
+  });
+
+  it('should return true for action with empty content', () => {
+    expect(isAction({ ...validAction, content: '' })).toBe(true);
+  });
+
+  it('should return false for null', () => {
+    expect(isAction(null)).toBe(false);
+  });
+
+  it('should return false for undefined', () => {
+    expect(isAction(undefined)).toBe(false);
+  });
+
+  it('should return false for non-object', () => {
+    expect(isAction('string')).toBe(false);
+    expect(isAction(123)).toBe(false);
+  });
+
+  it('should return false for empty id', () => {
+    expect(isAction({ ...validAction, id: '' })).toBe(false);
+  });
+
+  it('should return false for empty simulationId', () => {
+    expect(isAction({ ...validAction, simulationId: '' })).toBe(false);
+  });
+
+  it('should return false for empty agentId', () => {
+    expect(isAction({ ...validAction, agentId: '' })).toBe(false);
+  });
+
+  it('should return false for empty actionType', () => {
+    expect(isAction({ ...validAction, actionType: '' })).toBe(false);
+  });
+
+  it('should return false for empty timestamp', () => {
+    expect(isAction({ ...validAction, timestamp: '' })).toBe(false);
+  });
+
+  it('should return false for invalid timestamp format', () => {
+    expect(isAction({ ...validAction, timestamp: 'not-a-date' })).toBe(false);
+  });
+
+  it('should return true for various valid timestamp formats', () => {
+    expect(isAction({ ...validAction, timestamp: '2025-01-01' })).toBe(true);
+    expect(isAction({ ...validAction, timestamp: '2025-01-01T10:00:00Z' })).toBe(true);
+    expect(isAction({ ...validAction, timestamp: 'January 1, 2025' })).toBe(true);
+  });
+
+  it('should return false for missing required fields', () => {
+    const { id, ...withoutId } = validAction;
+    expect(isAction(withoutId)).toBe(false);
+
+    const { simulationId, ...withoutSimId } = validAction;
+    expect(isAction(withoutSimId)).toBe(false);
+
+    const { agentId, ...withoutAgentId } = validAction;
+    expect(isAction(withoutAgentId)).toBe(false);
+
+    const { timestamp, ...withoutTimestamp } = validAction;
+    expect(isAction(withoutTimestamp)).toBe(false);
+
+    const { actionType, ...withoutActionType } = validAction;
+    expect(isAction(withoutActionType)).toBe(false);
+
+    const { content, ...withoutContent } = validAction;
+    expect(isAction(withoutContent)).toBe(false);
+  });
+
+  it('should return false for non-string content', () => {
+    expect(isAction({ ...validAction, content: 123 })).toBe(false);
+    expect(isAction({ ...validAction, content: null })).toBe(false);
+  });
+});
