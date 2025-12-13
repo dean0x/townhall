@@ -9,7 +9,7 @@ import type { BusinessRuleError } from '../../shared/errors';
 import type { AgentId } from '../value-objects/AgentId';
 import type { BaseBallot } from './BaseBallot';
 import type { VotingRules } from './VotingRules';
-import type { VoteStatus, VotingSummary } from './VoteStatus';
+import type { VoteStatus } from './VoteStatus';
 
 /**
  * Interface for voting mechanisms that can work with any ballot type.

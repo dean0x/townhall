@@ -84,21 +84,46 @@ export function toRelationship<TType extends string>(
     fromId: rel.fromId,
     toIds: [rel.toId],
     type: rel.type,
-    strength: rel.strength,
+    ...(rel.strength !== undefined && { strength: rel.strength }),
   };
 }
 
 /**
  * Type guard to check if an object is a relationship.
+ * Validates both structure and content:
+ * - fromId must be non-empty string
+ * - toIds must be non-empty array of non-empty strings
+ * - type must be non-empty string
+ * - strength (if present) must be number between 0 and 1
  */
 export function isRelationship(obj: unknown): obj is IRelationship {
   if (typeof obj !== 'object' || obj === null) {
     return false;
   }
   const rel = obj as Record<string, unknown>;
-  return (
-    typeof rel.fromId === 'string' &&
-    Array.isArray(rel.toIds) &&
-    typeof rel.type === 'string'
-  );
+
+  // Validate required fields are non-empty strings
+  if (typeof rel.fromId !== 'string' || rel.fromId.length === 0) {
+    return false;
+  }
+  if (typeof rel.type !== 'string' || rel.type.length === 0) {
+    return false;
+  }
+
+  // Validate toIds is non-empty array of non-empty strings
+  if (!Array.isArray(rel.toIds) || rel.toIds.length === 0) {
+    return false;
+  }
+  if (!rel.toIds.every((id): id is string => typeof id === 'string' && id.length > 0)) {
+    return false;
+  }
+
+  // Validate optional strength is in valid range
+  if (rel.strength !== undefined) {
+    if (typeof rel.strength !== 'number' || rel.strength < 0 || rel.strength > 1) {
+      return false;
+    }
+  }
+
+  return true;
 }

@@ -9,16 +9,17 @@
  * - Brainstorm: Idea, BuildOn, Categorize
  */
 
+import type { Brand } from '../../shared/types';
 import type { AgentId } from '../value-objects/AgentId';
 import type { SimulationId } from '../value-objects/SimulationId';
 import type { Timestamp } from '../value-objects/Timestamp';
 
 /**
  * Content-addressed action ID (SHA-256 hash).
- * This is a type alias that can be used for any action type.
- * Specific simulations may brand this further (e.g., ArgumentId).
+ * Branded type prevents accidental mixing with other string identifiers.
+ * Specific simulations may create narrower subtypes (e.g., ArgumentId).
  */
-export type ActionId = string;
+export type ActionId = Brand<string, 'ActionId'>;
 
 /**
  * Base interface that all actions must implement.
@@ -71,21 +72,47 @@ export interface IAction {
 }
 
 /**
- * Type guard to check if an object implements IAction
+ * Type guard to check if an object implements IAction.
+ * Validates both structure and content:
+ * - id, simulationId, agentId, actionType must be non-empty strings
+ * - timestamp must be a valid ISO date string
+ * - content must be a string (can be empty for some action types)
  */
 export function isAction(obj: unknown): obj is IAction {
   if (typeof obj !== 'object' || obj === null) {
     return false;
   }
   const action = obj as Record<string, unknown>;
-  return (
-    typeof action.id === 'string' &&
-    typeof action.simulationId === 'string' &&
-    typeof action.agentId === 'string' &&
-    typeof action.timestamp === 'string' &&
-    typeof action.actionType === 'string' &&
-    typeof action.content === 'string'
-  );
+
+  // Validate required identifier fields are non-empty strings
+  if (typeof action.id !== 'string' || action.id.length === 0) {
+    return false;
+  }
+  if (typeof action.simulationId !== 'string' || action.simulationId.length === 0) {
+    return false;
+  }
+  if (typeof action.agentId !== 'string' || action.agentId.length === 0) {
+    return false;
+  }
+  if (typeof action.actionType !== 'string' || action.actionType.length === 0) {
+    return false;
+  }
+
+  // Validate timestamp is a valid ISO date string
+  if (typeof action.timestamp !== 'string' || action.timestamp.length === 0) {
+    return false;
+  }
+  const parsedDate = Date.parse(action.timestamp);
+  if (isNaN(parsedDate)) {
+    return false;
+  }
+
+  // Content must be a string (can be empty for some action types)
+  if (typeof action.content !== 'string') {
+    return false;
+  }
+
+  return true;
 }
 
 /**

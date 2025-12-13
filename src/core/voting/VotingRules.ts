@@ -47,7 +47,18 @@ export const MAJORITY_VOTING_RULES: VotingRules = {
 };
 
 /**
- * Validate voting rules configuration
+ * Validate voting rules configuration.
+ *
+ * @param rules - The voting rules to validate
+ * @returns null if rules are valid, or an error message string describing the validation failure
+ *
+ * @example
+ * ```typescript
+ * const error = validateVotingRules(myRules);
+ * if (error) {
+ *   console.error(`Invalid rules: ${error}`);
+ * }
+ * ```
  */
 export function validateVotingRules(rules: VotingRules): string | null {
   if (rules.minimumParticipation < 0 || rules.minimumParticipation > 1) {

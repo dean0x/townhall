@@ -43,6 +43,12 @@ export class SimulationTypeRegistry {
    * Register a simulation type.
    * Called during application startup by each simulation module.
    *
+   * ARCHITECTURE NOTE: This method intentionally throws instead of returning Result.
+   * Rationale: Registration happens at startup, not during business operations.
+   * Double-registration is a programmer error (misconfiguration), not a runtime
+   * condition. Fail-fast behavior catches configuration bugs immediately.
+   * See ADR-001 for the static registry design decision.
+   *
    * @throws Error if type is already registered (prevents double registration)
    */
   static register(config: SimulationTypeInfo): void {
