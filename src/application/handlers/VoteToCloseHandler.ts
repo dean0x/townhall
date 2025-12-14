@@ -12,7 +12,7 @@ import { VoteToCloseCommand } from '../commands/VoteToCloseCommand';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { VoteCalculator } from '../../core/services/VoteCalculator';
-import { DebateStatus } from '../../core/value-objects/DebateStatus';
+import { DebateStatus } from '../../simulations/debate';
 import { ITimestampService } from '../../core/services/ITimestampService';
 import { Vote } from '../../core/value-objects/Vote';
 import { TOKENS } from '../../shared/container';

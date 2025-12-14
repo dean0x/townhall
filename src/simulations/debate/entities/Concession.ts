@@ -1,14 +1,19 @@
 /**
- * ARCHITECTURE: Specialized argument entity for concessions
+ * ARCHITECTURE: Debate-specific entity for concessions implementing IAction
  * Pattern: Extends Argument with acknowledgment relationship data
  * Rationale: Tracks when agents accept or partially accept other arguments
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 import { Argument, CreateArgumentParams } from './Argument';
 import { ArgumentId } from '../value-objects/ArgumentId';
-import { ICryptoService } from '../services/ICryptoService';
+import { ICryptoService } from '../../../core/services/ICryptoService';
+
+/**
+ * Action type constant for type discrimination
+ */
+export const CONCESSION_ACTION_TYPE = 'concession' as const;
 
 export type ConcessionType = 'full' | 'partial' | 'conditional';
 
@@ -21,7 +26,16 @@ export interface CreateConcessionParams extends CreateArgumentParams {
   readonly explanation?: string;
 }
 
+/**
+ * Concession entity representing acknowledgment of an argument in a debate.
+ * Extends Argument and implements IAction through inheritance.
+ */
 export class Concession extends Argument {
+  /**
+   * Override action type for concessions.
+   */
+  public override readonly actionType = CONCESSION_ACTION_TYPE;
+
   private constructor(
     argument: Argument,
     public readonly targetArgumentId: ArgumentId,

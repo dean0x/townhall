@@ -12,9 +12,7 @@ import { ISimulationRepository } from '../../core/repositories/ISimulationReposi
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { RelationshipBuilder, ArgumentRelationship } from '../../core/services/RelationshipBuilder';
-import { Argument } from '../../core/entities/Argument';
-import { Rebuttal } from '../../core/entities/Rebuttal';
-import { Concession } from '../../core/entities/Concession';
+import { Argument, Rebuttal, Concession } from '../../simulations/debate';
 import { TOKENS } from '../../shared/container';
 
 export interface ArgumentSummary {

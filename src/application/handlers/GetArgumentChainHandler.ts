@@ -10,7 +10,7 @@ import { NotFoundError } from '../../shared/errors';
 import { IQueryHandler } from './QueryBus';
 import { GetArgumentChainQuery } from '../queries/GetArgumentChainQuery';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { Argument } from '../../core/entities/Argument';
+import { Argument } from '../../simulations/debate';
 import { TOKENS } from '../../shared/container';
 
 export interface ArgumentNode {

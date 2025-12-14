@@ -1,17 +1,23 @@
 /**
- * ARCHITECTURE: Core domain entity with zero dependencies
+ * ARCHITECTURE: Debate-specific domain entity implementing IAction
  * Pattern: Immutable entity with factory method
  * Rationale: Content-addressed arguments ensure data integrity
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 import { ArgumentId, ArgumentIdGenerator } from '../value-objects/ArgumentId';
-import { AgentId } from '../value-objects/AgentId';
-import { SimulationId } from '../value-objects/SimulationId';
-import { Timestamp } from '../value-objects/Timestamp';
+import { AgentId } from '../../../core/value-objects/AgentId';
+import { SimulationId } from '../../../core/value-objects/SimulationId';
+import { Timestamp } from '../../../core/value-objects/Timestamp';
 import { ArgumentType } from '../value-objects/ArgumentType';
-import { ICryptoService } from '../services/ICryptoService';
+import { ICryptoService } from '../../../core/services/ICryptoService';
+import type { IAction } from '../../../core/simulation/IAction';
+
+/**
+ * Action type constant for type discrimination
+ */
+export const ARGUMENT_ACTION_TYPE = 'argument' as const;
 
 export interface DeductiveStructure {
   readonly premises: readonly string[];
@@ -60,7 +66,18 @@ export interface CreateArgumentParams {
   readonly citationIds?: readonly string[];  // Array of citation IDs referenced by this argument
 }
 
-export class Argument {
+/**
+ * Argument entity representing a position in a debate.
+ * Implements IAction for generic simulation handling.
+ */
+export class Argument implements IAction<ArgumentId> {
+  /**
+   * Action type discriminator for IAction interface.
+   * Used for type narrowing in generic handlers.
+   * Declared as string to allow subclass overrides (Rebuttal, Concession).
+   */
+  public readonly actionType: string = ARGUMENT_ACTION_TYPE;
+
   protected constructor(
     public readonly id: ArgumentId,
     public readonly agentId: AgentId,
@@ -72,6 +89,14 @@ export class Argument {
     public readonly citationIds: readonly string[] = []
   ) {
     // Note: Object.freeze(this) moved to static create methods for inheritance support
+  }
+
+  /**
+   * IAction.textContent implementation.
+   * Returns the human-readable text portion of the argument content.
+   */
+  public get textContent(): string {
+    return this.content.text;
   }
 
   public static create(params: CreateArgumentParams, cryptoService: ICryptoService): Result<Argument, ValidationError> {

@@ -9,7 +9,7 @@ import { TOKENS, Tokens } from '../../shared/tokens';
 import { resolve } from '../../shared/injection';
 
 // Core services
-import { ArgumentValidator } from '../../core/services/ArgumentValidator';
+import { ArgumentValidator } from '../../simulations/debate';
 import { RelationshipBuilder } from '../../core/services/RelationshipBuilder';
 import { VoteCalculator } from '../../core/services/VoteCalculator';
 

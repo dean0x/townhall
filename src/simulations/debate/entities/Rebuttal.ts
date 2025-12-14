@@ -1,18 +1,23 @@
 /**
- * ARCHITECTURE: Specialized argument entity for rebuttals
+ * ARCHITECTURE: Debate-specific entity for rebuttals implementing IAction
  * Pattern: Extends Argument with additional relationship data
  * Rationale: Maintains argument-to-argument relationships for debate structure
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 import { Argument, CreateArgumentParams, ArgumentContent, ArgumentMetadata } from './Argument';
 import { ArgumentType } from '../value-objects/ArgumentType';
 import { ArgumentId, ArgumentIdGenerator } from '../value-objects/ArgumentId';
-import { AgentId } from '../value-objects/AgentId';
-import { SimulationId } from '../value-objects/SimulationId';
-import { Timestamp } from '../value-objects/Timestamp';
-import { ICryptoService } from '../services/ICryptoService';
+import { AgentId } from '../../../core/value-objects/AgentId';
+import { SimulationId } from '../../../core/value-objects/SimulationId';
+import { Timestamp } from '../../../core/value-objects/Timestamp';
+import { ICryptoService } from '../../../core/services/ICryptoService';
+
+/**
+ * Action type constant for type discrimination
+ */
+export const REBUTTAL_ACTION_TYPE = 'rebuttal' as const;
 
 export type RebuttalType = 'logical' | 'empirical' | 'methodological';
 
@@ -23,7 +28,16 @@ export interface CreateRebuttalParams extends CreateArgumentParams {
   readonly rebuttalType: RebuttalType;
 }
 
+/**
+ * Rebuttal entity representing a counter-argument in a debate.
+ * Extends Argument and implements IAction through inheritance.
+ */
 export class Rebuttal extends Argument {
+  /**
+   * Override action type for rebuttals.
+   */
+  public override readonly actionType = REBUTTAL_ACTION_TYPE;
+
   public readonly targetArgumentId: ArgumentId;
   public readonly rebuttalType: RebuttalType;
 

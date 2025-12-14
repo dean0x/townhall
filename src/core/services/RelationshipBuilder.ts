@@ -6,11 +6,8 @@
 
 import { Result, ok, err, propagateError } from '../../shared/result';
 import { BusinessRuleError } from '../../shared/errors';
-import { ArgumentId } from '../value-objects/ArgumentId';
+import { ArgumentId, Argument, Rebuttal, Concession } from '../../simulations/debate';
 import type { AgentId as _AgentId } from '../value-objects/AgentId';
-import { Argument } from '../entities/Argument';
-import { Rebuttal } from '../entities/Rebuttal';
-import { Concession } from '../entities/Concession';
 
 export interface ArgumentRelationship {
   readonly fromId: ArgumentId;

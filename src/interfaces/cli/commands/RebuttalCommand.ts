@@ -12,11 +12,14 @@ import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { IArgumentRepository } from '../../../core/repositories/IArgumentRepository';
 import { SubmitRebuttalCommand } from '../../../application/commands/SubmitRebuttalCommand';
 import { SubmitRebuttalResult } from '../../../application/handlers/SubmitRebuttalHandler';
-import { RebuttalType } from '../../../core/entities/Rebuttal';
-import { ArgumentContent } from '../../../core/entities/Argument';
-import { ArgumentType } from '../../../core/value-objects/ArgumentType';
+import {
+  RebuttalType,
+  ArgumentContent,
+  ArgumentType,
+  ArgumentId,
+  ArgumentIdGenerator,
+} from '../../../simulations/debate';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
-import { ArgumentId, ArgumentIdGenerator } from '../../../core/value-objects/ArgumentId';
 
 interface RebuttalOptions {
   target: string;

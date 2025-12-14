@@ -9,7 +9,7 @@ import { VoteCalculator } from '../../../../src/core/services/VoteCalculator';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { expectOk } from '../../../helpers/result-assertions';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 

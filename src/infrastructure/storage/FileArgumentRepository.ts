@@ -8,14 +8,20 @@ import { injectable, inject } from 'tsyringe';
 import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError } from '../../shared/errors';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { Argument, ArgumentContent } from '../../core/entities/Argument';
-import { Rebuttal, VALID_REBUTTAL_TYPES } from '../../core/entities/Rebuttal';
-import { Concession, VALID_CONCESSION_TYPES } from '../../core/entities/Concession';
-import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
+import {
+  Argument,
+  ArgumentContent,
+  Rebuttal,
+  VALID_REBUTTAL_TYPES,
+  Concession,
+  VALID_CONCESSION_TYPES,
+  ArgumentId,
+  ArgumentIdGenerator,
+  parseArgumentType,
+} from '../../simulations/debate';
 import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
 import { AgentId } from '../../core/value-objects/AgentId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { parseArgumentType } from '../../core/value-objects/ArgumentType';
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';

@@ -13,8 +13,8 @@ import { ObjectStorage } from '../../../../src/infrastructure/storage/ObjectStor
 import { FileSimulationRepository } from '../../../../src/infrastructure/storage/FileSimulationRepository';
 import { FileArgumentRepository } from '../../../../src/infrastructure/storage/FileArgumentRepository';
 import { FileAgentRepository } from '../../../../src/infrastructure/storage/FileAgentRepository';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
-import { Argument } from '../../../../src/core/entities/Argument';
+import { DebateSimulation } from '../../../../src/simulations/debate';
+import { Argument } from '../../../../src/simulations/debate';
 import { Agent } from '../../../../src/core/entities/Agent';
 import { ILogger } from '../../../../src/application/ports/ILogger';
 import { QueryBus } from '../../../../src/application/handlers/QueryBus';
@@ -24,7 +24,7 @@ import { RelationshipBuilder } from '../../../../src/core/services/RelationshipB
 import { GetArgumentQuery } from '../../../../src/application/queries/GetArgumentQuery';
 import { GetArgumentChainQuery } from '../../../../src/application/queries/GetArgumentChainQuery';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
-import { ArgumentType } from '../../../../src/core/value-objects/ArgumentType';
+import { ArgumentType } from '../../../../src/simulations/debate';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 
 // Mock logger

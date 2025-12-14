@@ -6,7 +6,7 @@
 
 import { SimulationId } from '../../core/value-objects/SimulationId';
 import { AgentId } from '../../core/value-objects/AgentId';
-import { ArgumentType } from '../../core/value-objects/ArgumentType';
+import { ArgumentType } from '../../simulations/debate';
 
 export interface GetDebateHistoryQuery {
   readonly simulationId?: SimulationId; // Optional - defaults to active

@@ -13,9 +13,9 @@ import { IAgentRepository } from '../../../../src/core/repositories/IAgentReposi
 import { RelationshipBuilder } from '../../../../src/core/services/RelationshipBuilder';
 import { ok, err } from '../../../../src/shared/result';
 import { NotFoundError, StorageError } from '../../../../src/shared/errors';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
-import { Argument } from '../../../../src/core/entities/Argument';
-import { Rebuttal } from '../../../../src/core/entities/Rebuttal';
+import { DebateSimulation } from '../../../../src/simulations/debate';
+import { Argument } from '../../../../src/simulations/debate';
+import { Rebuttal } from '../../../../src/simulations/debate';
 import { Agent } from '../../../../src/core/entities/Agent';
 
 describe('GetDebateHistoryHandler', () => {

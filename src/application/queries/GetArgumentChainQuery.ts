@@ -4,7 +4,7 @@
  * Rationale: Provides debate structure analysis
  */
 
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { ArgumentId } from '../../simulations/debate';
 
 export interface GetArgumentChainQuery {
   readonly rootArgumentId: ArgumentId;

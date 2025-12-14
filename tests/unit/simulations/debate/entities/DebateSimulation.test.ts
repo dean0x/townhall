@@ -4,14 +4,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
-import { DebateStatus } from '../../../../src/core/value-objects/DebateStatus';
-import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
-import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
-import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
-import { ArgumentIdGenerator } from '../../../../src/core/value-objects/ArgumentId';
-import { expectOk, expectErr } from '../../../helpers/result-assertions';
-import { MockCryptoService } from '../../../helpers/MockCryptoService';
+import { DebateSimulation, DebateStatus, ArgumentIdGenerator } from '../../../../../src/simulations/debate';
+import { SimulationIdGenerator } from '../../../../../src/core/value-objects/SimulationId';
+import { TimestampGenerator } from '../../../../../src/core/value-objects/Timestamp';
+import { AgentIdGenerator } from '../../../../../src/core/value-objects/AgentId';
+import { expectOk, expectErr } from '../../../../helpers/result-assertions';
+import { MockCryptoService } from '../../../../helpers/MockCryptoService';
 
 describe('DebateSimulation Entity', () => {
   const cryptoService = new MockCryptoService();

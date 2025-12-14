@@ -9,9 +9,7 @@ import { RelationshipBuilder } from '../../../../src/core/services/RelationshipB
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { expectOk } from '../../../helpers/result-assertions';
-import { Argument } from '../../../../src/core/entities/Argument';
-import { Rebuttal } from '../../../../src/core/entities/Rebuttal';
-import { Concession } from '../../../../src/core/entities/Concession';
+import { Argument, Rebuttal, Concession } from '../../../../src/simulations/debate';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';

@@ -10,16 +10,16 @@ import { SubmitRebuttalCommand } from '../../../../src/application/commands/Subm
 import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
 import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
 import { IAgentRepository } from '../../../../src/core/repositories/IAgentRepository';
-import { ArgumentValidator } from '../../../../src/core/services/ArgumentValidator';
+import { ArgumentValidator } from '../../../../src/simulations/debate';
 import { RelationshipBuilder } from '../../../../src/core/services/RelationshipBuilder';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
 import { ValidationError, NotFoundError, StorageError, ConflictError } from '../../../../src/shared/errors';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { expectOk } from '../../../helpers/result-assertions';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { Agent } from '../../../../src/core/entities/Agent';
-import { Argument } from '../../../../src/core/entities/Argument';
+import { Argument } from '../../../../src/simulations/debate';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 

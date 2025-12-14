@@ -13,7 +13,7 @@ import { IArgumentRepository } from '../../../core/repositories/IArgumentReposit
 import { SubmitConcessionCommand } from '../../../application/commands/SubmitConcessionCommand';
 import { SubmitConcessionResult } from '../../../application/handlers/SubmitConcessionHandler';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
-import { ArgumentId, ArgumentIdGenerator } from '../../../core/value-objects/ArgumentId';
+import { ArgumentId, ArgumentIdGenerator } from '../../../simulations/debate';
 
 interface ConcedeOptions {
   target: string;

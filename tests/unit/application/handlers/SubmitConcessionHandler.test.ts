@@ -15,9 +15,9 @@ import { ok, err } from '../../../../src/shared/result';
 import { ValidationError, NotFoundError, StorageError, ConflictError } from '../../../../src/shared/errors';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { expectOk } from '../../../helpers/result-assertions';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { Agent } from '../../../../src/core/entities/Agent';
-import { Argument } from '../../../../src/core/entities/Argument';
+import { Argument } from '../../../../src/simulations/debate';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 

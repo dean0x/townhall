@@ -1,11 +1,11 @@
 /**
- * ARCHITECTURE: Domain service for argument validation
+ * ARCHITECTURE: Debate-specific domain service for argument validation
  * Pattern: Pure business logic, zero dependencies
  * Rationale: Encapsulates complex validation rules for different argument types
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 import { ArgumentType } from '../value-objects/ArgumentType';
 import { DeductiveStructure, InductiveStructure, EmpiricalStructure } from '../entities/Argument';
 

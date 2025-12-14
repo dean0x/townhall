@@ -1,10 +1,11 @@
 /**
- * DebateStatus enum
- * Defines the lifecycle states of a debate simulation
+ * ARCHITECTURE: Debate-specific value object
+ * Pattern: String enum for type-safe status tracking
+ * Rationale: Defines the lifecycle states of a debate simulation
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 
 export enum DebateStatus {
   ACTIVE = 'active',

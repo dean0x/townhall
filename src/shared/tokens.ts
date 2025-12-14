@@ -22,7 +22,7 @@ import type { IAgentRepository } from '../core/repositories/IAgentRepository';
 import type { ICitationRepository } from '../core/repositories/ICitationRepository';
 
 // Core services
-import type { ArgumentValidator } from '../core/services/ArgumentValidator';
+import type { ArgumentValidator } from '../simulations/debate';
 import type { RelationshipBuilder } from '../core/services/RelationshipBuilder';
 import type { VoteCalculator } from '../core/services/VoteCalculator';
 import type { ICryptoService } from '../core/services/ICryptoService';

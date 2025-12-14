@@ -11,8 +11,12 @@ import { DomainError, ValidationError } from '../../../shared/errors';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { GetArgumentQuery } from '../../../application/queries/GetArgumentQuery';
 import { GetArgumentResult } from '../../../application/handlers/GetArgumentHandler';
-import { ArgumentId } from '../../../core/value-objects/ArgumentId';
-import { DeductiveStructure, InductiveStructure, EmpiricalStructure } from '../../../core/entities/Argument';
+import {
+  ArgumentId,
+  DeductiveStructure,
+  InductiveStructure,
+  EmpiricalStructure,
+} from '../../../simulations/debate';
 
 interface ValidatedShowOptions {
   argumentId: ArgumentId;

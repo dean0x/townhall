@@ -1,13 +1,13 @@
 /**
- * ARCHITECTURE: Core value object - content-addressed identifier
+ * ARCHITECTURE: Debate-specific value object - content-addressed identifier
  * Pattern: SHA-256 hashing with injected crypto service
  * Rationale: Pure domain logic without Node.js dependencies
  */
 
-import { Brand } from '../../shared/types';
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
-import { ICryptoService } from '../services/ICryptoService';
+import { Brand } from '../../../shared/types';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
+import { ICryptoService } from '../../../core/services/ICryptoService';
 
 export type ArgumentId = Brand<string, 'ArgumentId'>;
 

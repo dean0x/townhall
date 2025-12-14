@@ -7,14 +7,12 @@
 import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, ConflictError, ValidationError } from '../../shared/errors';
-import { ArgumentType } from '../../core/value-objects/ArgumentType';
+import { ArgumentType, Concession, ArgumentId } from '../../simulations/debate';
 import { ICommandHandler } from './CommandBus';
 import { SubmitConcessionCommand } from '../commands/SubmitConcessionCommand';
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
-import { Concession } from '../../core/entities/Concession';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { TOKENS } from '../../shared/container';

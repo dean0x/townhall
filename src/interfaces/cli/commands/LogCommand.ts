@@ -11,7 +11,7 @@ import { DomainError, ValidationError } from '../../../shared/errors';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { GetDebateHistoryQuery } from '../../../application/queries/GetDebateHistoryQuery';
 import { DebateHistoryResult } from '../../../application/handlers/GetDebateHistoryHandler';
-import { ArgumentType } from '../../../core/value-objects/ArgumentType';
+import { ArgumentType } from '../../../simulations/debate';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
 
 interface LogOptions {

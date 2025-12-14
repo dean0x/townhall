@@ -11,9 +11,8 @@ import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
 import { CreateArgumentCommand } from '../../../application/commands/CreateArgumentCommand';
 import { CreateArgumentResult } from '../../../application/handlers/CreateArgumentHandler';
-import { ArgumentType } from '../../../core/value-objects/ArgumentType';
+import { ArgumentType, ArgumentContent } from '../../../simulations/debate';
 import { AgentIdGenerator } from '../../../core/value-objects/AgentId';
-import { ArgumentContent } from '../../../core/entities/Argument';
 import { CitationId } from '../../../core/value-objects/CitationId';
 
 interface ArgumentOptions {

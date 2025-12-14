@@ -6,7 +6,7 @@
 
 import { Result } from '../../shared/result';
 import { NotFoundError, StorageError, ConflictError } from '../../shared/errors';
-import { DebateSimulation } from '../entities/DebateSimulation';
+import { DebateSimulation } from '../../simulations/debate';
 import { SimulationId } from '../value-objects/SimulationId';
 
 export interface ISimulationRepository {

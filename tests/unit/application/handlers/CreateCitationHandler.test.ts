@@ -13,7 +13,7 @@ import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
 import { ValidationError } from '../../../../src/shared/errors';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 import { CitationType } from '../../../../src/core/value-objects/CitationType';

@@ -13,10 +13,8 @@ import { ISimulationRepository } from '../../core/repositories/ISimulationReposi
 import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { ICitationRepository } from '../../core/repositories/ICitationRepository';
-import { ArgumentValidator } from '../../core/services/ArgumentValidator';
-import { Argument } from '../../core/entities/Argument';
+import { ArgumentValidator, Argument, ArgumentId } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { TOKENS } from '../../shared/container';
 import { isDeductiveStructure, isInductiveStructure, isEmpiricalStructure } from '../utils/structure-guards';

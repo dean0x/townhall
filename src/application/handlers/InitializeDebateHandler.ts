@@ -11,7 +11,7 @@ import { ICommandHandler } from './CommandBus';
 import { InitializeDebateCommand } from '../commands/InitializeDebateCommand';
 import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { DebateSimulation } from '../../core/entities/DebateSimulation';
+import { DebateSimulation } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { SimulationId } from '../../core/value-objects/SimulationId';
 import { TOKENS } from '../../shared/container';

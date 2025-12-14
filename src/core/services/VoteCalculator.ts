@@ -7,7 +7,7 @@
 import { Result, ok, err } from '../../shared/result';
 import { BusinessRuleError } from '../../shared/errors';
 import { AgentId } from '../value-objects/AgentId';
-import { DebateSimulation, CloseVote } from '../entities/DebateSimulation';
+import { DebateSimulation, CloseVote } from '../../simulations/debate';
 
 export interface VoteStatus {
   readonly total: number;

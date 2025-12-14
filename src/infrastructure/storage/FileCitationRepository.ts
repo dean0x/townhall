@@ -84,7 +84,7 @@ export class FileCitationRepository implements ICitationRepository {
         if (data.simulationId === simIdString) {
           const deserializeResult = this.deserialize(data);
           if (deserializeResult.isErr()) {
-            return deserializeResult;
+            return err(deserializeResult.error);
           }
           citations.push(deserializeResult.value);
         }
@@ -258,7 +258,7 @@ export class FileCitationRepository implements ICitationRepository {
       ...(data.url !== undefined && { url: data.url }),
       ...(data.page !== undefined && { page: data.page }),
       ...(data.quote !== undefined && { quote: data.quote }),
-      ...(data.authors !== undefined && { authors: data.authors }),
+      ...(data.authors !== undefined && { authors: [...data.authors] }),
       ...(data.year !== undefined && { year: data.year }),
     };
 

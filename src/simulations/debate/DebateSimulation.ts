@@ -1,32 +1,64 @@
 /**
- * ARCHITECTURE: Core domain entity for debate simulations
+ * ARCHITECTURE: Debate-specific domain entity implementing ISimulation
  * Pattern: Immutable entity with content-addressed ID and state transitions
  * Rationale: Single active debate constraint enforced at application layer
  */
 
 import { Result, ok, err } from '../../shared/result';
 import { ValidationError } from '../../shared/errors';
-import { SimulationId, SimulationIdGenerator } from '../value-objects/SimulationId';
-import { Timestamp } from '../value-objects/Timestamp';
-import { DebateStatus } from '../value-objects/DebateStatus';
-import { AgentId } from '../value-objects/AgentId';
-import { ArgumentId } from '../value-objects/ArgumentId';
-import type { ICryptoService } from '../services/ICryptoService';
+import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
+import { Timestamp } from '../../core/value-objects/Timestamp';
+import { AgentId } from '../../core/value-objects/AgentId';
+import { DebateStatus } from './value-objects/DebateStatus';
+import { ArgumentId } from './value-objects/ArgumentId';
+import { CloseVote } from './CloseVote';
+import type { ICryptoService } from '../../core/services/ICryptoService';
+import type { ISimulation } from '../../core/simulation/ISimulation';
+import { SimulationType, SimulationTypeFactory } from '../../core/simulation/SimulationType';
 
-export interface CloseVote {
-  readonly agentId: AgentId;
-  readonly vote: boolean;
-  readonly reason?: string;
-  readonly timestamp: Timestamp;
+/**
+ * Configuration for debate simulations.
+ */
+export interface DebateSimulationConfig {
+  /** Minimum arguments before voting can begin */
+  readonly minArgumentsBeforeVoting: number;
+  /** Maximum length for argument text */
+  readonly maxArgumentLength: number;
+  /** Whether unanimous vote is required to close */
+  readonly requireUnanimousClose: boolean;
 }
+
+/**
+ * Default configuration for debates.
+ */
+export const DEFAULT_DEBATE_CONFIG: DebateSimulationConfig = {
+  minArgumentsBeforeVoting: 2,
+  maxArgumentLength: 10000,
+  requireUnanimousClose: true,
+};
 
 export interface CreateSimulationParams {
   readonly topic: string;
   readonly createdAt: Timestamp;
   readonly cryptoService: ICryptoService;
+  readonly config?: Partial<DebateSimulationConfig>;
 }
 
-export class DebateSimulation {
+/**
+ * DebateSimulation entity representing a structured debate.
+ * Implements ISimulation for generic simulation handling.
+ */
+export class DebateSimulation implements ISimulation<DebateSimulationConfig, DebateStatus> {
+  /**
+   * Simulation type discriminator for ISimulation interface.
+   */
+  public readonly type: SimulationType = SimulationTypeFactory.DEBATE;
+
+  /**
+   * Configuration for this debate.
+   */
+  public readonly config: DebateSimulationConfig;
+
   private constructor(
     public readonly id: SimulationId,
     public readonly topic: string,
@@ -34,8 +66,10 @@ export class DebateSimulation {
     public readonly status: DebateStatus,
     public readonly participantIds: readonly AgentId[],
     public readonly argumentIds: readonly ArgumentId[],
-    public readonly votesToClose: readonly CloseVote[]
+    public readonly votesToClose: readonly CloseVote[],
+    config?: DebateSimulationConfig
   ) {
+    this.config = config ?? DEFAULT_DEBATE_CONFIG;
     Object.freeze(this);
   }
 
@@ -55,6 +89,11 @@ export class DebateSimulation {
       return err(idResult.error);
     }
 
+    const config: DebateSimulationConfig = {
+      ...DEFAULT_DEBATE_CONFIG,
+      ...params.config,
+    };
+
     const simulation = new DebateSimulation(
       idResult.value,
       params.topic,
@@ -62,7 +101,8 @@ export class DebateSimulation {
       DebateStatus.ACTIVE,
       [],
       [],
-      []
+      [],
+      config
     );
 
     return ok(simulation);
@@ -80,7 +120,8 @@ export class DebateSimulation {
     status: DebateStatus,
     participantIds: readonly AgentId[],
     argumentIds: readonly ArgumentId[],
-    votesToClose: readonly CloseVote[]
+    votesToClose: readonly CloseVote[],
+    config?: DebateSimulationConfig
   ): Result<DebateSimulation, ValidationError> {
     // Validate required fields to detect corruption
     if (!id || !topic || !createdAt || !status) {
@@ -94,7 +135,8 @@ export class DebateSimulation {
       status,
       participantIds,
       argumentIds,
-      votesToClose
+      votesToClose,
+      config
     );
 
     return ok(simulation);
@@ -112,7 +154,8 @@ export class DebateSimulation {
       this.status,
       [...this.participantIds, agentId],
       this.argumentIds,
-      this.votesToClose
+      this.votesToClose,
+      this.config
     );
   }
 
@@ -130,7 +173,8 @@ export class DebateSimulation {
       this.status,
       this.participantIds,
       [...this.argumentIds, argumentId],
-      this.votesToClose
+      this.votesToClose,
+      this.config
     );
   }
 
@@ -144,7 +188,8 @@ export class DebateSimulation {
       newStatus,
       this.participantIds,
       this.argumentIds,
-      this.votesToClose
+      this.votesToClose,
+      this.config
     );
   }
 
@@ -166,7 +211,8 @@ export class DebateSimulation {
       this.status,
       this.participantIds,
       this.argumentIds,
-      [...this.votesToClose, newVote]
+      [...this.votesToClose, newVote],
+      this.config
     );
   }
 

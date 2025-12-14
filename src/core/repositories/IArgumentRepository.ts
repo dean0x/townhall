@@ -6,10 +6,7 @@
 
 import { Result } from '../../shared/result';
 import { NotFoundError, StorageError } from '../../shared/errors';
-import { Argument } from '../entities/Argument';
-import { Rebuttal } from '../entities/Rebuttal';
-import { Concession } from '../entities/Concession';
-import { ArgumentId } from '../value-objects/ArgumentId';
+import { Argument, Rebuttal, Concession, ArgumentId } from '../../simulations/debate';
 import { SimulationId } from '../value-objects/SimulationId';
 import { AgentId } from '../value-objects/AgentId';
 
