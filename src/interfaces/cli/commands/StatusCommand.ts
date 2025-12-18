@@ -8,11 +8,11 @@ import { Command } from 'commander';
 import { BaseCommand, CommandContext } from '../base/BaseCommand';
 import { Result, ok } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
-import { ISimulationRepository } from '../../../core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../../simulations/debate/repositories';
 
 export class StatusCommand extends BaseCommand {
   constructor(
-    private readonly simulationRepo: ISimulationRepository,
+    private readonly simulationRepo: IDebateRepository,
     context: CommandContext
   ) {
     super('status', 'Show current simulation context', context);

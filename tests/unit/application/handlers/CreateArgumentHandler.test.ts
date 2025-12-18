@@ -7,8 +7,7 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CreateArgumentHandler } from '../../../../src/application/handlers/CreateArgumentHandler';
 import { CreateArgumentCommand } from '../../../../src/application/commands/CreateArgumentCommand';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
-import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
+import type { IDebateRepository, IArgumentRepository } from '../../../../src/simulations/debate/repositories';
 import { IAgentRepository } from '../../../../src/core/repositories/IAgentRepository';
 import { ICitationRepository } from '../../../../src/core/repositories/ICitationRepository';
 import { ArgumentValidator } from '../../../../src/simulations/debate';
@@ -25,7 +24,7 @@ import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp
 
 describe('CreateArgumentHandler', () => {
   let handler: CreateArgumentHandler;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
   let mockArgumentRepo: IArgumentRepository;
   let mockAgentRepo: IAgentRepository;
   let mockCitationRepo: ICitationRepository;

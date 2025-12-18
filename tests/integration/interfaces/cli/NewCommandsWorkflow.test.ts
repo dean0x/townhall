@@ -20,7 +20,7 @@ import { ILogger } from '../../../../src/application/ports/ILogger';
 import { QueryBus } from '../../../../src/application/handlers/QueryBus';
 import { GetArgumentHandler } from '../../../../src/application/handlers/GetArgumentHandler';
 import { GetArgumentChainHandler } from '../../../../src/application/handlers/GetArgumentChainHandler';
-import { RelationshipBuilder } from '../../../../src/core/services/RelationshipBuilder';
+import { RelationshipBuilder } from '../../../../src/simulations/debate/services/RelationshipBuilder';
 import { GetArgumentQuery } from '../../../../src/application/queries/GetArgumentQuery';
 import { GetArgumentChainQuery } from '../../../../src/application/queries/GetArgumentChainQuery';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';

@@ -7,7 +7,7 @@
 import { injectable, inject } from 'tsyringe';
 import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError } from '../../shared/errors';
-import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
+import type { IArgumentRepository } from '../../simulations/debate/repositories/IArgumentRepository';
 import {
   Argument,
   ArgumentContent,

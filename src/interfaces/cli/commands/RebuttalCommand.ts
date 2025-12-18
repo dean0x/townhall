@@ -9,7 +9,7 @@ import { BaseCommand, CommandContext } from '../base/BaseCommand';
 import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
-import { IArgumentRepository } from '../../../core/repositories/IArgumentRepository';
+import type { IArgumentRepository } from '../../../simulations/debate/repositories';
 import { SubmitRebuttalCommand } from '../../../application/commands/SubmitRebuttalCommand';
 import { SubmitRebuttalResult } from '../../../application/handlers/SubmitRebuttalHandler';
 import {

@@ -4,6 +4,7 @@
  * This module provides the shared foundation for relationships:
  * - IRelationship: Generic interface for action relationships
  * - IRelationshipValidator: Strategy pattern for validation
+ * - IRelationshipBuilder: Interface for relationship building services
  * - RelationshipGraph: Pure graph operations (cycles, depth, queries)
  *
  * Simulation types define their own relationship types as string unions
@@ -23,6 +24,13 @@ export {
   IRelationshipValidator,
   RelationshipValidationContext,
 } from './IRelationshipValidator';
+
+// Builder interface
+export {
+  IRelationshipBuilder,
+  RelationshipBuilderConfig,
+  DEFAULT_RELATIONSHIP_CONFIG,
+} from './IRelationshipBuilder';
 
 // Graph operations
 export {

@@ -59,7 +59,19 @@ export {
 } from './value-objects';
 
 // Services
-export { ArgumentValidator } from './services';
+export {
+  ArgumentValidator,
+  RelationshipBuilder,
+  VoteCalculator,
+  type ArgumentRelationship,
+  type RelationType,
+  type RelationshipChain,
+  type VoteStatus,
+  type VotingRules,
+} from './services';
+
+// Repositories
+export type { IArgumentRepository, IDebateRepository } from './repositories';
 
 // Simulation
 export {
@@ -78,3 +90,6 @@ export { DebatePhase, isDebatePhase, getNextPhase, canSubmitArguments, canVote }
 // Configuration and Registration
 export { DebateTypeInfo, DebateSimulationTypeConfig } from './DebateConfig';
 export { registerDebateSimulationType } from './register';
+
+// Dependency Injection Tokens
+export { DebateTokens, DEBATE_TOKENS } from './tokens';

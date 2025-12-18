@@ -9,7 +9,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError, ConflictError } from '../../shared/errors';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../simulations/debate/repositories/IDebateRepository';
 import {
   DebateSimulation,
   CloseVote,
@@ -26,7 +26,7 @@ import { hasErrorCode } from './NodeSystemError';
 import { SimulationDataSchema, type SimulationData, parseStorageData } from './schemas';
 
 @injectable()
-export class FileSimulationRepository implements ISimulationRepository {
+export class FileSimulationRepository implements IDebateRepository {
   private readonly basePath: string;
 
   constructor(

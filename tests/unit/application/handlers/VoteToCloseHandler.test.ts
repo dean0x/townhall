@@ -7,9 +7,9 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VoteToCloseHandler } from '../../../../src/application/handlers/VoteToCloseHandler';
 import { VoteToCloseCommand } from '../../../../src/application/commands/VoteToCloseCommand';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../../../src/simulations/debate/repositories';
 import { IAgentRepository } from '../../../../src/core/repositories/IAgentRepository';
-import { VoteCalculator } from '../../../../src/core/services/VoteCalculator';
+import { VoteCalculator } from '../../../../src/simulations/debate';
 import { ITimestampService } from '../../../../src/core/services/ITimestampService';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
@@ -24,7 +24,7 @@ import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp
 
 describe('VoteToCloseHandler', () => {
   let handler: VoteToCloseHandler;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
   let mockAgentRepo: IAgentRepository;
   let voteCalculator: VoteCalculator;
   let mockTimestampService: ITimestampService;

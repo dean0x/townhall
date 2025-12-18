@@ -7,7 +7,7 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CheckoutSimulationHandler } from '../../../../src/application/handlers/CheckoutSimulationHandler';
 import { CheckoutSimulationCommand } from '../../../../src/application/commands/CheckoutSimulationCommand';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../../../src/simulations/debate/repositories';
 import { DebateSimulation } from '../../../../src/simulations/debate';
 import { SimulationId } from '../../../../src/core/value-objects/SimulationId';
 import { DebateStatus } from '../../../../src/simulations/debate';
@@ -19,7 +19,7 @@ import { MockCryptoService } from '../../../helpers/MockCryptoService';
 describe('CheckoutSimulationHandler', () => {
   const cryptoService = new MockCryptoService();
   let handler: CheckoutSimulationHandler;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
 
   beforeEach(() => {
     mockSimulationRepo = {

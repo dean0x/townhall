@@ -10,12 +10,12 @@ import { NotFoundError, ConflictError, ValidationError } from '../../shared/erro
 import { ArgumentType, Concession, ArgumentId } from '../../simulations/debate';
 import { ICommandHandler } from './CommandBus';
 import { SubmitConcessionCommand } from '../commands/SubmitConcessionCommand';
-import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import type { IArgumentRepository, IDebateRepository } from '../../simulations/debate/repositories';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 
 export interface SubmitConcessionResult {
   readonly concessionId: ArgumentId;
@@ -27,8 +27,8 @@ export interface SubmitConcessionResult {
 @injectable()
 export class SubmitConcessionHandler implements ICommandHandler<SubmitConcessionCommand, SubmitConcessionResult> {
   constructor(
-    @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
+    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
+    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
     @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}

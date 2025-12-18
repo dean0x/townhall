@@ -5,13 +5,12 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VoteCalculator } from '../../../../src/core/services/VoteCalculator';
-import { ICryptoService } from '../../../../src/core/services/ICryptoService';
-import { MockCryptoService } from '../../../helpers/MockCryptoService';
-import { expectOk } from '../../../helpers/result-assertions';
-import { DebateSimulation } from '../../../../src/simulations/debate';
-import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
-import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { VoteCalculator, DebateSimulation } from '../../../../../src/simulations/debate';
+import { ICryptoService } from '../../../../../src/core/services/ICryptoService';
+import { MockCryptoService } from '../../../../helpers/MockCryptoService';
+import { expectOk } from '../../../../helpers/result-assertions';
+import { AgentIdGenerator } from '../../../../../src/core/value-objects/AgentId';
+import { TimestampGenerator } from '../../../../../src/core/value-objects/Timestamp';
 
 describe('VoteCalculator', () => {
   let calculator: VoteCalculator;

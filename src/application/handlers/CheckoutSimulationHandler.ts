@@ -9,8 +9,8 @@ import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, StorageError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { CheckoutSimulationCommand } from '../commands/CheckoutSimulationCommand';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
-import { TOKENS } from '../../shared/container';
+import type { IDebateRepository } from '../../simulations/debate/repositories';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 
 export interface CheckoutSimulationResult {
   readonly simulationId: string;
@@ -22,7 +22,7 @@ export interface CheckoutSimulationResult {
 @injectable()
 export class CheckoutSimulationHandler implements ICommandHandler<CheckoutSimulationCommand, CheckoutSimulationResult> {
   constructor(
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository
+    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository
   ) {}
 
   public async handle(command: CheckoutSimulationCommand): Promise<Result<CheckoutSimulationResult, NotFoundError | StorageError>> {

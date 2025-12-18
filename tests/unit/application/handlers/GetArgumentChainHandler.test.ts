@@ -7,7 +7,7 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GetArgumentChainHandler } from '../../../../src/application/handlers/GetArgumentChainHandler';
 import { GetArgumentChainQuery } from '../../../../src/application/queries/GetArgumentChainQuery';
-import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
+import type { IArgumentRepository } from '../../../../src/simulations/debate/repositories';
 import { Argument } from '../../../../src/simulations/debate';
 import { ArgumentId } from '../../../../src/simulations/debate';
 import { ArgumentType } from '../../../../src/simulations/debate';
@@ -45,14 +45,30 @@ describe('GetArgumentChainHandler', () => {
     }, cryptoService));
   };
 
+  // Helper to create a Map result for findByIds mock
+  const createFindByIdsResult = (...args: Argument[]): Map<ArgumentId, Argument> => {
+    const map = new Map<ArgumentId, Argument>();
+    for (const arg of args) {
+      map.set(arg.id, arg);
+    }
+    return map;
+  };
+
   beforeEach(() => {
     mockArgumentRepo = {
       save: vi.fn(),
       findById: vi.fn(),
       findBySimulation: vi.fn(),
+      findByAgent: vi.fn(),
       findRelationships: vi.fn(),
+      findReferencingArguments: vi.fn(),
+      findByIds: vi.fn(),
       delete: vi.fn(),
       exists: vi.fn(),
+      expandShortHash: vi.fn(),
+      getAllIds: vi.fn(),
+      saveRebuttal: vi.fn(),
+      saveConcession: vi.fn(),
     };
 
     handler = new GetArgumentChainHandler(mockArgumentRepo);
@@ -120,9 +136,10 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(child1))
-        .mockResolvedValueOnce(ok(child2));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValue(ok(createFindByIdsResult(child1, child2)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -164,9 +181,11 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(child1))
-        .mockResolvedValueOnce(ok(grandchild1));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValueOnce(ok(createFindByIdsResult(child1)))
+        .mockResolvedValueOnce(ok(createFindByIdsResult(grandchild1)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -208,9 +227,10 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(rebuttal))
-        .mockResolvedValueOnce(ok(support));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValue(ok(createFindByIdsResult(rebuttal, support)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -249,8 +269,10 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(rebuttal));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValue(ok(createFindByIdsResult(rebuttal)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -315,8 +337,10 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(child));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValue(ok(createFindByIdsResult(child)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -451,8 +475,10 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(child));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValue(ok(createFindByIdsResult(child)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -510,9 +536,11 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(child1))
-        .mockResolvedValueOnce(err(new NotFoundError('Argument', child2Id)));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      // findByIds returns only the arguments that exist - child2Id is missing
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValue(ok(createFindByIdsResult(child1)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -531,7 +559,7 @@ describe('GetArgumentChainHandler', () => {
       expect(result.isOk()).toBe(true);
 
       if (result.isOk()) {
-        // Should only have child1, child2 was skipped
+        // Should only have child1, child2 was skipped (not in findByIds result)
         expect(result.value.root.children).toHaveLength(1);
         expect(result.value.totalArguments).toBe(2);
       }
@@ -551,10 +579,11 @@ describe('GetArgumentChainHandler', () => {
       };
 
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockResolvedValueOnce(ok(child1))
-        .mockResolvedValueOnce(ok(child2))
-        .mockResolvedValueOnce(ok(grandchild));
+        .mockResolvedValueOnce(ok(rootArg));
+
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValueOnce(ok(createFindByIdsResult(child1, child2)))
+        .mockResolvedValueOnce(ok(createFindByIdsResult(grandchild)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -613,8 +642,8 @@ describe('GetArgumentChainHandler', () => {
     });
   });
 
-  describe('Parallel fetching', () => {
-    it('should fetch child arguments in parallel', async () => {
+  describe('Batch fetching', () => {
+    it('should fetch child arguments using batch load (findByIds)', async () => {
       const rootArg = createArgument('Root');
       const child1 = createArgument('Child 1');
       const child2 = createArgument('Child 2');
@@ -625,15 +654,12 @@ describe('GetArgumentChainHandler', () => {
         maxDepth: 10,
       };
 
-      const fetchTimes: number[] = [];
-
       vi.mocked(mockArgumentRepo.findById)
-        .mockResolvedValueOnce(ok(rootArg))
-        .mockImplementation(async () => {
-          fetchTimes.push(Date.now());
-          await new Promise(resolve => setTimeout(resolve, 10));
-          return ok(child1);
-        });
+        .mockResolvedValueOnce(ok(rootArg));
+
+      // Batch load returns all children in single call
+      vi.mocked(mockArgumentRepo.findByIds)
+        .mockResolvedValue(ok(createFindByIdsResult(child1, child2, child3)));
 
       vi.mocked(mockArgumentRepo.findRelationships)
         .mockResolvedValueOnce(ok({
@@ -647,11 +673,15 @@ describe('GetArgumentChainHandler', () => {
           supports: [],
         }));
 
-      await handler.handle(query);
+      const result = await handler.handle(query);
 
-      // All child fetches should start at roughly the same time (parallel)
-      // This is a loose check - in practice they'd be within milliseconds
-      expect(fetchTimes.length).toBeGreaterThan(0);
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.root.children).toHaveLength(3);
+      }
+
+      // Verify findByIds was called instead of multiple findById calls
+      expect(mockArgumentRepo.findByIds).toHaveBeenCalled();
     });
   });
 });

@@ -7,11 +7,9 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SubmitRebuttalHandler } from '../../../../src/application/handlers/SubmitRebuttalHandler';
 import { SubmitRebuttalCommand } from '../../../../src/application/commands/SubmitRebuttalCommand';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
-import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
+import type { IDebateRepository, IArgumentRepository } from '../../../../src/simulations/debate/repositories';
 import { IAgentRepository } from '../../../../src/core/repositories/IAgentRepository';
-import { ArgumentValidator } from '../../../../src/simulations/debate';
-import { RelationshipBuilder } from '../../../../src/core/services/RelationshipBuilder';
+import { ArgumentValidator, RelationshipBuilder } from '../../../../src/simulations/debate';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
 import { ValidationError, NotFoundError, StorageError, ConflictError } from '../../../../src/shared/errors';
@@ -26,7 +24,7 @@ import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp
 describe('SubmitRebuttalHandler', () => {
   let handler: SubmitRebuttalHandler;
   let mockArgumentRepo: IArgumentRepository;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
   let mockAgentRepo: IAgentRepository;
   let mockValidator: ArgumentValidator;
   let mockRelationshipBuilder: RelationshipBuilder;

@@ -9,13 +9,14 @@ import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, ConflictError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { VoteToCloseCommand } from '../commands/VoteToCloseCommand';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../simulations/debate/repositories';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
-import { VoteCalculator } from '../../core/services/VoteCalculator';
+import { VoteCalculator } from '../../simulations/debate';
 import { DebateStatus } from '../../simulations/debate';
 import { ITimestampService } from '../../core/services/ITimestampService';
 import { Vote } from '../../core/value-objects/Vote';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 
 export interface VoteToCloseResult {
   readonly voteAccepted: boolean;
@@ -28,9 +29,9 @@ export interface VoteToCloseResult {
 @injectable()
 export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, VoteToCloseResult> {
   constructor(
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
+    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.VoteCalculator) private readonly voteCalculator: VoteCalculator,
+    @inject(DEBATE_TOKENS.VoteCalculator) private readonly voteCalculator: VoteCalculator,
     @inject(TOKENS.TimestampService) private readonly timestampService: ITimestampService
   ) {}
 

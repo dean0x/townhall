@@ -7,7 +7,7 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GetArgumentHandler } from '../../../../src/application/handlers/GetArgumentHandler';
 import { GetArgumentQuery } from '../../../../src/application/queries/GetArgumentQuery';
-import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
+import type { IArgumentRepository } from '../../../../src/simulations/debate/repositories';
 import { Argument } from '../../../../src/simulations/debate';
 import { ArgumentId } from '../../../../src/simulations/debate';
 import { ArgumentType } from '../../../../src/simulations/debate';

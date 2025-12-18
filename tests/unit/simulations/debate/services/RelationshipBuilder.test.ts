@@ -5,14 +5,13 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RelationshipBuilder } from '../../../../src/core/services/RelationshipBuilder';
-import { ICryptoService } from '../../../../src/core/services/ICryptoService';
-import { MockCryptoService } from '../../../helpers/MockCryptoService';
-import { expectOk } from '../../../helpers/result-assertions';
-import { Argument, Rebuttal, Concession } from '../../../../src/simulations/debate';
-import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
-import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
-import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { RelationshipBuilder, Argument, Rebuttal, Concession } from '../../../../../src/simulations/debate';
+import { ICryptoService } from '../../../../../src/core/services/ICryptoService';
+import { MockCryptoService } from '../../../../helpers/MockCryptoService';
+import { expectOk } from '../../../../helpers/result-assertions';
+import { AgentIdGenerator } from '../../../../../src/core/value-objects/AgentId';
+import { SimulationIdGenerator } from '../../../../../src/core/value-objects/SimulationId';
+import { TimestampGenerator } from '../../../../../src/core/value-objects/Timestamp';
 
 describe('RelationshipBuilder', () => {
   let builder: RelationshipBuilder;

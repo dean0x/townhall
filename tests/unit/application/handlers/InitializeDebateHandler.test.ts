@@ -7,7 +7,7 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { InitializeDebateHandler } from '../../../../src/application/handlers/InitializeDebateHandler';
 import { InitializeDebateCommand } from '../../../../src/application/commands/InitializeDebateCommand';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../../../src/simulations/debate/repositories';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
 import { StorageError, ConflictError } from '../../../../src/shared/errors';
@@ -15,7 +15,7 @@ import { MockCryptoService } from '../../../helpers/MockCryptoService';
 
 describe('InitializeDebateHandler', () => {
   let handler: InitializeDebateHandler;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
   let cryptoService: ICryptoService;
 
   beforeEach(() => {
