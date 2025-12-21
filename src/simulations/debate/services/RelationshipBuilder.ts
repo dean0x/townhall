@@ -131,29 +131,13 @@ export class RelationshipBuilder implements IRelationshipBuilder<DebateActionSou
 
   /**
    * Find all direct relationships involving an action.
-   * Overloaded for backwards compatibility with ArgumentRelationship.
+   * Delegates to core RelationshipGraph.
    */
   public findDirectRelationships(
     actionId: string,
-    relationships: readonly ArgumentRelationship[]
-  ): ArgumentRelationship[];
-  public findDirectRelationships(
-    actionId: string,
     relationships: readonly IRelationship<RelationType>[]
-  ): IRelationship<RelationType>[];
-  public findDirectRelationships(
-    actionId: string,
-    relationships: readonly (IRelationship<RelationType> | ArgumentRelationship)[]
-  ): (IRelationship<RelationType> | ArgumentRelationship)[] {
-    // Handle ArgumentRelationship format (single toId)
-    if (relationships.length > 0 && 'toId' in relationships[0]!) {
-      // Filter ArgumentRelationship directly
-      return (relationships as readonly ArgumentRelationship[]).filter(
-        r => r.fromId === actionId || r.toId === actionId
-      );
-    }
-    // Handle IRelationship format (toIds array)
-    return this.graph.findInvolving(actionId as ActionId, relationships as readonly IRelationship<RelationType>[]);
+  ): IRelationship<RelationType>[] {
+    return this.graph.findInvolving(actionId as ActionId, relationships);
   }
 
   /**
@@ -227,6 +211,15 @@ export class RelationshipBuilder implements IRelationshipBuilder<DebateActionSou
     });
   }
 
+  /**
+   * Build a relationship chain starting from a root argument.
+   * Traverses all relationships connected to the root.
+   *
+   * @param rootArgument - The starting argument for the chain
+   * @param _allArguments - All available arguments (for future expansion)
+   * @param relationships - The relationships to traverse
+   * @returns A RelationshipChain with root, relationships, and depth
+   */
   public buildChain(
     rootArgument: Argument,
     _allArguments: Argument[],
@@ -241,6 +234,13 @@ export class RelationshipBuilder implements IRelationshipBuilder<DebateActionSou
     };
   }
 
+  /**
+   * Find all arguments that rebut a given argument.
+   *
+   * @param argumentId - The argument being rebutted
+   * @param relationships - The relationships to search
+   * @returns Array of argument IDs that rebut the target
+   */
   public findRebuttalTargets(
     argumentId: ArgumentId,
     relationships: ArgumentRelationship[]
@@ -250,6 +250,13 @@ export class RelationshipBuilder implements IRelationshipBuilder<DebateActionSou
       .map(rel => rel.fromId);
   }
 
+  /**
+   * Find all arguments that concede to a given argument.
+   *
+   * @param argumentId - The argument being conceded to
+   * @param relationships - The relationships to search
+   * @returns Array of argument IDs that concede to the target
+   */
   public findConcessionTargets(
     argumentId: ArgumentId,
     relationships: ArgumentRelationship[]

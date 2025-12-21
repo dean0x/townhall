@@ -142,6 +142,13 @@ export class DebateSimulation implements ISimulation<DebateSimulationConfig, Deb
     return ok(simulation);
   }
 
+  /**
+   * Add a participant to the debate.
+   * Returns the same instance if agent is already a participant (idempotent).
+   *
+   * @param agentId - The agent to add as participant
+   * @returns New DebateSimulation with the participant added
+   */
   public addParticipant(agentId: AgentId): DebateSimulation {
     if (this.participantIds.includes(agentId)) {
       return this; // Already a participant
@@ -159,6 +166,14 @@ export class DebateSimulation implements ISimulation<DebateSimulationConfig, Deb
     );
   }
 
+  /**
+   * Add an argument to the debate.
+   * Note: Status validation is handled by the application layer handlers.
+   *
+   * @param argumentId - The argument ID to add
+   * @param _isConcession - Whether this is a concession (used by handlers for status validation)
+   * @returns New DebateSimulation with the argument added
+   */
   public addArgument(argumentId: ArgumentId, _isConcession: boolean = false): DebateSimulation {
     // ARCHITECTURE: Validation moved to application layer (handlers)
     // Rationale: Domain entities should be pure data transformations without business logic validation
@@ -178,6 +193,13 @@ export class DebateSimulation implements ISimulation<DebateSimulationConfig, Deb
     );
   }
 
+  /**
+   * Transition the debate to a new status.
+   * Note: Status transition validation is handled by the caller.
+   *
+   * @param newStatus - The new debate status
+   * @returns New DebateSimulation with the updated status
+   */
   public transitionTo(newStatus: DebateStatus): DebateSimulation {
     // For now, allow the transition and let the caller handle validation
     // This maintains backward compatibility while following the Result pattern
@@ -193,6 +215,16 @@ export class DebateSimulation implements ISimulation<DebateSimulationConfig, Deb
     );
   }
 
+  /**
+   * Record a vote to close the debate.
+   * Note: Participant validation is handled by the application layer.
+   *
+   * @param agentId - The agent casting the vote
+   * @param vote - True to vote for closing, false to vote against
+   * @param reason - Optional reason for the vote
+   * @param timestamp - When the vote was cast
+   * @returns New DebateSimulation with the vote recorded
+   */
   public recordCloseVote(agentId: AgentId, vote: boolean, reason: string | undefined, timestamp: Timestamp): DebateSimulation {
     // For now, allow the vote and let the handler validate participants
     // This maintains the Entity as pure data without business rule validation
@@ -216,25 +248,52 @@ export class DebateSimulation implements ISimulation<DebateSimulationConfig, Deb
     );
   }
 
+  /**
+   * Get the current vote counts for closing the debate.
+   *
+   * @returns Object with yes, no, and total vote counts
+   */
   public getVoteCount(): { yes: number; no: number; total: number } {
     const yes = this.votesToClose.filter(v => v.vote).length;
     const no = this.votesToClose.filter(v => !v.vote).length;
     return { yes, no, total: yes + no };
   }
 
+  /**
+   * Check if there is unanimous consensus to close the debate.
+   * Requires all participants to have voted yes.
+   *
+   * @returns True if all participants voted to close
+   */
   public hasConsensusToClose(): boolean {
     const { yes } = this.getVoteCount();
     return yes === this.participantIds.length && this.participantIds.length > 0;
   }
 
+  /**
+   * Check if an agent is a participant in this debate.
+   *
+   * @param agentId - The agent to check
+   * @returns True if the agent is a participant
+   */
   public isParticipant(agentId: AgentId): boolean {
     return this.participantIds.includes(agentId);
   }
 
+  /**
+   * Get the number of arguments in this debate.
+   *
+   * @returns The count of argument IDs
+   */
   public getArgumentCount(): number {
     return this.argumentIds.length;
   }
 
+  /**
+   * Get the number of participants in this debate.
+   *
+   * @returns The count of participant agent IDs
+   */
   public getParticipantCount(): number {
     return this.participantIds.length;
   }

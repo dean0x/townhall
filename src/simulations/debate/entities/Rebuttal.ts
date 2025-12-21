@@ -105,6 +105,12 @@ export class Rebuttal extends Argument {
     return ok(rebuttal);
   }
 
+  /**
+   * Check if this rebuttal targets a specific argument.
+   *
+   * @param argumentId - The argument ID to check against
+   * @returns True if this rebuttal targets the given argument
+   */
   public isRebuttalTo(argumentId: ArgumentId): boolean {
     return this.targetArgumentId === argumentId;
   }

@@ -88,18 +88,39 @@ export class Concession extends Argument {
     return ok(concession);
   }
 
+  /**
+   * Check if this concession targets a specific argument.
+   *
+   * @param argumentId - The argument ID to check against
+   * @returns True if this concession targets the given argument
+   */
   public isConcessionTo(argumentId: ArgumentId): boolean {
     return this.targetArgumentId === argumentId;
   }
 
+  /**
+   * Check if this is a conditional concession (with conditions attached).
+   *
+   * @returns True if concession type is 'conditional'
+   */
   public isConditional(): boolean {
     return this.concessionType === 'conditional';
   }
 
+  /**
+   * Check if this is a partial concession (acknowledging part of the argument).
+   *
+   * @returns True if concession type is 'partial'
+   */
   public isPartial(): boolean {
     return this.concessionType === 'partial';
   }
 
+  /**
+   * Check if this is a full concession (complete acknowledgment).
+   *
+   * @returns True if concession type is 'full'
+   */
   public isFull(): boolean {
     return this.concessionType === 'full';
   }

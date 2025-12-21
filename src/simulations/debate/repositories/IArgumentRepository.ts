@@ -27,12 +27,18 @@ export interface IArgumentRepository extends IActionRepository<Argument, Argumen
   /**
    * Save a rebuttal to storage.
    * Rebuttals are a type of argument that targets another argument.
+   *
+   * @param rebuttal - The rebuttal entity to save
+   * @returns The saved rebuttal's ArgumentId, or StorageError on failure
    */
   saveRebuttal(rebuttal: Rebuttal): Promise<Result<ArgumentId, StorageError>>;
 
   /**
    * Save a concession to storage.
    * Concessions are a type of argument that acknowledges another argument's validity.
+   *
+   * @param concession - The concession entity to save
+   * @returns The saved concession's ArgumentId, or StorageError on failure
    */
   saveConcession(concession: Concession): Promise<Result<ArgumentId, StorageError>>;
 
