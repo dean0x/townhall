@@ -1,10 +1,11 @@
 /**
- * ArgumentType enum
- * Defines the three supported argument types
+ * ARCHITECTURE: Debate-specific value object
+ * Pattern: String enum for type-safe argument classification
+ * Rationale: Defines the three supported argument types in debates
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 
 export enum ArgumentType {
   DEDUCTIVE = 'deductive',

@@ -13,7 +13,7 @@ import { StorageError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { InitializeRepositoryCommand } from '../commands/InitializeRepositoryCommand';
 import { IStorageInitializer } from '../ports/IStorageInitializer';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
 
 @injectable()
 export class InitializeRepositoryHandler implements ICommandHandler<InitializeRepositoryCommand, void> {

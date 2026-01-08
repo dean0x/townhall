@@ -2,16 +2,33 @@
  * ARCHITECTURE: Dependency injection configuration for CLI
  * Pattern: Composition root pattern
  * Rationale: Wire up all dependencies at application startup
+ *
+ * This is the composition root where framework tokens and simulation-specific
+ * tokens are merged. The interface layer is the appropriate place for this
+ * cross-boundary import.
  */
 
 import { container } from 'tsyringe';
-import { TOKENS, Tokens } from '../../shared/tokens';
+import { TOKENS as FRAMEWORK_TOKENS, Tokens as FrameworkTokens } from '../../shared/tokens';
+import { DEBATE_TOKENS, DebateTokens } from '../../simulations/debate/tokens';
 import { resolve } from '../../shared/injection';
 
-// Core services
-import { ArgumentValidator } from '../../core/services/ArgumentValidator';
-import { RelationshipBuilder } from '../../core/services/RelationshipBuilder';
-import { VoteCalculator } from '../../core/services/VoteCalculator';
+// Debate services
+import { ArgumentValidator, RelationshipBuilder, VoteCalculator } from '../../simulations/debate';
+
+/**
+ * Merged tokens for CLI use - combines framework and debate tokens.
+ * This is the single place where cross-boundary token merging happens.
+ */
+export const TOKENS = {
+  ...FRAMEWORK_TOKENS,
+  ...DEBATE_TOKENS,
+} as const;
+
+export const Tokens = {
+  ...FrameworkTokens,
+  ...DebateTokens,
+} as const;
 
 // Application layer
 import { CommandBus } from '../../application/handlers/CommandBus';

@@ -9,16 +9,13 @@ import { Result, ok, err } from '../../shared/result';
 import { ValidationError, NotFoundError, ConflictError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { SubmitRebuttalCommand } from '../commands/SubmitRebuttalCommand';
-import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import type { IArgumentRepository, IDebateRepository } from '../../simulations/debate/repositories';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
-import { ArgumentValidator } from '../../core/services/ArgumentValidator';
-import { RelationshipBuilder } from '../../core/services/RelationshipBuilder';
-import { Rebuttal } from '../../core/entities/Rebuttal';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { ArgumentValidator, Rebuttal, ArgumentId, RelationshipBuilder } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 import { isDeductiveStructure, isInductiveStructure, isEmpiricalStructure } from '../utils/structure-guards';
 
 export interface SubmitRebuttalResult {
@@ -32,12 +29,12 @@ export interface SubmitRebuttalResult {
 @injectable()
 export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalCommand, SubmitRebuttalResult> {
   constructor(
-    @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
+    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
+    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
+    @inject(DEBATE_TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
     @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService,
-    @inject(TOKENS.RelationshipBuilder) private readonly relationshipBuilder: RelationshipBuilder
+    @inject(DEBATE_TOKENS.RelationshipBuilder) private readonly relationshipBuilder: RelationshipBuilder
   ) {}
 
   public async handle(command: SubmitRebuttalCommand): Promise<Result<SubmitRebuttalResult, Error>> {

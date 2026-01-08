@@ -1,14 +1,19 @@
 /**
- * ARCHITECTURE: Specialized argument entity for concessions
+ * ARCHITECTURE: Debate-specific entity for concessions implementing IAction
  * Pattern: Extends Argument with acknowledgment relationship data
  * Rationale: Tracks when agents accept or partially accept other arguments
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 import { Argument, CreateArgumentParams } from './Argument';
 import { ArgumentId } from '../value-objects/ArgumentId';
-import { ICryptoService } from '../services/ICryptoService';
+import { ICryptoService } from '../../../core/services/ICryptoService';
+
+/**
+ * Action type constant for type discrimination
+ */
+export const CONCESSION_ACTION_TYPE = 'concession' as const;
 
 export type ConcessionType = 'full' | 'partial' | 'conditional';
 
@@ -21,7 +26,16 @@ export interface CreateConcessionParams extends CreateArgumentParams {
   readonly explanation?: string;
 }
 
+/**
+ * Concession entity representing acknowledgment of an argument in a debate.
+ * Extends Argument and implements IAction through inheritance.
+ */
 export class Concession extends Argument {
+  /**
+   * Override action type for concessions.
+   */
+  public override readonly actionType = CONCESSION_ACTION_TYPE;
+
   private constructor(
     argument: Argument,
     public readonly targetArgumentId: ArgumentId,
@@ -74,18 +88,39 @@ export class Concession extends Argument {
     return ok(concession);
   }
 
+  /**
+   * Check if this concession targets a specific argument.
+   *
+   * @param argumentId - The argument ID to check against
+   * @returns True if this concession targets the given argument
+   */
   public isConcessionTo(argumentId: ArgumentId): boolean {
     return this.targetArgumentId === argumentId;
   }
 
+  /**
+   * Check if this is a conditional concession (with conditions attached).
+   *
+   * @returns True if concession type is 'conditional'
+   */
   public isConditional(): boolean {
     return this.concessionType === 'conditional';
   }
 
+  /**
+   * Check if this is a partial concession (acknowledging part of the argument).
+   *
+   * @returns True if concession type is 'partial'
+   */
   public isPartial(): boolean {
     return this.concessionType === 'partial';
   }
 
+  /**
+   * Check if this is a full concession (complete acknowledgment).
+   *
+   * @returns True if concession type is 'full'
+   */
   public isFull(): boolean {
     return this.concessionType === 'full';
   }

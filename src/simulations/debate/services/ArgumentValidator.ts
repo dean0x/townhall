@@ -1,15 +1,22 @@
 /**
- * ARCHITECTURE: Domain service for argument validation
+ * ARCHITECTURE: Debate-specific domain service for argument validation
  * Pattern: Pure business logic, zero dependencies
  * Rationale: Encapsulates complex validation rules for different argument types
  */
 
-import { Result, ok, err } from '../../shared/result';
-import { ValidationError } from '../../shared/errors';
+import { Result, ok, err } from '../../../shared/result';
+import { ValidationError } from '../../../shared/errors';
 import { ArgumentType } from '../value-objects/ArgumentType';
 import { DeductiveStructure, InductiveStructure, EmpiricalStructure } from '../entities/Argument';
 
 export class ArgumentValidator {
+  /**
+   * Validate a deductive argument structure.
+   * Checks for minimum premises (2+), non-empty conclusion, and non-empty premises.
+   *
+   * @param structure - The deductive structure with premises and conclusion
+   * @returns Ok if valid, Err with ValidationError describing the issue
+   */
   public validateDeductive(structure: DeductiveStructure): Result<void, ValidationError> {
     if (!structure.premises || structure.premises.length < 2) {
       return err(new ValidationError('Deductive arguments require at least 2 premises'));
@@ -29,6 +36,14 @@ export class ArgumentValidator {
     return ok(undefined);
   }
 
+  /**
+   * Validate an inductive argument structure.
+   * Checks for minimum observations (2+), non-empty generalization,
+   * valid confidence range (0-1), and non-empty observations.
+   *
+   * @param structure - The inductive structure with observations and generalization
+   * @returns Ok if valid, Err with ValidationError describing the issue
+   */
   public validateInductive(structure: InductiveStructure): Result<void, ValidationError> {
     if (!structure.observations || structure.observations.length < 2) {
       return err(new ValidationError('Inductive arguments require at least 2 observations'));
@@ -52,6 +67,14 @@ export class ArgumentValidator {
     return ok(undefined);
   }
 
+  /**
+   * Validate an empirical argument structure.
+   * Checks for at least one evidence item, non-empty claim,
+   * and valid evidence items (each with source and relevance).
+   *
+   * @param structure - The empirical structure with evidence and claim
+   * @returns Ok if valid, Err with ValidationError describing the issue
+   */
   public validateEmpirical(structure: EmpiricalStructure): Result<void, ValidationError> {
     if (!structure.evidence || structure.evidence.length === 0) {
       return err(new ValidationError('Empirical arguments require at least one piece of evidence'));
@@ -80,6 +103,13 @@ export class ArgumentValidator {
     return ok(undefined);
   }
 
+  /**
+   * Validate argument text length constraints.
+   * Text must be non-empty and not exceed 10,000 characters.
+   *
+   * @param text - The argument text to validate
+   * @returns Ok if valid, Err with ValidationError if empty or too long
+   */
   public validateTextLength(text: string): Result<void, ValidationError> {
     if (!text || text.trim().length === 0) {
       return err(new ValidationError('Argument text is required'));
@@ -92,6 +122,17 @@ export class ArgumentValidator {
     return ok(undefined);
   }
 
+  /**
+   * Check logical consistency of an argument based on its type.
+   * Performs type-specific validation:
+   * - Deductive: circular reasoning, contradictions, logical flow
+   * - Inductive: generalization scope vs observation count
+   * - Empirical: numeric claims require quantitative evidence
+   *
+   * @param type - The argument type (deductive, inductive, empirical)
+   * @param structure - The argument structure matching the type
+   * @returns Ok if logically consistent, Err with ValidationError describing the issue
+   */
   public checkLogicalConsistency(
     type: ArgumentType,
     structure: DeductiveStructure | InductiveStructure | EmpiricalStructure

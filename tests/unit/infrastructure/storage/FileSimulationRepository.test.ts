@@ -9,7 +9,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { FileSimulationRepository } from '../../../../src/infrastructure/storage/FileSimulationRepository';
 import { ObjectStorage } from '../../../../src/infrastructure/storage/ObjectStorage';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { SimulationId } from '../../../../src/core/value-objects/SimulationId';
 import { expectOk, expectErr } from '../../../helpers/result-assertions';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';

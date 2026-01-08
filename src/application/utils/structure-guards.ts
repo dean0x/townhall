@@ -8,7 +8,7 @@ import {
   DeductiveStructure,
   InductiveStructure,
   EmpiricalStructure
-} from '../../core/entities/Argument';
+} from '../../simulations/debate';
 
 /**
  * Type guard for DeductiveStructure

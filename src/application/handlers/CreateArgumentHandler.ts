@@ -9,16 +9,14 @@ import { Result, ok, err } from '../../shared/result';
 import { ValidationError, NotFoundError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { CreateArgumentCommand } from '../commands/CreateArgumentCommand';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
-import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
+import type { IDebateRepository, IArgumentRepository } from '../../simulations/debate/repositories';
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { ICitationRepository } from '../../core/repositories/ICitationRepository';
-import { ArgumentValidator } from '../../core/services/ArgumentValidator';
-import { Argument } from '../../core/entities/Argument';
+import { ArgumentValidator, Argument, ArgumentId } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 import { isDeductiveStructure, isInductiveStructure, isEmpiricalStructure } from '../utils/structure-guards';
 
 export interface CreateArgumentResult {
@@ -31,11 +29,11 @@ export interface CreateArgumentResult {
 @injectable()
 export class CreateArgumentHandler implements ICommandHandler<CreateArgumentCommand, CreateArgumentResult> {
   constructor(
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
-    @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
+    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
+    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
     @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
     @inject(TOKENS.CitationRepository) private readonly citationRepo: ICitationRepository,
-    @inject(TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
+    @inject(DEBATE_TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
     @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}
 

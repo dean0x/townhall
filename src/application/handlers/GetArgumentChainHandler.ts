@@ -9,9 +9,9 @@ import { Result, ok, err } from '../../shared/result';
 import { NotFoundError } from '../../shared/errors';
 import { IQueryHandler } from './QueryBus';
 import { GetArgumentChainQuery } from '../queries/GetArgumentChainQuery';
-import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { Argument } from '../../core/entities/Argument';
-import { TOKENS } from '../../shared/container';
+import type { IArgumentRepository } from '../../simulations/debate/repositories';
+import { Argument } from '../../simulations/debate';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 
 export interface ArgumentNode {
   readonly argument: Argument;
@@ -32,7 +32,7 @@ export interface GetArgumentChainResult {
 @injectable()
 export class GetArgumentChainHandler implements IQueryHandler<GetArgumentChainQuery, GetArgumentChainResult> {
   constructor(
-    @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository
+    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository
   ) {}
 
   public async handle(query: GetArgumentChainQuery): Promise<Result<GetArgumentChainResult, NotFoundError>> {
@@ -98,16 +98,24 @@ export class GetArgumentChainHandler implements IQueryHandler<GetArgumentChainQu
       ...(relationships.supports || []),
     ];
 
-    // Build child nodes in parallel
-    const childResults = await Promise.all(
-      childIds.map(childId => this.argumentRepo.findById(childId))
-    );
+    if (childIds.length === 0) {
+      return ok(node);
+    }
 
+    // PERFORMANCE: Batch load all children in a single operation (O(1) vs O(N))
+    const childArgsResult = await this.argumentRepo.findByIds(childIds);
+    if (childArgsResult.isErr()) {
+      return ok(node); // Return node without children if batch load fails
+    }
+
+    const childArgs = childArgsResult.value;
+
+    // Build child nodes in parallel
     const childNodes = await Promise.all(
-      childResults
-        .filter(result => result.isOk())
-        .map(result => this.buildChain(
-          result.value,
+      childIds
+        .filter(id => childArgs.has(id))
+        .map(id => this.buildChain(
+          childArgs.get(id)!,
           currentDepth + 1,
           maxDepth,
           includeMetadata

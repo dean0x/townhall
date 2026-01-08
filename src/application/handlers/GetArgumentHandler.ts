@@ -9,10 +9,9 @@ import { Result, ok, err } from '../../shared/result';
 import { NotFoundError } from '../../shared/errors';
 import { IQueryHandler } from './QueryBus';
 import { GetArgumentQuery } from '../queries/GetArgumentQuery';
-import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { Argument } from '../../core/entities/Argument';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
-import { TOKENS } from '../../shared/container';
+import type { IArgumentRepository } from '../../simulations/debate/repositories';
+import { Argument, ArgumentId } from '../../simulations/debate';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 
 export interface GetArgumentResult {
   readonly argument: Argument;
@@ -26,7 +25,7 @@ export interface GetArgumentResult {
 @injectable()
 export class GetArgumentHandler implements IQueryHandler<GetArgumentQuery, GetArgumentResult> {
   constructor(
-    @inject(TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository
+    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository
   ) {}
 
   public async handle(query: GetArgumentQuery): Promise<Result<GetArgumentResult, NotFoundError>> {

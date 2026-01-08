@@ -11,10 +11,9 @@ import { DomainError, InternalError } from '../../shared/errors';
 import { ICommandBus } from '../../application/handlers/CommandBus';
 import { IQueryBus } from '../../application/handlers/QueryBus';
 import { ILogger } from '../../application/ports/ILogger';
-import { IArgumentRepository } from '../../core/repositories/IArgumentRepository';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import type { IArgumentRepository, IDebateRepository } from '../../simulations/debate/repositories';
 import type { ObjectStorage as _ObjectStorage } from '../../infrastructure/storage/ObjectStorage';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from './container-config';
 import { CommandContext } from './base/BaseCommand';
 
 // All commands with Result types
@@ -43,7 +42,7 @@ export class TownhallCLI {
     @inject(TOKENS.Logger) private readonly logger: ILogger,
     @inject(TOKENS.ObjectStorage) _storage: _ObjectStorage,
     @inject(TOKENS.ArgumentRepository) private readonly argumentRepository: IArgumentRepository,
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepository: ISimulationRepository
+    @inject(TOKENS.SimulationRepository) private readonly simulationRepository: IDebateRepository
   ) {
     this.program = new Command();
     this.context = {
@@ -211,7 +210,7 @@ export function createCLI(
   logger: ILogger,
   storage: _ObjectStorage,
   argumentRepository: IArgumentRepository,
-  simulationRepository: ISimulationRepository
+  simulationRepository: IDebateRepository
 ): TownhallCLI {
   return new TownhallCLI(commandBus, queryBus, logger, storage, argumentRepository, simulationRepository);
 }

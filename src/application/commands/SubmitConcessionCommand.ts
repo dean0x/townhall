@@ -5,8 +5,7 @@
  */
 
 import { AgentId } from '../../core/value-objects/AgentId';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
-import { ConcessionType } from '../../core/entities/Concession';
+import { ArgumentId, ConcessionType } from '../../simulations/debate';
 
 export interface SubmitConcessionCommand {
   readonly agentId: AgentId;

@@ -15,7 +15,7 @@ import { GetCitationStatsQuery, CitationStats } from '../../../application/queri
 import { CitationId } from '../../../core/value-objects/CitationId';
 import { CitationType } from '../../../core/value-objects/CitationType';
 import type { SimulationId as _SimulationId } from '../../../core/value-objects/SimulationId';
-import { ISimulationRepository } from '../../../core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../../simulations/debate/repositories';
 
 interface CitationOptions {
   source: string;
@@ -47,7 +47,7 @@ export class CitationCommand extends BaseCommand {
   constructor(
     private readonly commandBus: ICommandBus,
     private readonly queryBus: IQueryBus,
-    private readonly simulationRepo: ISimulationRepository,
+    private readonly simulationRepo: IDebateRepository,
     context: CommandContext
   ) {
     super('citation', 'Create or manage citations for arguments', context);

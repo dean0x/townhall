@@ -13,7 +13,7 @@ import { ObjectStorage } from '../../../../src/infrastructure/storage/ObjectStor
 import { FileSimulationRepository } from '../../../../src/infrastructure/storage/FileSimulationRepository';
 import { FileArgumentRepository } from '../../../../src/infrastructure/storage/FileArgumentRepository';
 import { FileAgentRepository } from '../../../../src/infrastructure/storage/FileAgentRepository';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { SimulationId } from '../../../../src/core/value-objects/SimulationId';
 import { ILogger } from '../../../../src/application/ports/ILogger';
 import { CommandBus } from '../../../../src/application/handlers/CommandBus';

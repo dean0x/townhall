@@ -5,8 +5,7 @@
  */
 
 import { AgentId } from '../../core/value-objects/AgentId';
-import { ArgumentType } from '../../core/value-objects/ArgumentType';
-import { ArgumentContent } from '../../core/entities/Argument';
+import { ArgumentType, ArgumentContent } from '../../simulations/debate';
 import { CitationId } from '../../core/value-objects/CitationId';
 
 export interface CreateArgumentCommand {

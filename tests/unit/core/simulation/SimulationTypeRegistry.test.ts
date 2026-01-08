@@ -230,15 +230,15 @@ describe('isAction', () => {
     agentId: 'agent-789',
     timestamp: '2025-01-01T10:00:00.000Z',
     actionType: 'argument',
-    content: 'This is a test argument',
+    textContent: 'This is a test argument',
   };
 
   it('should return true for valid action', () => {
     expect(isAction(validAction)).toBe(true);
   });
 
-  it('should return true for action with empty content', () => {
-    expect(isAction({ ...validAction, content: '' })).toBe(true);
+  it('should return true for action with empty textContent', () => {
+    expect(isAction({ ...validAction, textContent: '' })).toBe(true);
   });
 
   it('should return false for null', () => {
@@ -300,12 +300,12 @@ describe('isAction', () => {
     const { actionType, ...withoutActionType } = validAction;
     expect(isAction(withoutActionType)).toBe(false);
 
-    const { content, ...withoutContent } = validAction;
-    expect(isAction(withoutContent)).toBe(false);
+    const { textContent, ...withoutTextContent } = validAction;
+    expect(isAction(withoutTextContent)).toBe(false);
   });
 
-  it('should return false for non-string content', () => {
-    expect(isAction({ ...validAction, content: 123 })).toBe(false);
-    expect(isAction({ ...validAction, content: null })).toBe(false);
+  it('should return false for non-string textContent', () => {
+    expect(isAction({ ...validAction, textContent: 123 })).toBe(false);
+    expect(isAction({ ...validAction, textContent: null })).toBe(false);
   });
 });

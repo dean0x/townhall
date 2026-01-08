@@ -11,7 +11,7 @@ import { DomainError, ValidationError } from '../../../shared/errors';
 import { IQueryBus } from '../../../application/handlers/QueryBus';
 import { GetArgumentChainQuery } from '../../../application/queries/GetArgumentChainQuery';
 import { GetArgumentChainResult } from '../../../application/handlers/GetArgumentChainHandler';
-import { ArgumentId } from '../../../core/value-objects/ArgumentId';
+import { ArgumentId } from '../../../simulations/debate';
 
 interface ValidatedTraceOptions {
   argumentId: ArgumentId;

@@ -5,10 +5,7 @@
  */
 
 import { AgentId } from '../../core/value-objects/AgentId';
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
-import { ArgumentType } from '../../core/value-objects/ArgumentType';
-import { ArgumentContent } from '../../core/entities/Argument';
-import { RebuttalType } from '../../core/entities/Rebuttal';
+import { ArgumentId, ArgumentType, ArgumentContent, RebuttalType } from '../../simulations/debate';
 
 export interface SubmitRebuttalCommand {
   readonly agentId: AgentId;

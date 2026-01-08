@@ -16,7 +16,7 @@ import type { SimulationId } from '../../core/value-objects/SimulationId';
 import { isPeerReviewed } from '../../core/value-objects/CitationType';
 import { IQueryHandler } from './QueryBus';
 import { ValidationError } from '../../shared/errors';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
 
 @injectable()
 export class GetCitationStatsHandler implements IQueryHandler<GetCitationStatsQuery, CitationStats> {

@@ -7,20 +7,19 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GetDebateHistoryHandler } from '../../../../src/application/handlers/GetDebateHistoryHandler';
 import { GetDebateHistoryQuery } from '../../../../src/application/queries/GetDebateHistoryQuery';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
-import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
+import type { IDebateRepository, IArgumentRepository } from '../../../../src/simulations/debate/repositories';
 import { IAgentRepository } from '../../../../src/core/repositories/IAgentRepository';
-import { RelationshipBuilder } from '../../../../src/core/services/RelationshipBuilder';
+import { RelationshipBuilder } from '../../../../src/simulations/debate';
 import { ok, err } from '../../../../src/shared/result';
 import { NotFoundError, StorageError } from '../../../../src/shared/errors';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
-import { Argument } from '../../../../src/core/entities/Argument';
-import { Rebuttal } from '../../../../src/core/entities/Rebuttal';
+import { DebateSimulation } from '../../../../src/simulations/debate';
+import { Argument } from '../../../../src/simulations/debate';
+import { Rebuttal } from '../../../../src/simulations/debate';
 import { Agent } from '../../../../src/core/entities/Agent';
 
 describe('GetDebateHistoryHandler', () => {
   let handler: GetDebateHistoryHandler;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
   let mockArgumentRepo: IArgumentRepository;
   let mockAgentRepo: IAgentRepository;
   let mockRelationshipBuilder: RelationshipBuilder;

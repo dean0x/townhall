@@ -7,17 +7,16 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CreateArgumentHandler } from '../../../../src/application/handlers/CreateArgumentHandler';
 import { CreateArgumentCommand } from '../../../../src/application/commands/CreateArgumentCommand';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
-import { IArgumentRepository } from '../../../../src/core/repositories/IArgumentRepository';
+import type { IDebateRepository, IArgumentRepository } from '../../../../src/simulations/debate/repositories';
 import { IAgentRepository } from '../../../../src/core/repositories/IAgentRepository';
 import { ICitationRepository } from '../../../../src/core/repositories/ICitationRepository';
-import { ArgumentValidator } from '../../../../src/core/services/ArgumentValidator';
+import { ArgumentValidator } from '../../../../src/simulations/debate';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
 import { ValidationError, NotFoundError, StorageError } from '../../../../src/shared/errors';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
 import { expectOk } from '../../../helpers/result-assertions';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { Agent } from '../../../../src/core/entities/Agent';
 import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
@@ -25,7 +24,7 @@ import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp
 
 describe('CreateArgumentHandler', () => {
   let handler: CreateArgumentHandler;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
   let mockArgumentRepo: IArgumentRepository;
   let mockAgentRepo: IAgentRepository;
   let mockCitationRepo: ICitationRepository;

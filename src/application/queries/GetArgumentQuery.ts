@@ -4,7 +4,7 @@
  * Rationale: Supports both full and short hash lookup
  */
 
-import { ArgumentId } from '../../core/value-objects/ArgumentId';
+import { ArgumentId } from '../../simulations/debate';
 
 export interface GetArgumentQuery {
   readonly argumentId: ArgumentId | string; // Full hash or short hash

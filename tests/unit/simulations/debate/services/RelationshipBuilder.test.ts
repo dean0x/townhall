@@ -5,16 +5,13 @@
 
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RelationshipBuilder } from '../../../../src/core/services/RelationshipBuilder';
-import { ICryptoService } from '../../../../src/core/services/ICryptoService';
-import { MockCryptoService } from '../../../helpers/MockCryptoService';
-import { expectOk } from '../../../helpers/result-assertions';
-import { Argument } from '../../../../src/core/entities/Argument';
-import { Rebuttal } from '../../../../src/core/entities/Rebuttal';
-import { Concession } from '../../../../src/core/entities/Concession';
-import { AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
-import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
-import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
+import { RelationshipBuilder, Argument, Rebuttal, Concession } from '../../../../../src/simulations/debate';
+import { ICryptoService } from '../../../../../src/core/services/ICryptoService';
+import { MockCryptoService } from '../../../../helpers/MockCryptoService';
+import { expectOk } from '../../../../helpers/result-assertions';
+import { AgentIdGenerator } from '../../../../../src/core/value-objects/AgentId';
+import { SimulationIdGenerator } from '../../../../../src/core/value-objects/SimulationId';
+import { TimestampGenerator } from '../../../../../src/core/value-objects/Timestamp';
 
 describe('RelationshipBuilder', () => {
   let builder: RelationshipBuilder;
@@ -648,15 +645,15 @@ describe('RelationshipBuilder', () => {
       const arg3Id = 'arg3' as any;
 
       const relationships = [
-        { fromId: arg1Id, toId: arg2Id, type: 'rebuts' as const, strength: 0.7 },
-        { fromId: arg2Id, toId: arg3Id, type: 'rebuts' as const, strength: 0.6 },
-        { fromId: arg1Id, toId: arg3Id, type: 'supports' as const, strength: 0.8 },
+        { fromId: arg1Id, toIds: [arg2Id], type: 'rebuts' as const, strength: 0.7 },
+        { fromId: arg2Id, toIds: [arg3Id], type: 'rebuts' as const, strength: 0.6 },
+        { fromId: arg1Id, toIds: [arg3Id], type: 'supports' as const, strength: 0.8 },
       ];
 
       const direct = builder.findDirectRelationships(arg1Id, relationships);
 
       expect(direct).toHaveLength(2);
-      expect(direct.every(r => r.fromId === arg1Id || r.toId === arg1Id)).toBe(true);
+      expect(direct.every(r => r.fromId === arg1Id || r.toIds.includes(arg1Id))).toBe(true);
     });
   });
 

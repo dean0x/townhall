@@ -9,11 +9,11 @@ import { BaseCommand, CommandContext } from '../base/BaseCommand';
 import { Result, ok, err } from '../../../shared/result';
 import { DomainError, ValidationError } from '../../../shared/errors';
 import { ICommandBus } from '../../../application/handlers/CommandBus';
-import { IArgumentRepository } from '../../../core/repositories/IArgumentRepository';
+import type { IArgumentRepository } from '../../../simulations/debate/repositories';
 import { SubmitConcessionCommand } from '../../../application/commands/SubmitConcessionCommand';
 import { SubmitConcessionResult } from '../../../application/handlers/SubmitConcessionHandler';
 import { AgentIdGenerator, AgentId } from '../../../core/value-objects/AgentId';
-import { ArgumentId, ArgumentIdGenerator } from '../../../core/value-objects/ArgumentId';
+import { ArgumentId, ArgumentIdGenerator } from '../../../simulations/debate';
 
 interface ConcedeOptions {
   target: string;

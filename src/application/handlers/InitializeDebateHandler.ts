@@ -9,12 +9,13 @@ import { Result, ok, err } from '../../shared/result';
 import { ValidationError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { InitializeDebateCommand } from '../commands/InitializeDebateCommand';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../simulations/debate/repositories';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { DebateSimulation } from '../../core/entities/DebateSimulation';
+import { DebateSimulation } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { SimulationId } from '../../core/value-objects/SimulationId';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
 
 export interface InitializeDebateResult {
   readonly simulationId: SimulationId;
@@ -26,7 +27,7 @@ export interface InitializeDebateResult {
 @injectable()
 export class InitializeDebateHandler implements ICommandHandler<InitializeDebateCommand, InitializeDebateResult> {
   constructor(
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository,
+    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
     @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
   ) {}
 

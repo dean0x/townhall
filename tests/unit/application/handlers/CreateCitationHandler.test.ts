@@ -8,12 +8,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CreateCitationHandler } from '../../../../src/application/handlers/CreateCitationHandler';
 import { CreateCitationCommand } from '../../../../src/application/commands/CreateCitationCommand';
 import { ICitationRepository } from '../../../../src/core/repositories/ICitationRepository';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
+import type { IDebateRepository } from '../../../../src/simulations/debate/repositories';
 import { ICryptoService } from '../../../../src/core/services/ICryptoService';
 import { ok, err } from '../../../../src/shared/result';
 import { ValidationError } from '../../../../src/shared/errors';
 import { MockCryptoService } from '../../../helpers/MockCryptoService';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { SimulationIdGenerator } from '../../../../src/core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../../../src/core/value-objects/Timestamp';
 import { CitationType } from '../../../../src/core/value-objects/CitationType';
@@ -21,7 +21,7 @@ import { CitationType } from '../../../../src/core/value-objects/CitationType';
 describe('CreateCitationHandler', () => {
   let handler: CreateCitationHandler;
   let mockCitationRepo: ICitationRepository;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
   let cryptoService: ICryptoService;
 
   beforeEach(() => {

@@ -13,7 +13,7 @@ import { CitationId } from '../../core/value-objects/CitationId';
 import { ICitationRepository } from '../../core/repositories/ICitationRepository';
 import { IQueryHandler } from './QueryBus';
 import { NotFoundError, ValidationError } from '../../shared/errors';
-import { TOKENS } from '../../shared/container';
+import { TOKENS } from '../../shared/tokens';
 
 @injectable()
 export class GetCitationHandler implements IQueryHandler<GetCitationQuery, Citation> {

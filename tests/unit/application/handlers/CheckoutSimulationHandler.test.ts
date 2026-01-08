@@ -7,10 +7,10 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CheckoutSimulationHandler } from '../../../../src/application/handlers/CheckoutSimulationHandler';
 import { CheckoutSimulationCommand } from '../../../../src/application/commands/CheckoutSimulationCommand';
-import { ISimulationRepository } from '../../../../src/core/repositories/ISimulationRepository';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
+import type { IDebateRepository } from '../../../../src/simulations/debate/repositories';
+import { DebateSimulation } from '../../../../src/simulations/debate';
 import { SimulationId } from '../../../../src/core/value-objects/SimulationId';
-import { DebateStatus } from '../../../../src/core/value-objects/DebateStatus';
+import { DebateStatus } from '../../../../src/simulations/debate';
 import { ok, err } from '../../../../src/shared/result';
 import { NotFoundError, StorageError } from '../../../../src/shared/errors';
 import { expectOk, expectErr } from '../../../helpers/result-assertions';
@@ -19,7 +19,7 @@ import { MockCryptoService } from '../../../helpers/MockCryptoService';
 describe('CheckoutSimulationHandler', () => {
   const cryptoService = new MockCryptoService();
   let handler: CheckoutSimulationHandler;
-  let mockSimulationRepo: ISimulationRepository;
+  let mockSimulationRepo: IDebateRepository;
 
   beforeEach(() => {
     mockSimulationRepo = {

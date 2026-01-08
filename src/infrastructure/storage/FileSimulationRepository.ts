@@ -9,20 +9,24 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { Result, ok, err, propagateError } from '../../shared/result';
 import { NotFoundError, StorageError, ConflictError } from '../../shared/errors';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
-import { DebateSimulation, CloseVote } from '../../core/entities/DebateSimulation';
+import type { IDebateRepository } from '../../simulations/debate/repositories/IDebateRepository';
+import {
+  DebateSimulation,
+  CloseVote,
+  parseDebateStatus,
+  ArgumentId,
+  ArgumentIdGenerator,
+} from '../../simulations/debate';
 import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/SimulationId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
-import { parseDebateStatus } from '../../core/value-objects/DebateStatus';
 import { AgentId, AgentIdGenerator } from '../../core/value-objects/AgentId';
-import { ArgumentId, ArgumentIdGenerator } from '../../core/value-objects/ArgumentId';
 import { ObjectStorage } from './ObjectStorage';
 import { TOKENS } from '../../shared/container';
 import { hasErrorCode } from './NodeSystemError';
 import { SimulationDataSchema, type SimulationData, parseStorageData } from './schemas';
 
 @injectable()
-export class FileSimulationRepository implements ISimulationRepository {
+export class FileSimulationRepository implements IDebateRepository {
   private readonly basePath: string;
 
   constructor(

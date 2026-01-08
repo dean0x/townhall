@@ -27,24 +27,27 @@ export type ActionId = Brand<string, 'ActionId'>;
  * Actions are the atomic units of participation in a simulation.
  * They are immutable, content-addressed, and linked to an agent.
  *
+ * @typeParam TId - The specific action ID type (defaults to ActionId).
+ *                  Allows simulation-specific narrower types like ArgumentId.
+ *
  * @example
  * ```typescript
- * // Debate's Argument implements IAction
- * class Argument implements IAction {
+ * // Debate's Argument implements IAction with ArgumentId
+ * class Argument implements IAction<ArgumentId> {
  *   readonly actionType = 'argument';
  *   // ... debate-specific fields
  * }
  *
- * // Decision's Proposal implements IAction
- * class Proposal implements IAction {
+ * // Decision's Proposal implements IAction with ProposalId
+ * class Proposal implements IAction<ProposalId> {
  *   readonly actionType = 'proposal';
  *   // ... decision-specific fields
  * }
  * ```
  */
-export interface IAction {
+export interface IAction<TId extends string = ActionId> {
   /** Content-addressed unique identifier (SHA-256 hash) */
-  readonly id: ActionId;
+  readonly id: TId;
 
   /** Simulation this action belongs to */
   readonly simulationId: SimulationId;
@@ -65,10 +68,12 @@ export interface IAction {
   readonly actionType: string;
 
   /**
-   * Human-readable content of the action.
+   * Human-readable text content of the action.
    * The interpretation depends on the action type.
+   * Named 'textContent' to allow simulation-specific 'content' fields
+   * with richer structure (e.g., Argument's content: ArgumentContent).
    */
-  readonly content: string;
+  readonly textContent: string;
 }
 
 /**
@@ -107,8 +112,8 @@ export function isAction(obj: unknown): obj is IAction {
     return false;
   }
 
-  // Content must be a string (can be empty for some action types)
-  if (typeof action.content !== 'string') {
+  // textContent must be a string (can be empty for some action types)
+  if (typeof action.textContent !== 'string') {
     return false;
   }
 

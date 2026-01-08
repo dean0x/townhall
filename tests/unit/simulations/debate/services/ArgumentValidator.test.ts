@@ -4,8 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ArgumentValidator } from '../../../../src/core/services/ArgumentValidator';
-import { ArgumentType } from '../../../../src/core/value-objects/ArgumentType';
+import { ArgumentValidator, ArgumentType } from '../../../../../src/simulations/debate';
 
 describe('ArgumentValidator Service', () => {
   const validator = new ArgumentValidator();

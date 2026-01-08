@@ -17,8 +17,9 @@ import { ICitationRepository } from '../../core/repositories/ICitationRepository
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { ICommandHandler } from './CommandBus';
 import { ValidationError } from '../../shared/errors';
-import { TOKENS } from '../../shared/container';
-import { ISimulationRepository } from '../../core/repositories/ISimulationRepository';
+import { TOKENS } from '../../shared/tokens';
+import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import type { IDebateRepository } from '../../simulations/debate/repositories';
 
 @injectable()
 export class CreateCitationHandler
@@ -27,7 +28,7 @@ export class CreateCitationHandler
   constructor(
     @inject(TOKENS.CitationRepository) private readonly citationRepo: ICitationRepository,
     @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService,
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepo: ISimulationRepository
+    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository
   ) {}
 
   public async handle(command: CreateCitationCommand): Promise<Result<CitationId, Error>> {

@@ -13,10 +13,10 @@ import { ObjectStorage } from '../../../../src/infrastructure/storage/ObjectStor
 import { FileSimulationRepository } from '../../../../src/infrastructure/storage/FileSimulationRepository';
 import { FileAgentRepository } from '../../../../src/infrastructure/storage/FileAgentRepository';
 import { FileArgumentRepository } from '../../../../src/infrastructure/storage/FileArgumentRepository';
-import { DebateSimulation } from '../../../../src/core/entities/DebateSimulation';
-import { Argument } from '../../../../src/core/entities/Argument';
+import { DebateSimulation } from '../../../../src/simulations/debate';
+import { Argument } from '../../../../src/simulations/debate';
 import { SimulationId } from '../../../../src/core/value-objects/SimulationId';
-import { ArgumentId, ArgumentIdGenerator } from '../../../../src/core/value-objects/ArgumentId';
+import { ArgumentId, ArgumentIdGenerator } from '../../../../src/simulations/debate';
 import { AgentId, AgentIdGenerator } from '../../../../src/core/value-objects/AgentId';
 import { ILogger } from '../../../../src/application/ports/ILogger';
 
