@@ -10,7 +10,7 @@ import { NotFoundError, StorageError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { CheckoutSimulationCommand } from '../commands/CheckoutSimulationCommand';
 import type { IDebateRepository } from '../../simulations/debate/repositories';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 
 export interface CheckoutSimulationResult {
   readonly simulationId: string;
@@ -22,7 +22,7 @@ export interface CheckoutSimulationResult {
 @injectable()
 export class CheckoutSimulationHandler implements ICommandHandler<CheckoutSimulationCommand, CheckoutSimulationResult> {
   constructor(
-    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository
+    @inject(DebateTokens.SimulationRepository.symbol) private readonly simulationRepo: IDebateRepository
   ) {}
 
   public async handle(command: CheckoutSimulationCommand): Promise<Result<CheckoutSimulationResult, NotFoundError | StorageError>> {

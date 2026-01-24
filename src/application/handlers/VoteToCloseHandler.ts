@@ -15,8 +15,8 @@ import { VoteCalculator } from '../../simulations/debate';
 import { DebateStatus } from '../../simulations/debate';
 import { ITimestampService } from '../../core/services/ITimestampService';
 import { Vote } from '../../core/value-objects/Vote';
-import { TOKENS } from '../../shared/tokens';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { Tokens } from '../../shared/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 
 export interface VoteToCloseResult {
   readonly voteAccepted: boolean;
@@ -29,10 +29,10 @@ export interface VoteToCloseResult {
 @injectable()
 export class VoteToCloseHandler implements ICommandHandler<VoteToCloseCommand, VoteToCloseResult> {
   constructor(
-    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
-    @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(DEBATE_TOKENS.VoteCalculator) private readonly voteCalculator: VoteCalculator,
-    @inject(TOKENS.TimestampService) private readonly timestampService: ITimestampService
+    @inject(DebateTokens.SimulationRepository.symbol) private readonly simulationRepo: IDebateRepository,
+    @inject(Tokens.AgentRepository.symbol) private readonly agentRepo: IAgentRepository,
+    @inject(DebateTokens.VoteCalculator.symbol) private readonly voteCalculator: VoteCalculator,
+    @inject(Tokens.TimestampService.symbol) private readonly timestampService: ITimestampService
   ) {}
 
   public async handle(command: VoteToCloseCommand): Promise<Result<VoteToCloseResult, Error>> {

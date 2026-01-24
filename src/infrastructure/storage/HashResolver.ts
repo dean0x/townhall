@@ -8,7 +8,7 @@ import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from '../../shared/result';
 import { NotFoundError, ConflictError } from '../../shared/errors';
 import { ObjectStorage } from './ObjectStorage';
-import { TOKENS } from '../../shared/container';
+import { Tokens } from '../../shared/tokens';
 
 export interface IHashResolver {
   resolveShortHash(shortHash: string, type: string): Promise<Result<string, Error>>;
@@ -17,7 +17,7 @@ export interface IHashResolver {
 @injectable()
 export class HashResolver implements IHashResolver {
   constructor(
-    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage
+    @inject(Tokens.ObjectStorage.symbol) private readonly storage: ObjectStorage
   ) {}
 
   /**

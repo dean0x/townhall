@@ -14,8 +14,8 @@ import type { IArgumentRepository, IDebateRepository } from '../../simulations/d
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { TOKENS } from '../../shared/tokens';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { Tokens } from '../../shared/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 
 export interface SubmitConcessionResult {
   readonly concessionId: ArgumentId;
@@ -27,10 +27,10 @@ export interface SubmitConcessionResult {
 @injectable()
 export class SubmitConcessionHandler implements ICommandHandler<SubmitConcessionCommand, SubmitConcessionResult> {
   constructor(
-    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
-    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
-    @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
+    @inject(DebateTokens.ArgumentRepository.symbol) private readonly argumentRepo: IArgumentRepository,
+    @inject(DebateTokens.SimulationRepository.symbol) private readonly simulationRepo: IDebateRepository,
+    @inject(Tokens.AgentRepository.symbol) private readonly agentRepo: IAgentRepository,
+    @inject(Tokens.CryptoService.symbol) private readonly cryptoService: ICryptoService
   ) {}
 
   public async handle(command: SubmitConcessionCommand): Promise<Result<SubmitConcessionResult, Error>> {

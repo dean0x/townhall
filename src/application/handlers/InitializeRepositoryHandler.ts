@@ -13,12 +13,12 @@ import { StorageError } from '../../shared/errors';
 import { ICommandHandler } from './CommandBus';
 import { InitializeRepositoryCommand } from '../commands/InitializeRepositoryCommand';
 import { IStorageInitializer } from '../ports/IStorageInitializer';
-import { TOKENS } from '../../shared/tokens';
+import { Tokens } from '../../shared/tokens';
 
 @injectable()
 export class InitializeRepositoryHandler implements ICommandHandler<InitializeRepositoryCommand, void> {
   constructor(
-    @inject(TOKENS.StorageInitializer) private readonly storage: IStorageInitializer
+    @inject(Tokens.StorageInitializer.symbol) private readonly storage: IStorageInitializer
   ) {}
 
   public async handle(_command: InitializeRepositoryCommand): Promise<Result<void, StorageError>> {

@@ -15,8 +15,8 @@ import { ICitationRepository } from '../../core/repositories/ICitationRepository
 import { ArgumentValidator, Argument, ArgumentId } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { TOKENS } from '../../shared/tokens';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { Tokens } from '../../shared/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 import { isDeductiveStructure, isInductiveStructure, isEmpiricalStructure } from '../utils/structure-guards';
 
 export interface CreateArgumentResult {
@@ -29,12 +29,12 @@ export interface CreateArgumentResult {
 @injectable()
 export class CreateArgumentHandler implements ICommandHandler<CreateArgumentCommand, CreateArgumentResult> {
   constructor(
-    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
-    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
-    @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(TOKENS.CitationRepository) private readonly citationRepo: ICitationRepository,
-    @inject(DEBATE_TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
-    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
+    @inject(DebateTokens.SimulationRepository.symbol) private readonly simulationRepo: IDebateRepository,
+    @inject(DebateTokens.ArgumentRepository.symbol) private readonly argumentRepo: IArgumentRepository,
+    @inject(Tokens.AgentRepository.symbol) private readonly agentRepo: IAgentRepository,
+    @inject(Tokens.CitationRepository.symbol) private readonly citationRepo: ICitationRepository,
+    @inject(DebateTokens.ArgumentValidator.symbol) private readonly validator: ArgumentValidator,
+    @inject(Tokens.CryptoService.symbol) private readonly cryptoService: ICryptoService
   ) {}
 
   public async handle(command: CreateArgumentCommand): Promise<Result<CreateArgumentResult, Error>> {

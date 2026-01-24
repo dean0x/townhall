@@ -7,7 +7,8 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { container } from 'tsyringe';
 import { configureContainer } from '../../src/interfaces/cli/container-config';
-import { TOKENS } from '../../src/shared/container';
+import { Tokens } from '../../src/interfaces/cli/container-config';
+import { resolve } from '../../src/shared/injection';
 import { ICommandBus } from '../../src/application/handlers/CommandBus';
 import { IQueryBus } from '../../src/application/handlers/QueryBus';
 import { InitializeDebateCommand } from '../../src/application/commands/InitializeDebateCommand';
@@ -29,8 +30,8 @@ describe('Command/Query Handler Contracts', () => {
 
     container.clearInstances();
     configureContainer();
-    commandBus = container.resolve(TOKENS.CommandBus);
-    queryBus = container.resolve(TOKENS.QueryBus);
+    commandBus = resolve(Tokens.CommandBus);
+    queryBus = resolve(Tokens.QueryBus);
   });
 
   afterEach(async () => {

@@ -21,7 +21,7 @@ import { SimulationId, SimulationIdGenerator } from '../../core/value-objects/Si
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { AgentId, AgentIdGenerator } from '../../core/value-objects/AgentId';
 import { ObjectStorage } from './ObjectStorage';
-import { TOKENS } from '../../shared/container';
+import { Tokens } from '../../shared/tokens';
 import { hasErrorCode } from './NodeSystemError';
 import { SimulationDataSchema, type SimulationData, parseStorageData } from './schemas';
 
@@ -30,7 +30,7 @@ export class FileSimulationRepository implements IDebateRepository {
   private readonly basePath: string;
 
   constructor(
-    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage,
+    @inject(Tokens.ObjectStorage.symbol) private readonly storage: ObjectStorage,
     basePath: string = '.townhall'
   ) {
     this.basePath = basePath;

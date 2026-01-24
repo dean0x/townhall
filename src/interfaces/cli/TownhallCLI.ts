@@ -13,7 +13,7 @@ import { IQueryBus } from '../../application/handlers/QueryBus';
 import { ILogger } from '../../application/ports/ILogger';
 import type { IArgumentRepository, IDebateRepository } from '../../simulations/debate/repositories';
 import type { ObjectStorage as _ObjectStorage } from '../../infrastructure/storage/ObjectStorage';
-import { TOKENS } from './container-config';
+import { Tokens } from './container-config';
 import { CommandContext } from './base/BaseCommand';
 
 // All commands with Result types
@@ -37,12 +37,12 @@ export class TownhallCLI {
   private readonly context: CommandContext;
 
   constructor(
-    @inject(TOKENS.CommandBus) private readonly commandBus: ICommandBus,
-    @inject(TOKENS.QueryBus) private readonly queryBus: IQueryBus,
-    @inject(TOKENS.Logger) private readonly logger: ILogger,
-    @inject(TOKENS.ObjectStorage) _storage: _ObjectStorage,
-    @inject(TOKENS.ArgumentRepository) private readonly argumentRepository: IArgumentRepository,
-    @inject(TOKENS.SimulationRepository) private readonly simulationRepository: IDebateRepository
+    @inject(Tokens.CommandBus.symbol) private readonly commandBus: ICommandBus,
+    @inject(Tokens.QueryBus.symbol) private readonly queryBus: IQueryBus,
+    @inject(Tokens.Logger.symbol) private readonly logger: ILogger,
+    @inject(Tokens.ObjectStorage.symbol) _storage: _ObjectStorage,
+    @inject(Tokens.ArgumentRepository.symbol) private readonly argumentRepository: IArgumentRepository,
+    @inject(Tokens.SimulationRepository.symbol) private readonly simulationRepository: IDebateRepository
   ) {
     this.program = new Command();
     this.context = {

@@ -28,17 +28,3 @@ export const DebateTokens = {
   RelationshipBuilder: createToken<RelationshipBuilder>('RelationshipBuilder'),
   VoteCalculator: createToken<VoteCalculator>('VoteCalculator'),
 } as const;
-
-/**
- * Legacy TOKENS constant for backward compatibility.
- * Maps to the symbols from the typed tokens.
- *
- * @deprecated Use DebateTokens directly with resolve() instead
- */
-export const DEBATE_TOKENS = {
-  ArgumentRepository: DebateTokens.ArgumentRepository.symbol,
-  SimulationRepository: DebateTokens.SimulationRepository.symbol,
-  ArgumentValidator: DebateTokens.ArgumentValidator.symbol,
-  RelationshipBuilder: DebateTokens.RelationshipBuilder.symbol,
-  VoteCalculator: DebateTokens.VoteCalculator.symbol,
-} as const;

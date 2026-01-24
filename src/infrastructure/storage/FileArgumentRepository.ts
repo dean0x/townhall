@@ -24,14 +24,14 @@ import { AgentId } from '../../core/value-objects/AgentId';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ICryptoService } from '../../core/services/ICryptoService';
 import { ObjectStorage } from './ObjectStorage';
-import { TOKENS } from '../../shared/container';
+import { Tokens } from '../../shared/tokens';
 import { ArgumentDataSchema, type ArgumentData, parseStorageData } from './schemas';
 
 @injectable()
 export class FileArgumentRepository implements IArgumentRepository {
   constructor(
-    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage,
-    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
+    @inject(Tokens.ObjectStorage.symbol) private readonly storage: ObjectStorage,
+    @inject(Tokens.CryptoService.symbol) private readonly cryptoService: ICryptoService
   ) {}
 
   public async save(argument: Argument): Promise<Result<ArgumentId, StorageError>> {

@@ -14,14 +14,14 @@ import { CitationType } from '../../core/value-objects/CitationType';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ObjectStorage } from './ObjectStorage';
 import { HashResolver } from './HashResolver';
-import { TOKENS } from '../../shared/container';
+import { Tokens } from '../../shared/tokens';
 import { CitationDataSchema, type CitationData, parseStorageData } from './schemas';
 
 @injectable()
 export class FileCitationRepository implements ICitationRepository {
   constructor(
-    @inject(TOKENS.ObjectStorage) private readonly storage: ObjectStorage,
-    @inject(TOKENS.HashResolver) private readonly hashResolver: HashResolver
+    @inject(Tokens.ObjectStorage.symbol) private readonly storage: ObjectStorage,
+    @inject(Tokens.HashResolver.symbol) private readonly hashResolver: HashResolver
   ) {}
 
   public async save(citation: Citation, simulationId: SimulationId): Promise<Result<CitationId, CitationStorageError>> {
