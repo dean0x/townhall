@@ -4,7 +4,7 @@
  */
 
 import 'reflect-metadata';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { container } from 'tsyringe';
 import { configureContainer } from '../../src/interfaces/cli/container-config';
 import { Tokens } from '../../src/interfaces/cli/container-config';
@@ -14,6 +14,11 @@ import { IQueryBus } from '../../src/application/handlers/QueryBus';
 import { InitializeDebateCommand } from '../../src/application/commands/InitializeDebateCommand';
 import { CreateArgumentCommand } from '../../src/application/commands/CreateArgumentCommand';
 import { GetDebateHistoryQuery } from '../../src/application/queries/GetDebateHistoryQuery';
+import type { AgentId } from '../../src/core/value-objects/AgentId';
+import { ArgumentType } from '../../src/simulations/debate';
+import type { InitializeDebateResult } from '../../src/application/handlers/InitializeDebateHandler';
+import type { CreateArgumentResult } from '../../src/application/handlers/CreateArgumentHandler';
+import type { DebateHistoryResult } from '../../src/application/handlers/GetDebateHistoryHandler';
 
 describe('Command/Query Handler Contracts', () => {
   let commandBus: ICommandBus;
@@ -60,10 +65,11 @@ describe('Command/Query Handler Contracts', () => {
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
-        expect(result.value).toHaveProperty('simulationId');
-        expect(result.value).toHaveProperty('topic');
-        expect(result.value).toHaveProperty('createdAt');
-        expect(result.value.topic).toBe('Test debate topic');
+        const value = result.value as InitializeDebateResult;
+        expect(value).toHaveProperty('simulationId');
+        expect(value).toHaveProperty('topic');
+        expect(value).toHaveProperty('createdAt');
+        expect(value.topic).toBe('Test debate topic');
       }
     });
 
@@ -85,7 +91,8 @@ describe('Command/Query Handler Contracts', () => {
 
       expect(secondResult.isOk()).toBe(true);
       if (secondResult.isOk()) {
-        expect(secondResult.value.topic).toBe('Second debate');
+        const value = secondResult.value as InitializeDebateResult;
+        expect(value.topic).toBe('Second debate');
       }
     });
   });
@@ -120,7 +127,7 @@ A test agent for contract testing.`;
     });
 
     it('should return argument details on success', async () => {
-      const agentId = 'f05482e4-324d-4b50-8be3-a49f870cd968';
+      const agentId = 'f05482e4-324d-4b50-8be3-a49f870cd968' as AgentId;
 
       // Initialize debate first
       await commandBus.execute(
@@ -130,7 +137,7 @@ A test agent for contract testing.`;
 
       const command: CreateArgumentCommand = {
         agentId,
-        type: 'deductive',
+        type: ArgumentType.DEDUCTIVE,
         content: {
           text: 'Test argument',
           structure: {
@@ -158,8 +165,8 @@ A test agent for contract testing.`;
 
     it('should require active debate', async () => {
       const command: CreateArgumentCommand = {
-        agentId: 'f05482e4-324d-4b50-8be3-a49f870cd968',
-        type: 'deductive',
+        agentId: 'f05482e4-324d-4b50-8be3-a49f870cd968' as AgentId,
+        type: ArgumentType.DEDUCTIVE,
         content: {
           text: 'Test argument',
           structure: {
@@ -199,13 +206,14 @@ A test agent for contract testing.`;
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
-        expect(result.value).toHaveProperty('simulationId');
-        expect(result.value).toHaveProperty('topic');
-        expect(result.value).toHaveProperty('status');
-        expect(result.value).toHaveProperty('arguments');
-        expect(result.value).toHaveProperty('participantCount');
-        expect(result.value).toHaveProperty('argumentCount');
-        expect(Array.isArray(result.value.arguments)).toBe(true);
+        const value = result.value as DebateHistoryResult;
+        expect(value).toHaveProperty('simulationId');
+        expect(value).toHaveProperty('topic');
+        expect(value).toHaveProperty('status');
+        expect(value).toHaveProperty('arguments');
+        expect(value).toHaveProperty('participantCount');
+        expect(value).toHaveProperty('argumentCount');
+        expect(Array.isArray(value.arguments)).toBe(true);
       }
     });
 
@@ -222,7 +230,8 @@ A test agent for contract testing.`;
       // Should succeed even with no active debate
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
-        expect(result.value.arguments).toEqual([]);
+        const value = result.value as DebateHistoryResult;
+        expect(value.arguments).toEqual([]);
       }
     });
   });
