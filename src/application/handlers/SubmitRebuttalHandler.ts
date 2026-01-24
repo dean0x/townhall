@@ -14,8 +14,8 @@ import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { ArgumentValidator, Rebuttal, ArgumentId, RelationshipBuilder } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { ICryptoService } from '../../core/services/ICryptoService';
-import { TOKENS } from '../../shared/tokens';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { Tokens } from '../../shared/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 import { isDeductiveStructure, isInductiveStructure, isEmpiricalStructure } from '../utils/structure-guards';
 
 export interface SubmitRebuttalResult {
@@ -29,12 +29,12 @@ export interface SubmitRebuttalResult {
 @injectable()
 export class SubmitRebuttalHandler implements ICommandHandler<SubmitRebuttalCommand, SubmitRebuttalResult> {
   constructor(
-    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
-    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
-    @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(DEBATE_TOKENS.ArgumentValidator) private readonly validator: ArgumentValidator,
-    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService,
-    @inject(DEBATE_TOKENS.RelationshipBuilder) private readonly relationshipBuilder: RelationshipBuilder
+    @inject(DebateTokens.ArgumentRepository.symbol) private readonly argumentRepo: IArgumentRepository,
+    @inject(DebateTokens.SimulationRepository.symbol) private readonly simulationRepo: IDebateRepository,
+    @inject(Tokens.AgentRepository.symbol) private readonly agentRepo: IAgentRepository,
+    @inject(DebateTokens.ArgumentValidator.symbol) private readonly validator: ArgumentValidator,
+    @inject(Tokens.CryptoService.symbol) private readonly cryptoService: ICryptoService,
+    @inject(DebateTokens.RelationshipBuilder.symbol) private readonly relationshipBuilder: RelationshipBuilder
   ) {}
 
   public async handle(command: SubmitRebuttalCommand): Promise<Result<SubmitRebuttalResult, Error>> {

@@ -14,8 +14,8 @@ import { ICryptoService } from '../../core/services/ICryptoService';
 import { DebateSimulation } from '../../simulations/debate';
 import { TimestampGenerator } from '../../core/value-objects/Timestamp';
 import { SimulationId } from '../../core/value-objects/SimulationId';
-import { TOKENS } from '../../shared/tokens';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { Tokens } from '../../shared/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 
 export interface InitializeDebateResult {
   readonly simulationId: SimulationId;
@@ -27,8 +27,8 @@ export interface InitializeDebateResult {
 @injectable()
 export class InitializeDebateHandler implements ICommandHandler<InitializeDebateCommand, InitializeDebateResult> {
   constructor(
-    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
-    @inject(TOKENS.CryptoService) private readonly cryptoService: ICryptoService
+    @inject(DebateTokens.SimulationRepository.symbol) private readonly simulationRepo: IDebateRepository,
+    @inject(Tokens.CryptoService.symbol) private readonly cryptoService: ICryptoService
   ) {}
 
   public async handle(command: InitializeDebateCommand): Promise<Result<InitializeDebateResult, Error>> {

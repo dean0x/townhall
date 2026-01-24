@@ -16,12 +16,12 @@ import type { SimulationId } from '../../core/value-objects/SimulationId';
 import { isPeerReviewed } from '../../core/value-objects/CitationType';
 import { IQueryHandler } from './QueryBus';
 import { ValidationError } from '../../shared/errors';
-import { TOKENS } from '../../shared/tokens';
+import { Tokens } from '../../shared/tokens';
 
 @injectable()
 export class GetCitationStatsHandler implements IQueryHandler<GetCitationStatsQuery, CitationStats> {
   constructor(
-    @inject(TOKENS.CitationRepository) private readonly citationRepo: ICitationRepository
+    @inject(Tokens.CitationRepository.symbol) private readonly citationRepo: ICitationRepository
   ) {}
 
   public async handle(query: GetCitationStatsQuery): Promise<Result<CitationStats, Error>> {

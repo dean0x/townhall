@@ -9,8 +9,8 @@
  */
 
 import { container } from 'tsyringe';
-import { TOKENS as FRAMEWORK_TOKENS, Tokens as FrameworkTokens } from '../../shared/tokens';
-import { DEBATE_TOKENS, DebateTokens } from '../../simulations/debate/tokens';
+import { Tokens as FrameworkTokens } from '../../shared/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 import { resolve } from '../../shared/injection';
 
 // Debate services
@@ -20,11 +20,6 @@ import { ArgumentValidator, RelationshipBuilder, VoteCalculator } from '../../si
  * Merged tokens for CLI use - combines framework and debate tokens.
  * This is the single place where cross-boundary token merging happens.
  */
-export const TOKENS = {
-  ...FRAMEWORK_TOKENS,
-  ...DEBATE_TOKENS,
-} as const;
-
 export const Tokens = {
   ...FrameworkTokens,
   ...DebateTokens,
@@ -61,50 +56,50 @@ import { SystemTimestampService } from '../../infrastructure/time/SystemTimestam
 
 export function configureContainer(): typeof container {
   // Core services (no dependencies)
-  container.register(TOKENS.ArgumentValidator, { useClass: ArgumentValidator });
-  container.register(TOKENS.RelationshipBuilder, { useClass: RelationshipBuilder });
-  container.register(TOKENS.VoteCalculator, { useClass: VoteCalculator });
+  container.register(Tokens.ArgumentValidator.symbol, { useClass: ArgumentValidator });
+  container.register(Tokens.RelationshipBuilder.symbol, { useClass: RelationshipBuilder });
+  container.register(Tokens.VoteCalculator.symbol, { useClass: VoteCalculator });
 
   // Infrastructure - Application ports
-  container.register(TOKENS.CryptoService, { useClass: NodeCryptoService });
-  container.register(TOKENS.TimestampService, { useClass: SystemTimestampService });
+  container.register(Tokens.CryptoService.symbol, { useClass: NodeCryptoService });
+  container.register(Tokens.TimestampService.symbol, { useClass: SystemTimestampService });
 
   // Infrastructure - Storage and repositories
   const objectStorage = new ObjectStorage('.townhall');
-  container.register(TOKENS.ObjectStorage, {
+  container.register(Tokens.ObjectStorage.symbol, {
     useValue: objectStorage
   });
   // Register ObjectStorage as IStorageInitializer for application layer
-  container.register(TOKENS.StorageInitializer, {
+  container.register(Tokens.StorageInitializer.symbol, {
     useValue: objectStorage
   });
-  container.register(TOKENS.HashResolver, { useClass: HashResolver });
-  container.register(TOKENS.ArgumentRepository, { useClass: FileArgumentRepository });
-  container.register(TOKENS.SimulationRepository, { useClass: FileSimulationRepository });
-  container.register(TOKENS.AgentRepository, { useClass: FileAgentRepository });
-  container.register(TOKENS.CitationRepository, { useClass: FileCitationRepository });
-  container.register(TOKENS.EventBus, { useClass: InMemoryEventBus });
-  container.register(TOKENS.Logger, {
+  container.register(Tokens.HashResolver.symbol, { useClass: HashResolver });
+  container.register(Tokens.ArgumentRepository.symbol, { useClass: FileArgumentRepository });
+  container.register(Tokens.SimulationRepository.symbol, { useClass: FileSimulationRepository });
+  container.register(Tokens.AgentRepository.symbol, { useClass: FileAgentRepository });
+  container.register(Tokens.CitationRepository.symbol, { useClass: FileCitationRepository });
+  container.register(Tokens.EventBus.symbol, { useClass: InMemoryEventBus });
+  container.register(Tokens.Logger.symbol, {
     useFactory: () => new StructuredLogger({ component: 'townhall-cli' })
   });
 
   // Application layer - handlers
-  container.register(TOKENS.InitializeRepositoryHandler, { useClass: InitializeRepositoryHandler });
-  container.register(TOKENS.InitializeDebateHandler, { useClass: InitializeDebateHandler });
-  container.register(TOKENS.CreateArgumentHandler, { useClass: CreateArgumentHandler });
-  container.register(TOKENS.GetDebateHistoryHandler, { useClass: GetDebateHistoryHandler });
-  container.register(TOKENS.SubmitRebuttalHandler, { useClass: SubmitRebuttalHandler });
-  container.register(TOKENS.SubmitConcessionHandler, { useClass: SubmitConcessionHandler });
-  container.register(TOKENS.VoteToCloseHandler, { useClass: VoteToCloseHandler });
-  container.register(TOKENS.CheckoutSimulationHandler, { useClass: CheckoutSimulationHandler });
-  container.register(TOKENS.GetArgumentHandler, { useClass: GetArgumentHandler });
-  container.register(TOKENS.GetArgumentChainHandler, { useClass: GetArgumentChainHandler });
-  container.register(TOKENS.CreateCitationHandler, { useClass: CreateCitationHandler });
-  container.register(TOKENS.GetCitationHandler, { useClass: GetCitationHandler });
-  container.register(TOKENS.GetCitationStatsHandler, { useClass: GetCitationStatsHandler });
+  container.register(Tokens.InitializeRepositoryHandler.symbol, { useClass: InitializeRepositoryHandler });
+  container.register(Tokens.InitializeDebateHandler.symbol, { useClass: InitializeDebateHandler });
+  container.register(Tokens.CreateArgumentHandler.symbol, { useClass: CreateArgumentHandler });
+  container.register(Tokens.GetDebateHistoryHandler.symbol, { useClass: GetDebateHistoryHandler });
+  container.register(Tokens.SubmitRebuttalHandler.symbol, { useClass: SubmitRebuttalHandler });
+  container.register(Tokens.SubmitConcessionHandler.symbol, { useClass: SubmitConcessionHandler });
+  container.register(Tokens.VoteToCloseHandler.symbol, { useClass: VoteToCloseHandler });
+  container.register(Tokens.CheckoutSimulationHandler.symbol, { useClass: CheckoutSimulationHandler });
+  container.register(Tokens.GetArgumentHandler.symbol, { useClass: GetArgumentHandler });
+  container.register(Tokens.GetArgumentChainHandler.symbol, { useClass: GetArgumentChainHandler });
+  container.register(Tokens.CreateCitationHandler.symbol, { useClass: CreateCitationHandler });
+  container.register(Tokens.GetCitationHandler.symbol, { useClass: GetCitationHandler });
+  container.register(Tokens.GetCitationStatsHandler.symbol, { useClass: GetCitationStatsHandler });
 
   // Application layer - buses with handler registration
-  container.register(TOKENS.CommandBus, {
+  container.register(Tokens.CommandBus.symbol, {
     useFactory: () => {
       const commandBus = new CommandBus();
       // Register command handlers (using typed resolve for type safety)
@@ -120,7 +115,7 @@ export function configureContainer(): typeof container {
     }
   });
 
-  container.register(TOKENS.QueryBus, {
+  container.register(Tokens.QueryBus.symbol, {
     useFactory: () => {
       const queryBus = new QueryBus();
       // Register query handlers (using typed resolve for type safety)

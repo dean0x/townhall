@@ -11,7 +11,7 @@ import { IQueryHandler } from './QueryBus';
 import { GetArgumentQuery } from '../queries/GetArgumentQuery';
 import type { IArgumentRepository } from '../../simulations/debate/repositories';
 import { Argument, ArgumentId } from '../../simulations/debate';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 
 export interface GetArgumentResult {
   readonly argument: Argument;
@@ -25,7 +25,7 @@ export interface GetArgumentResult {
 @injectable()
 export class GetArgumentHandler implements IQueryHandler<GetArgumentQuery, GetArgumentResult> {
   constructor(
-    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository
+    @inject(DebateTokens.ArgumentRepository.symbol) private readonly argumentRepo: IArgumentRepository
   ) {}
 
   public async handle(query: GetArgumentQuery): Promise<Result<GetArgumentResult, NotFoundError>> {

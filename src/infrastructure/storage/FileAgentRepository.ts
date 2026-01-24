@@ -14,7 +14,7 @@ import { ILogger } from '../../application/ports/ILogger';
 import { Agent } from '../../core/entities/Agent';
 import { AgentId } from '../../core/value-objects/AgentId';
 import { AgentFileParser } from './AgentFileParser';
-import { TOKENS } from '../../shared/container';
+import { Tokens } from '../../shared/tokens';
 import { hasErrorCode, isNodeSystemError } from './NodeSystemError';
 
 @injectable()
@@ -27,7 +27,7 @@ export class FileAgentRepository implements IAgentRepository {
   private fileTimestamps: Map<string, number>; // Track mtime for cache invalidation
 
   constructor(
-    @inject(TOKENS.Logger) logger: ILogger,
+    @inject(Tokens.Logger.symbol) logger: ILogger,
     basePath: string = '.townhall'
   ) {
     this.basePath = resolve(basePath);

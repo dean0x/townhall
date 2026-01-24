@@ -138,8 +138,8 @@ Process commands and queries:
 @injectable()
 export class CreateArgumentHandler implements ICommandHandler<CreateArgumentCommand, CreateArgumentResult> {
   constructor(
-    @inject(TOKENS.ArgumentRepository) private argumentRepo: IArgumentRepository,
-    @inject(TOKENS.ArgumentValidator) private validator: IArgumentValidator
+    @inject(Tokens.ArgumentRepository.symbol) private argumentRepo: IArgumentRepository,
+    @inject(Tokens.ArgumentValidator.symbol) private validator: IArgumentValidator
   ) {}
 
   async handle(command: CreateArgumentCommand): Promise<Result<CreateArgumentResult, Error>> {
@@ -197,7 +197,7 @@ export class ObjectStorage {
 @injectable()
 export class FileArgumentRepository implements IArgumentRepository {
   constructor(
-    @inject(TOKENS.ObjectStorage) private storage: ObjectStorage
+    @inject(Tokens.ObjectStorage.symbol) private storage: ObjectStorage
   ) {}
 
   async save(argument: Argument): Promise<Result<ArgumentId, StorageError>> {
@@ -256,22 +256,22 @@ export class ArgumentCommand {
 // src/interfaces/cli/container-config.ts
 export function configureContainer(): typeof container {
   // Core services
-  container.register(TOKENS.ArgumentValidator, { useClass: ArgumentValidator });
+  container.register(Tokens.ArgumentValidator.symbol, { useClass: ArgumentValidator });
 
   // Infrastructure
-  container.register(TOKENS.ObjectStorage, {
+  container.register(Tokens.ObjectStorage.symbol, {
     useFactory: () => new ObjectStorage('.townhall')
   });
-  container.register(TOKENS.ArgumentRepository, { useClass: FileArgumentRepository });
+  container.register(Tokens.ArgumentRepository.symbol, { useClass: FileArgumentRepository });
 
   // Application handlers
-  container.register(TOKENS.CreateArgumentHandler, { useClass: CreateArgumentHandler });
+  container.register(Tokens.CreateArgumentHandler.symbol, { useClass: CreateArgumentHandler });
 
   // Command bus with handler registration
-  container.register(TOKENS.CommandBus, {
+  container.register(Tokens.CommandBus.symbol, {
     useFactory: () => {
       const bus = new CommandBus();
-      bus.register('CreateArgumentCommand', container.resolve(TOKENS.CreateArgumentHandler));
+      bus.register('CreateArgumentCommand', resolve(Tokens.CreateArgumentHandler));
       return bus;
     }
   });

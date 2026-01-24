@@ -13,12 +13,12 @@ import { CitationId } from '../../core/value-objects/CitationId';
 import { ICitationRepository } from '../../core/repositories/ICitationRepository';
 import { IQueryHandler } from './QueryBus';
 import { NotFoundError, ValidationError } from '../../shared/errors';
-import { TOKENS } from '../../shared/tokens';
+import { Tokens } from '../../shared/tokens';
 
 @injectable()
 export class GetCitationHandler implements IQueryHandler<GetCitationQuery, Citation> {
   constructor(
-    @inject(TOKENS.CitationRepository) private readonly citationRepo: ICitationRepository
+    @inject(Tokens.CitationRepository.symbol) private readonly citationRepo: ICitationRepository
   ) {}
 
   public async handle(query: GetCitationQuery): Promise<Result<Citation, Error>> {

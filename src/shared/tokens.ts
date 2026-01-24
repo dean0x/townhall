@@ -101,48 +101,5 @@ const FrameworkTokens = {
 /**
  * Framework-level typed injection tokens.
  * Simulation-specific tokens should be imported directly from their modules.
- *
- * Use these instead of the legacy Symbol-based TOKENS.
  */
 export const Tokens = FrameworkTokens;
-
-/**
- * Legacy TOKENS constant for backward compatibility during migration.
- * Maps to the symbols from the typed tokens.
- *
- * NOTE: Debate tokens are NOT included here. Import them directly from
- * simulations/debate/tokens or use the merged exports from container-config.
- *
- * @deprecated Use Tokens directly with resolve() instead
- */
-export const TOKENS = {
-  // Framework tokens
-  AgentRepository: FrameworkTokens.AgentRepository.symbol,
-  CitationRepository: FrameworkTokens.CitationRepository.symbol,
-  CryptoService: FrameworkTokens.CryptoService.symbol,
-  TimestampService: FrameworkTokens.TimestampService.symbol,
-  ObjectStorage: FrameworkTokens.ObjectStorage.symbol,
-  EventBus: FrameworkTokens.EventBus.symbol,
-  Logger: FrameworkTokens.Logger.symbol,
-  HashResolver: FrameworkTokens.HashResolver.symbol,
-  StorageInitializer: FrameworkTokens.StorageInitializer.symbol,
-  CommandBus: FrameworkTokens.CommandBus.symbol,
-  QueryBus: FrameworkTokens.QueryBus.symbol,
-  InitializeRepositoryHandler: FrameworkTokens.InitializeRepositoryHandler.symbol,
-  InitializeDebateHandler: FrameworkTokens.InitializeDebateHandler.symbol,
-  CreateArgumentHandler: FrameworkTokens.CreateArgumentHandler.symbol,
-  SubmitRebuttalHandler: FrameworkTokens.SubmitRebuttalHandler.symbol,
-  SubmitConcessionHandler: FrameworkTokens.SubmitConcessionHandler.symbol,
-  VoteToCloseHandler: FrameworkTokens.VoteToCloseHandler.symbol,
-  CheckoutSimulationHandler: FrameworkTokens.CheckoutSimulationHandler.symbol,
-  CreateCitationHandler: FrameworkTokens.CreateCitationHandler.symbol,
-  GetDebateHistoryHandler: FrameworkTokens.GetDebateHistoryHandler.symbol,
-  GetArgumentHandler: FrameworkTokens.GetArgumentHandler.symbol,
-  GetArgumentChainHandler: FrameworkTokens.GetArgumentChainHandler.symbol,
-  GetCitationHandler: FrameworkTokens.GetCitationHandler.symbol,
-  GetCitationStatsHandler: FrameworkTokens.GetCitationStatsHandler.symbol,
-  // Legacy token not yet typed
-  IndexManager: Symbol.for('IndexManager'),
-} as const;
-
-export type TokenType = typeof TOKENS[keyof typeof TOKENS];

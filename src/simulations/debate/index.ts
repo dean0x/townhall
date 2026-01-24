@@ -92,4 +92,4 @@ export { DebateTypeInfo, DebateSimulationTypeConfig } from './DebateConfig';
 export { registerDebateSimulationType } from './register';
 
 // Dependency Injection Tokens
-export { DebateTokens, DEBATE_TOKENS } from './tokens';
+export { DebateTokens } from './tokens';

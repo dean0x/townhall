@@ -12,8 +12,8 @@ import type { IDebateRepository, IArgumentRepository } from '../../simulations/d
 import { IAgentRepository } from '../../core/repositories/IAgentRepository';
 import { RelationshipBuilder, type ArgumentRelationship } from '../../simulations/debate';
 import { Argument, Rebuttal, Concession } from '../../simulations/debate';
-import { TOKENS } from '../../shared/tokens';
-import { DEBATE_TOKENS } from '../../simulations/debate/tokens';
+import { Tokens } from '../../shared/tokens';
+import { DebateTokens } from '../../simulations/debate/tokens';
 
 export interface ArgumentSummary {
   readonly id: string;
@@ -38,10 +38,10 @@ export interface DebateHistoryResult {
 @injectable()
 export class GetDebateHistoryHandler implements IQueryHandler<GetDebateHistoryQuery, DebateHistoryResult> {
   constructor(
-    @inject(DEBATE_TOKENS.SimulationRepository) private readonly simulationRepo: IDebateRepository,
-    @inject(DEBATE_TOKENS.ArgumentRepository) private readonly argumentRepo: IArgumentRepository,
-    @inject(TOKENS.AgentRepository) private readonly agentRepo: IAgentRepository,
-    @inject(DEBATE_TOKENS.RelationshipBuilder) _relationshipBuilder: RelationshipBuilder
+    @inject(DebateTokens.SimulationRepository.symbol) private readonly simulationRepo: IDebateRepository,
+    @inject(DebateTokens.ArgumentRepository.symbol) private readonly argumentRepo: IArgumentRepository,
+    @inject(Tokens.AgentRepository.symbol) private readonly agentRepo: IAgentRepository,
+    @inject(DebateTokens.RelationshipBuilder.symbol) _relationshipBuilder: RelationshipBuilder
   ) {}
 
   public async handle(query: GetDebateHistoryQuery): Promise<Result<DebateHistoryResult, Error>> {
