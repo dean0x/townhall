@@ -162,11 +162,7 @@ describe('ProposalIdGenerator', () => {
     });
 
     it('should be case-sensitive when matching', () => {
-      const ids = [validHash.toLowerCase()] as ProposalId[];
-      const result = ProposalIdGenerator.expandShortHash(validHash.toUpperCase().slice(0, 3), ids);
-      // Depends on whether the hash is stored in lowercase
-      // Since validHash is 'a'.repeat(64), upper/lower doesn't matter here
-      // Let's test with a more specific case
+      // Test with mixed case ID to verify case sensitivity
       const mixedIds = ['abcdef'.padEnd(64, '0')] as ProposalId[];
       const upperResult = ProposalIdGenerator.expandShortHash('ABC', mixedIds);
       expect(upperResult).toBeNull(); // Should not match lowercase
